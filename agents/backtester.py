@@ -97,6 +97,7 @@ class BacktestResult:
     # Time series
     equity_curve: list[float]
     drawdown_curve: list[float]
+    daily_returns: list[float]
     trades: list[Trade]
 
     def summary(self) -> str:
@@ -447,6 +448,7 @@ class Backtester:
             consensus_rate=0.8,
             equity_curve=equity_curve,
             drawdown_curve=dd_curve,
+            daily_returns=daily_returns,
             trades=trades,
         )
 
