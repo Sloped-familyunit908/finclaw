@@ -29,3 +29,5 @@ venv/
 
 # Logs
 *.log
+node_modules/
+.next/
