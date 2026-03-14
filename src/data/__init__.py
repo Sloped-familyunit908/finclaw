@@ -1,0 +1,1 @@
+# WhaleTrader Data Pipeline

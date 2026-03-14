@@ -1,0 +1,62 @@
+# WhaleTrader Strategy: Golden Cross Momentum
+# A beginner-friendly AI-enhanced strategy
+
+apiVersion: whale/v1
+kind: Strategy
+
+metadata:
+  name: golden-cross-momentum
+  version: 1.0.0
+  author: whale-trader
+  description: >
+    Classic golden cross strategy enhanced with AI confirmation.
+    Buys when SMA50 crosses above SMA200, sells on death cross.
+    AI agents validate macro conditions before execution.
+  tags:
+    - crypto
+    - momentum
+    - ai-enhanced
+    - beginner-friendly
+  license: MIT
+
+spec:
+  assets:
+    type: crypto
+    symbols:
+      - BTC
+      - ETH
+      - SOL
+
+  timeframe: 1d
+
+  agents:
+    - value
+    - momentum
+
+  entry:
+    rules:
+      - indicator: sma_cross
+        fast: 50
+        slow: 200
+        direction: above
+
+      - indicator: rsi
+        period: 14
+        condition: between
+        min: 30
+        max: 70
+
+    ai_confirm: true
+    ai_min_confidence: 0.6
+
+  exit:
+    take_profit: 0.15
+    stop_loss: 0.05
+    trailing_stop: 0.03
+    max_hold_days: 30
+
+  risk:
+    max_position_pct: 0.20
+    max_positions: 3
+    max_daily_loss_pct: 0.05
+    max_drawdown_pct: 0.15
