@@ -1,0 +1,62 @@
+apiVersion: whale/v1
+kind: Strategy
+metadata:
+  name: dca-smart
+  version: 1.0.0
+  author: lobster-labs
+  description: |
+    Smart Dollar-Cost Averaging.
+    Enhanced DCA that buys more when price is lower (value averaging)
+    and less when price is higher. Uses RSI to adjust buy size.
+    Perfect for long-term holders who want to optimize entry.
+  tags: [crypto, dca, long-term, beginner-friendly]
+  difficulty: beginner
+
+spec:
+  assets:
+    type: crypto
+    symbols: [BTC, ETH]
+  timeframe: 1d
+
+  agents: [value]
+
+  indicators:
+    - name: rsi
+      type: rsi
+      period: 14
+    - name: sma_200
+      type: sma
+      period: 200
+    - name: distance_sma200
+      type: custom
+      formula: (price - sma_200) / sma_200
+
+  schedule:
+    frequency: weekly
+    day: monday
+
+  entry:
+    logic: ALWAYS   # DCA always buys, but adjusts size
+    position_sizing:
+      base_amount_usd: 100
+      multipliers:
+        - condition: rsi < 30     # Extreme fear
+          multiplier: 2.0         # Buy 2x
+        - condition: rsi < 40     # Fear
+          multiplier: 1.5
+        - condition: rsi > 70     # Greed
+          multiplier: 0.5         # Buy 0.5x
+        - condition: rsi > 80     # Extreme greed
+          multiplier: 0.25
+        - condition: price < sma_200  # Below 200 SMA
+          multiplier: 1.5
+
+  exit:
+    strategy: hold    # DCA doesn't sell
+    optional_profit_taking:
+      enabled: false
+      threshold: 0.50  # Take 25% profit at 50% gain
+
+  risk:
+    max_total_investment: 10000
+    max_position_pct: 1.0    # All-in is OK for DCA

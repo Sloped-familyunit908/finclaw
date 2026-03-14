@@ -1,0 +1,65 @@
+apiVersion: whale/v1
+kind: Strategy
+metadata:
+  name: macd-divergence
+  version: 1.0.0
+  author: lobster-labs
+  description: |
+    MACD Divergence Strategy.
+    Detects bullish/bearish divergence between price and MACD.
+    One of the most reliable reversal signals in technical analysis.
+  tags: [crypto, divergence, reversal]
+  difficulty: intermediate
+
+spec:
+  assets:
+    type: crypto
+    symbols: [BTC, ETH, SOL, AVAX, LINK]
+  timeframe: 1d
+
+  agents: [quant]
+
+  indicators:
+    - name: macd
+      type: macd
+      fast: 12
+      slow: 26
+      signal: 9
+    - name: rsi
+      type: rsi
+      period: 14
+    - name: sma_50
+      type: sma
+      period: 50
+
+  entry:
+    bullish_divergence:
+      logic: AND
+      rules:
+        - indicator: price
+          field: lows
+          condition: lower_low   # Price makes lower low
+        - indicator: macd
+          field: histogram
+          condition: higher_low  # MACD makes higher low → divergence
+        - indicator: macd
+          field: signal_cross
+          condition: bullish     # MACD crosses above signal
+    bearish_divergence:
+      logic: AND
+      rules:
+        - indicator: price
+          field: highs
+          condition: higher_high
+        - indicator: macd
+          field: histogram
+          condition: lower_high
+
+  exit:
+    take_profit: 0.08
+    stop_loss: 0.04
+    trailing_stop: 0.05
+
+  risk:
+    max_position_pct: 0.15
+    max_drawdown_halt: -0.10

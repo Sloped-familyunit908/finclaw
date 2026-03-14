@@ -1,0 +1,61 @@
+apiVersion: whale/v1
+kind: Strategy
+metadata:
+  name: volume-profile-breakout
+  version: 1.0.0
+  author: lobster-labs
+  description: |
+    Volume Profile Breakout.
+    Identifies high-volume price levels (Value Area) and trades
+    breakouts from the range. Inspired by TPO/Market Profile.
+  tags: [crypto, volume, breakout]
+  difficulty: advanced
+
+spec:
+  assets:
+    type: crypto
+    symbols: [BTC, ETH, SOL]
+  timeframe: 4h
+
+  agents: [quant, macro]
+
+  indicators:
+    - name: vwap
+      type: vwap
+      period: 20
+    - name: volume_sma
+      type: sma
+      source: volume
+      period: 20
+    - name: atr
+      type: atr
+      period: 14
+    - name: obv
+      type: obv    # On-Balance Volume
+
+  entry:
+    logic: AND
+    rules:
+      - indicator: price
+        condition: crosses_above
+        value: vwap     # Break above VWAP
+      - indicator: volume
+        condition: above
+        threshold_multiplier: 2.0
+        reference: volume_sma    # 2x average volume
+      - indicator: obv
+        field: trend
+        condition: bullish       # Volume supporting move
+
+  exit:
+    take_profit: 0.10
+    stop_loss: 0.03
+    trailing_stop: 0.05
+    rules:
+      - indicator: price
+        condition: crosses_below
+        value: vwap
+
+  risk:
+    max_position_pct: 0.15
+    max_drawdown_halt: -0.08

@@ -1,0 +1,50 @@
+apiVersion: whale/v1
+kind: Strategy
+metadata:
+  name: grid-trading
+  version: 1.0.0
+  author: lobster-labs
+  description: |
+    Grid Trading Strategy.
+    Places buy/sell orders at fixed price intervals.
+    Profits from range-bound markets. Classic market-making approach.
+  tags: [crypto, grid, market-making, range]
+  difficulty: intermediate
+
+spec:
+  assets:
+    type: crypto
+    symbols: [BTC, ETH]
+  timeframe: 1h
+
+  agents: [quant]
+
+  parameters:
+    grid_levels: 10           # Number of grid levels
+    grid_spacing_pct: 0.02    # 2% between each level
+    order_size_pct: 0.10      # 10% of capital per grid
+    range_type: arithmetic    # arithmetic | geometric
+
+  grid:
+    setup: dynamic            # Recalculate on restart
+    center: current_price     # Center grid at current price
+    upper_bound_pct: 0.10     # 10% above center
+    lower_bound_pct: -0.10    # 10% below center
+    
+    on_buy_fill:
+      action: place_sell
+      offset_pct: 0.02        # Sell 2% above buy price
+    
+    on_sell_fill:
+      action: place_buy
+      offset_pct: -0.02       # Buy 2% below sell price
+
+  exit:
+    emergency_stop: -0.15     # Close all if total loss > 15%
+    breakout_exit:
+      condition: price_outside_grid
+      action: close_all       # Exit if price breaks grid range
+
+  risk:
+    max_position_pct: 0.80    # Grid can use up to 80% capital
+    max_drawdown_halt: -0.12

@@ -1,0 +1,62 @@
+apiVersion: whale/v1
+kind: Strategy
+metadata:
+  name: bollinger-squeeze
+  version: 1.0.0
+  author: lobster-labs
+  description: |
+    Bollinger Band Squeeze Strategy.
+    Buys when price breaks above upper band after a squeeze,
+    sells when it breaks below lower band.
+    Squeeze = Bandwidth < 20-day average bandwidth.
+  tags: [crypto, volatility, mean-reversion]
+  difficulty: intermediate
+
+spec:
+  assets:
+    type: crypto
+    symbols: [BTC, ETH, SOL]
+  timeframe: 1d
+
+  agents: [quant]
+
+  indicators:
+    - name: bb
+      type: bollinger_bands
+      period: 20
+      std_dev: 2.0
+    - name: atr
+      type: atr
+      period: 14
+    - name: volume_sma
+      type: sma
+      source: volume
+      period: 20
+
+  entry:
+    logic: AND
+    rules:
+      - indicator: bb
+        field: bandwidth
+        condition: below
+        value: bb.bandwidth_sma_20  # Squeeze detected
+      - indicator: price
+        condition: crosses_above
+        value: bb.upper
+      - indicator: volume
+        condition: above
+        threshold_multiplier: 1.5
+        reference: volume_sma
+
+  exit:
+    take_profit: 0.08
+    stop_loss: 0.03
+    trailing_stop: 0.04
+    rules:
+      - indicator: price
+        condition: crosses_below
+        value: bb.middle
+
+  risk:
+    max_position_pct: 0.15
+    max_drawdown_halt: -0.10

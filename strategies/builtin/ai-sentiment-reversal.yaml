@@ -1,0 +1,76 @@
+apiVersion: whale/v1
+kind: Strategy
+metadata:
+  name: ai-sentiment-reversal
+  version: 1.0.0
+  author: lobster-labs
+  description: |
+    AI Sentiment Reversal Strategy.
+    Uses AI agents to gauge market sentiment and trades reversals
+    when sentiment reaches extremes (Fear & Greed).
+    Requires AI client for sentiment analysis.
+  tags: [crypto, sentiment, ai, reversal]
+  difficulty: expert
+  requires_ai: true
+
+spec:
+  assets:
+    type: crypto
+    symbols: [BTC]
+  timeframe: 1d
+
+  agents: [value, quant, macro, sentiment]
+  debate_rounds: 2
+  min_debate_confidence: 0.65
+
+  indicators:
+    - name: rsi
+      type: rsi
+      period: 14
+    - name: sma_200
+      type: sma
+      period: 200
+    - name: fear_greed
+      type: external
+      source: alternative.me/crypto/fear-and-greed-index
+
+  entry:
+    extreme_fear_buy:
+      logic: AND
+      rules:
+        - indicator: fear_greed
+          condition: below
+          threshold: 20          # Extreme fear
+        - indicator: rsi
+          condition: below
+          threshold: 35          # Oversold
+        - indicator: debate
+          field: consensus
+          condition: equals
+          value: buy             # AI agents agree to buy
+    extreme_greed_sell:
+      logic: AND
+      rules:
+        - indicator: fear_greed
+          condition: above
+          threshold: 80
+        - indicator: rsi
+          condition: above
+          threshold: 70
+        - indicator: debate
+          field: consensus
+          condition: equals
+          value: sell
+
+  exit:
+    take_profit: 0.12
+    stop_loss: 0.05
+    time_stop_days: 21          # Max 3 weeks per trade
+
+  risk:
+    max_position_pct: 0.15
+    scaling: true               # Scale in 3 tranches
+    scale_levels: [0.33, 0.33, 0.34]
+    scale_conditions:
+      - price_drop_pct: 0.03   # Add 33% more if drops 3%
+      - price_drop_pct: 0.06   # Add 33% more if drops 6%

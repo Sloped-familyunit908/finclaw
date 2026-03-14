@@ -1,0 +1,82 @@
+apiVersion: whale/v1
+kind: Strategy
+metadata:
+  name: multi-timeframe-trend
+  version: 1.0.0
+  author: lobster-labs
+  description: |
+    Multi-Timeframe Trend Following.
+    Uses weekly trend for direction, daily for entry timing.
+    Only takes trades in the direction of the higher timeframe trend.
+    Professional-grade trend following used by CTAs.
+  tags: [crypto, trend-following, multi-timeframe]
+  difficulty: advanced
+
+spec:
+  assets:
+    type: crypto
+    symbols: [BTC, ETH]
+  timeframes:
+    primary: 1d    # Entry signals
+    higher: 1w     # Trend filter
+
+  agents: [value, quant, macro]
+
+  indicators:
+    - name: ema_fast
+      type: ema
+      period: 21
+    - name: ema_slow
+      type: ema
+      period: 55
+    - name: weekly_ema
+      type: ema
+      period: 21
+      timeframe: 1w
+    - name: adx
+      type: adx
+      period: 14
+    - name: rsi
+      type: rsi
+      period: 14
+
+  entry:
+    long:
+      logic: AND
+      rules:
+        - indicator: weekly_ema
+          field: trend
+          condition: bullish    # Price above weekly EMA
+        - indicator: ema_fast
+          condition: crosses_above
+          value: ema_slow       # Daily golden cross
+        - indicator: adx
+          condition: above
+          threshold: 25         # Strong trend
+        - indicator: rsi
+          condition: between
+          low: 40
+          high: 70              # Not overbought
+    short:
+      logic: AND
+      rules:
+        - indicator: weekly_ema
+          field: trend
+          condition: bearish
+        - indicator: ema_fast
+          condition: crosses_below
+          value: ema_slow
+        - indicator: adx
+          condition: above
+          threshold: 25
+
+  exit:
+    take_profit: 0.15
+    stop_loss: 0.05
+    trailing_stop: 0.06
+    time_stop_days: 30
+
+  risk:
+    max_position_pct: 0.20
+    max_drawdown_halt: -0.12
+    require_debate_confidence: 0.60
