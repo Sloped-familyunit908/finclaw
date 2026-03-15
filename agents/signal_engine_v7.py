@@ -489,3 +489,54 @@ def _stdev_s(values):
 
 def _clamp(v, lo, hi):
     return max(lo, min(hi, v))
+
+def _adx(prices, period=14):
+    """Average Directional Index — measures trend strength (0-100).
+    ADX > 25 = strong trend, ADX < 20 = ranging/weak trend."""
+    n = len(prices)
+    if n < period + 2: return 25.0  # neutral default
+
+    # +DM / -DM
+    plus_dm = []
+    minus_dm = []
+    tr_list = []
+    for i in range(1, n):
+        high_diff = prices[i] - prices[i-1]  # simplified (no H/L)
+        low_diff = prices[i-1] - prices[i]
+        tr = abs(prices[i] - prices[i-1])
+        
+        pdm = max(high_diff, 0) if high_diff > low_diff else 0
+        mdm = max(low_diff, 0) if low_diff > high_diff else 0
+        
+        plus_dm.append(pdm)
+        minus_dm.append(mdm)
+        tr_list.append(max(tr, 0.001))
+
+    # Smoothed averages (Wilder smoothing)
+    atr_smooth = sum(tr_list[:period]) / period
+    pdm_smooth = sum(plus_dm[:period]) / period
+    mdm_smooth = sum(minus_dm[:period]) / period
+
+    dx_list = []
+    for j in range(period, len(tr_list)):
+        atr_smooth = atr_smooth - atr_smooth / period + tr_list[j]
+        pdm_smooth = pdm_smooth - pdm_smooth / period + plus_dm[j]
+        mdm_smooth = mdm_smooth - mdm_smooth / period + minus_dm[j]
+
+        if atr_smooth == 0:
+            continue
+        pdi = pdm_smooth / atr_smooth * 100
+        mdi = mdm_smooth / atr_smooth * 100
+
+        di_sum = pdi + mdi
+        if di_sum == 0:
+            continue
+        dx = abs(pdi - mdi) / di_sum * 100
+        dx_list.append(dx)
+
+    if not dx_list:
+        return 25.0
+
+    # ADX = smoothed average of DX
+    adx_val = sum(dx_list[-period:]) / min(len(dx_list), period)
+    return adx_val

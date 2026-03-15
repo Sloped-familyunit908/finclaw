@@ -251,6 +251,15 @@ class BacktesterV7:
                     else:
                         pos_size_pct = min(sig.position_size, self.max_portfolio_exposure)
 
+                    # Hot-hand / cold-hand adjustment based on recent trades
+                    if len(trades) >= 3:
+                        recent = trades[-3:]
+                        recent_wr = sum(1 for t in recent if t.pnl > 0) / 3
+                        if recent_wr >= 0.67:  # 2/3 or 3/3 recent wins
+                            pos_size_pct = min(pos_size_pct * 1.10, 0.95)
+                        elif recent_wr <= 0.33 and consecutive_losses >= 2:
+                            pos_size_pct *= 0.80  # reduce after losing streak
+
                     trade_amount = capital * pos_size_pct
                     if trade_amount < capital * 0.03:
                         continue
