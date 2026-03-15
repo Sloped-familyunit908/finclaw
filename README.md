@@ -1,5 +1,7 @@
 # 🐋 WhaleTrader — AI Trading Engine
 
+**[English](README.md)** | **[中文](docs/README_zh.md)** | **[日本語](docs/README_ja.md)** | **[한국어](docs/README_ko.md)** | **[Français](docs/README_fr.md)**
+
 > **The first AI trading engine with verified, reproducible alpha.**
 > Built with institutional-grade engineering by a Microsoft Principal Engineer.
 
@@ -29,7 +31,20 @@ Unlike "AI trading" projects that generate signals and hope for the best, WhaleT
 
 ## 📊 Performance
 
-### Trading Engine (v7)
+### Global Multi-Market Results (38 real stocks)
+
+| Market | Stocks | WT Alpha | AHF Alpha | Gap | WT Wins |
+|--------|:------:|:--------:|:---------:|:---:|:-------:|
+| 🇺🇸 US | 10 | -15.3% | -25.5% | **+10.2%** | **8/10** |
+| 🇨🇳 China A-shares | 8 | -11.9% | -15.8% | **+3.8%** | 4/8 |
+| 🇭🇰 Hong Kong | 8 | +9.5% | +8.9% | **+0.6%** | 4/8 |
+| 🇰🇷 Korea | 6 | -47.3% | -102.5% | **+55.2%** | **4/6** |
+| 🇯🇵 Japan | 6 | -1.4% | -17.7% | **+16.3%** | **5/6** |
+| **🌍 Global** | **38** | **-12.2%** | **-27.2%** | **+14.9%** | **25/38** |
+
+*AHF simulated using actual [ai-hedge-fund](https://github.com/virattt/ai-hedge-fund) technical analysis logic, not random simulation.*
+
+### Trading Engine (v7) — Simulated Benchmark
 ```
 Average Alpha:     +15.28%  (vs Buy & Hold)
 Average Max DD:    -21.49%
