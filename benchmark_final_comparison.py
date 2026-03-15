@@ -1,5 +1,5 @@
 """
-WhaleTrader vs AHF — FINAL COMPREHENSIVE COMPARISON
+FinClaw vs AHF — FINAL COMPREHENSIVE COMPARISON
 =====================================================
 Complete chain comparison + "Can we hit 100% annual?" analysis
 """
@@ -41,7 +41,7 @@ STOCKS = {
 async def main():
     CAPITAL = 1_000_000
     print("\n" + "="*110)
-    print("  WHALETRADER vs AHF — DEFINITIVE COMPARISON")
+    print("  FinClaw vs AHF — DEFINITIVE COMPARISON")
     print("  + Can we hit 100% annual return?")
     print("="*110)
 
@@ -95,7 +95,7 @@ async def main():
 
     print(f"\n  AVERAGES (annualized):")
     print(f"    B&H:          {avg_bh:+.1%}/year")
-    print(f"    WhaleTrader:  {avg_wt:+.1%}/year")
+    print(f"    FinClaw:  {avg_wt:+.1%}/year")
     print(f"    AHF:          {avg_ahf:+.1%}/year")
     print(f"    WT vs AHF:    {wt_wins}/{total} wins ({wt_wins/total*100:.0f}%), gap={avg_wt-avg_ahf:+.1%}")
 
@@ -117,7 +117,7 @@ async def main():
         ("Reproducibility", "WT: Deterministic", "AHF: Non-deterministic (LLM variance)"),
     ]
 
-    print(f"\n  {'Dimension':<18} {'WhaleTrader':<45} {'AHF':<45}")
+    print(f"\n  {'Dimension':<18} {'FinClaw':<45} {'AHF':<45}")
     print("  " + "-"*108)
     for dim, wt, ahf in chain_comparison:
         print(f"  {dim:<18} {wt:<45} {ahf:<45}")
@@ -188,7 +188,7 @@ async def main():
         print(f"  {name:<55} {ann:>+7.1%}/y {achievable:>12}")
 
     print(f"\n  --- HONEST ASSESSMENT ---")
-    print(f"  Q: Can WhaleTrader achieve 100% annual return?")
+    print(f"  Q: Can FinClaw achieve 100% annual return?")
     print(f"  A: WITHOUT leverage: Only with perfect stock picking (practically impossible)")
     print(f"     WITH 2x leverage: v10 Top-5 ({0.291*2:+.1%}/y) gets close but not 100%")
     print(f"     WITH 3x leverage: v10 Top-5 ({0.291*3:+.1%}/y) YES, but drawdown risk is extreme")

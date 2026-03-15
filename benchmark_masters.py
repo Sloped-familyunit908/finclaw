@@ -1,5 +1,5 @@
 """
-WhaleTrader — Master Strategies (大师策略)
+FinClaw — Master Strategies (大师策略)
 ==========================================
 4 investment philosophies, each with distinct risk/return profile:
 
@@ -98,7 +98,7 @@ async def main():
     CAPITAL = 1_000_000
 
     print("\n" + "="*110)
-    print("  WhaleTrader -- MASTER STRATEGIES (5-Year Backtest)")
+    print("  FinClaw -- MASTER STRATEGIES (5-Year Backtest)")
     print("  Buffett | Dalio | Druckenmiller | Soros | Lynch")
     print("="*110)
 

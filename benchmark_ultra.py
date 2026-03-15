@@ -1,5 +1,5 @@
 """
-WhaleTrader — Ultra Aggressive A-Share Strategy
+FinClaw — Ultra Aggressive A-Share Strategy
 ================================================
 Target: 20%+ annualized return
 Method: 
@@ -201,7 +201,7 @@ async def main():
     CAPITAL = 1_000_000
 
     print("\n" + "="*110)
-    print(f"  WhaleTrader -- ULTRA STRATEGY 5-YEAR BACKTEST")
+    print(f"  FinClaw -- ULTRA STRATEGY 5-YEAR BACKTEST")
     print(f"  Target: 20%+ annual return | Accept: up to 50% drawdown")
     print("="*110)
 

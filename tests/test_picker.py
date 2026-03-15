@@ -1,5 +1,5 @@
 """
-WhaleTrader — Extended Test Suite
+FinClaw — Extended Test Suite
 ==================================
 Tests for stock picker, LLM analyzer, and integration.
 """
@@ -211,7 +211,7 @@ def test_picker_deterministic(results):
 
 def main():
     print("="*60)
-    print("  WhaleTrader — Extended Test Suite")
+    print("  FinClaw — Extended Test Suite")
     print("="*60)
 
     results = TestResult()

@@ -1,5 +1,5 @@
 """
-WhaleTrader — Exhaustive QA Matrix
+FinClaw — Exhaustive QA Matrix
 ====================================
 Tests EVERY combination of:
 - 8 strategies x 3 markets x 2 periods = 48 scan scenarios
@@ -13,7 +13,7 @@ import logging, warnings
 logging.getLogger("yfinance").setLevel(logging.CRITICAL)
 warnings.filterwarnings("ignore")
 
-from whaletrader import scan_universe, run_strategy, fetch_data, UNIVERSES, STRATEGIES
+from finclaw import scan_universe, run_strategy, fetch_data, UNIVERSES, STRATEGIES
 from agents.backtester_v7 import BacktesterV7
 from agents.stock_picker import MultiFactorPicker
 from agents.llm_analyzer import LLMStockAnalyzer
@@ -292,7 +292,7 @@ async def main():
     start = time.time()
     
     print("="*80)
-    print("  WhaleTrader -- EXHAUSTIVE QA (Every Feature, Every Path)")
+    print("  FinClaw -- EXHAUSTIVE QA (Every Feature, Every Path)")
     print("="*80)
     
     await test_all_strategy_market_combos(qa)

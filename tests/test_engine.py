@@ -1,5 +1,5 @@
 """
-WhaleTrader v7 — Test Suite (TDD)
+FinClaw v7 — Test Suite (TDD)
 ==================================
 Every engine change MUST pass these tests before commit.
 Tests are fast (no crypto API calls, just sim data).
@@ -238,7 +238,7 @@ async def test_freqtrade_beats(results: TestResult):
 
 async def main():
     print("="*60)
-    print("  WhaleTrader v7 — Test Suite")
+    print("  FinClaw v7 — Test Suite")
     print("="*60)
 
     results = TestResult()

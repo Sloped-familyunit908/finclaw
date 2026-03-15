@@ -1,5 +1,5 @@
 """
-WhaleTrader - Debate Arena
+FinClaw - Debate Arena
 The core innovation: AI agents debate before any trade decision.
 
 Based on:
@@ -86,7 +86,7 @@ class DebateArena:
     """
     The Debate Arena where AI agents argue about trading decisions.
     
-    This is WhaleTrader's killer feature — no other trading platform has this.
+    This is FinClaw's killer feature — no other trading platform has this.
     Users can watch agents debate in real-time through the Dashboard.
     """
 

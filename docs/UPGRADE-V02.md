@@ -1,4 +1,4 @@
-# WhaleTrader v0.2 — 2026-2027 前瞻性架构升级
+# FinClaw v0.2 — 2026-2027 前瞻性架构升级
 
 ## 自审：当前项目的10个不足
 
@@ -162,7 +162,7 @@ Agent 能看 K线图（Vision）、读新闻（Text）、听财报电话会（Au
 
 ## 和竞品的最终对比矩阵
 
-| 能力 | freqtrade | ai-hedge-fund | FinRL | RD-Agent(Q) | **WhaleTrader** |
+| 能力 | freqtrade | ai-hedge-fund | FinRL | RD-Agent(Q) | **FinClaw** |
 |------|-----------|---------------|-------|-------------|-----------------|
 | 多Agent辩论 | ❌ | ❌(投票) | ❌ | ❌ | ✅(独创) |
 | 真正AI推理 | ❌ | ✅ | ❌(RL) | ✅ | ✅ |

@@ -1,11 +1,11 @@
-# 🐋 WhaleTrader — Moteur de Trading IA
+# 🐋 FinClaw — Moteur de Trading IA
 
 > **Le premier moteur de trading IA avec un alpha vérifiable et reproductible.**
 > Conçu avec une qualité d'ingénierie institutionnelle par un Principal Engineer de Microsoft.
 
 ## 📊 Performance
 
-| Métrique | WhaleTrader | ai-hedge-fund |
+| Métrique | FinClaw | ai-hedge-fund |
 |----------|:-----------:|:-------------:|
 | **Taux de victoire global (38 actions)** | **25/38 (66%)** | 13/38 (34%) |
 | **Alpha moyen** | **-12,2%** | -27,2% |
@@ -23,8 +23,8 @@
 ## 🚀 Démarrage rapide
 
 ```bash
-git clone https://github.com/your-username/whaletrader.git
-cd whaletrader
+git clone https://github.com/your-username/FinClaw.git
+cd FinClaw
 pip install aiohttp yfinance
 python tests/test_engine.py
 python benchmark_multimarket.py

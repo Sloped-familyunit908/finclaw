@@ -1,5 +1,5 @@
 """
-WhaleTrader - Signal Engine v4: Adaptive Regime Engine
+FinClaw - Signal Engine v4: Adaptive Regime Engine
 ========================================================
 FUNDAMENTAL REDESIGN based on 6 rounds of iteration.
 

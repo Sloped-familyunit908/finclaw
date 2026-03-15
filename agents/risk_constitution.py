@@ -1,5 +1,5 @@
 """
-WhaleTrader - Constitutional Risk Management
+FinClaw - Constitutional Risk Management
 Inspired by Anthropic's Constitutional AI applied to finance.
 
 These rules CANNOT be overridden by debate consensus.

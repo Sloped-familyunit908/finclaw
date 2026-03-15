@@ -1,4 +1,4 @@
-# WhaleTrader — 开源生态研究笔记
+# FinClaw — 开源生态研究笔记
 
 ## 值得学习的开源项目
 
@@ -7,7 +7,7 @@
    - 支持ML建模 (LSTM, Transformer, TabNet)
    - RD-Agent: LLM驱动的自动因子挖掘
    - 中国A股数据集完整
-   - **机会**: 老板是微软的，可以内部联系Qlib团队，或者做WhaleTrader x Qlib集成
+   - **机会**: 老板是微软的，可以内部联系Qlib团队，或者做FinClaw x Qlib集成
 
 2. **QuantStats** (5K stars) — 组合分析报告
    - Sharpe, Sortino, Calmar 等50+指标
@@ -36,12 +36,12 @@
 
 7. **awesome-systematic-trading** — 策略合集
    - 40+学术论文策略（Momentum, Mean Reversion, Carry, Value等）
-   - **价值**: 可以把这些策略移植到WhaleTrader的策略库
+   - **价值**: 可以把这些策略移植到FinClaw的策略库
 
 ### Tier 3: 有趣但次优先
 8. **Superalgos** (4K stars) — 可视化交易机器人
    - 拖拽式策略设计
-   - **启发**: 未来WhaleTrader的Web UI可以参考
+   - **启发**: 未来FinClaw的Web UI可以参考
 
 9. **hftbacktest** (2K stars, Rust) — 高频交易回测
    - 考虑了订单簿、队列、延迟
@@ -91,4 +91,4 @@
 ### 长期 (1个月)
 - [ ] A股实盘接入 (参考VNPy的CTP接口)
 - [ ] 微信/Telegram推送选股信号
-- [ ] Qlib x WhaleTrader集成
+- [ ] Qlib x FinClaw集成

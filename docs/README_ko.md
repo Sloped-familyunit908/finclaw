@@ -1,11 +1,11 @@
-# 🐋 WhaleTrader — AI 트레이딩 엔진
+# 🐋 FinClaw — AI 트레이딩 엔진
 
 > **검증 가능하고 재현 가능한 알파를 가진 최초의 AI 트레이딩 엔진.**
 > Microsoft Principal Engineer가 기관 투자 등급의 엔지니어링으로 구축.
 
 ## 📊 성과
 
-| 지표 | WhaleTrader | ai-hedge-fund |
+| 지표 | FinClaw | ai-hedge-fund |
 |------|:-----------:|:-------------:|
 | **글로벌 승률 (38개 종목)** | **25/38 (66%)** | 13/38 (34%) |
 | **평균 알파** | **-12.2%** | -27.2% |
@@ -14,7 +14,7 @@
 
 ### 한국 시장 실적
 
-| 종목 | B&H | WhaleTrader | 알파 |
+| 종목 | B&H | FinClaw | 알파 |
 |------|-----|-------------|------|
 | 삼성전자 (005930) | +242.7% | +178.1% | -64.6% ¹ |
 | SK하이닉스 (000660) | +358.3% | +298.4% | -59.9% ¹ |
@@ -24,7 +24,7 @@
 
 ¹ *구조적 한계: 워밍업 기간(20바)이 초기 급등을 놓침 — 리스크 관리의 대가*
 
-**한국 시장: WhaleTrader 4/6 승, AHF 대비 +55.2% 리드**
+**한국 시장: FinClaw 4/6 승, AHF 대비 +55.2% 리드**
 
 ## 🏗️ 아키텍처
 
@@ -37,8 +37,8 @@
 ## 🚀 빠른 시작
 
 ```bash
-git clone https://github.com/your-username/whaletrader.git
-cd whaletrader
+git clone https://github.com/your-username/FinClaw.git
+cd FinClaw
 pip install aiohttp yfinance
 python tests/test_engine.py
 python benchmark_multimarket.py

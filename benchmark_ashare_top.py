@@ -1,8 +1,8 @@
 """
-WhaleTrader — A股最强选股 2025
+FinClaw — A股最强选股 2025
 ================================
 扫描A股热门板块，找出过去一年回报最高的股票，
-然后用WhaleTrader v7跑回测，找最优组合。
+然后用FinClaw v7跑回测，找最优组合。
 
 板块覆盖：AI/芯片、新能源、军工、消费、金融、医药、有色金属
 """
@@ -82,7 +82,7 @@ A_SHARES = {
 
 async def main():
     print("\n" + "="*110)
-    print("  WhaleTrader — A-SHARE TOP PERFORMER SCAN (2024-2025)")
+    print("  FinClaw — A-SHARE TOP PERFORMER SCAN (2024-2025)")
     print("="*110)
 
     print(f"\n  Scanning {len(A_SHARES)} A-share stocks...\n")
@@ -98,7 +98,7 @@ async def main():
 
         bh = h[-1]["price"] / h[0]["price"] - 1
 
-        # WhaleTrader v7
+        # FinClaw v7
         bt = BacktesterV7(initial_capital=100000)
         r = await bt.run(ticker, "v7", h)
         wt_alpha = r.total_return - bh
@@ -142,7 +142,7 @@ async def main():
 
     # Top 10 by WT return (what WT made most money on)
     by_wt = sorted(results, key=lambda x: x["wt_ret"], reverse=True)
-    print(f"\n  --- TOP 10 by WhaleTrader Return ---")
+    print(f"\n  --- TOP 10 by FinClaw Return ---")
     for i, r in enumerate(by_wt[:10], 1):
         print(f"  {i:>2}. {r['ticker']:<12} {r['name']:<28} WT={r['wt_ret']:>+7.1%} "
               f"(B&H={r['bh']:>+7.1%}) alpha={r['wt_alpha']:>+6.1%}")

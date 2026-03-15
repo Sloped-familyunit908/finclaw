@@ -1,5 +1,5 @@
 """
-WhaleTrader — Strategy & Integration Tests
+FinClaw — Strategy & Integration Tests
 ============================================
 Comprehensive strategy-level testing.
 Tests actual portfolio performance, not just unit logic.
@@ -333,7 +333,7 @@ async def test_max_drawdown_accuracy(r):
 
 async def main():
     print("="*60)
-    print("  WhaleTrader -- Strategy & Integration Tests")
+    print("  FinClaw -- Strategy & Integration Tests")
     print("="*60)
 
     results = R()

@@ -1,5 +1,5 @@
 """
-WhaleTrader - Price Data Pipeline
+FinClaw - Price Data Pipeline
 Fetches real-time and historical price data from free APIs.
 Primary: CoinGecko (free, no key, works globally)
 Fallback: Binance (may be restricted in some regions)

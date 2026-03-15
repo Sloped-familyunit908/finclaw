@@ -1,6 +1,6 @@
-# Contributing to WhaleTrader
+# Contributing to FinClaw
 
-Thank you for considering contributing to WhaleTrader! 🐋
+Thank you for considering contributing to FinClaw! 🐋
 
 ## Quick Links
 

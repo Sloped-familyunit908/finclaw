@@ -1,1 +1,1 @@
-# WhaleTrader Data Pipeline
+# FinClaw Data Pipeline

@@ -1,12 +1,12 @@
-# WhaleTrader Ecosystem — Build & Contribute Guide
+# FinClaw Ecosystem — Build & Contribute Guide
 
 ## How the Ecosystem Works
 
-WhaleTrader is designed around an **open ecosystem** where anyone can contribute:
+FinClaw is designed around an **open ecosystem** where anyone can contribute:
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│                    WhaleTrader Ecosystem                     │
+│                    FinClaw Ecosystem                     │
 ├──────────────────────────────────────────────────────────────┤
 │                                                              │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
@@ -21,7 +21,7 @@ WhaleTrader is designed around an **open ecosystem** where anyone can contribute
 │         └─────────────────┼─────────────────┘               │
 │                           │                                  │
 │              ┌────────────▼────────────┐                     │
-│              │    WhaleTrader Core     │                     │
+│              │    FinClaw Core     │                     │
 │              │   Rust Engine + Python  │                     │
 │              └────────────┬────────────┘                     │
 │                           │                                  │
@@ -158,7 +158,7 @@ We'll launch a bounty program for high-impact contributions:
 | Home Assistant | Integrations | Community contribution model |
 | VS Code | Extensions | Plugin discovery + install |
 
-## Naming: "WhaleTrader" → Think "whale" = Big Player
+## Naming: "FinClaw" → Think "whale" = Big Player
 
 The whale metaphor works:
 - 🐋 Whale = Smart money, institutional-grade

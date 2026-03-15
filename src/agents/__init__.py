@@ -1,1 +1,1 @@
-# WhaleTrader Agents
+# FinClaw Agents

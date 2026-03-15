@@ -1,5 +1,5 @@
 """
-WhaleTrader - Backtester v7 (Momentum-Adaptive)
+FinClaw - Backtester v7 (Momentum-Adaptive)
 =================================================
 Key changes from v5:
 1. Smarter trailing: profit-tier based, regime-aware, widens more aggressively

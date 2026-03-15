@@ -1,5 +1,5 @@
 """
-WhaleTrader - Main Entry Point
+FinClaw - Main Entry Point
 """
 
 import asyncio
@@ -102,7 +102,7 @@ async def analyze_asset(asset: str, agents: list, verbose: bool = True):
 
 
 async def main():
-    parser = argparse.ArgumentParser(description="WhaleTrader - AI Trading Engine")
+    parser = argparse.ArgumentParser(description="FinClaw - AI Trading Engine")
     parser.add_argument("--assets", type=str, default="BTC,ETH,SOL",
                         help="Comma-separated asset symbols")
     parser.add_argument("--mode", type=str, default="paper",

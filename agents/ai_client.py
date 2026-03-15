@@ -1,5 +1,5 @@
 """
-WhaleTrader - AI Client
+FinClaw - AI Client
 Unified AI interface supporting multiple LLM providers.
 2026 state-of-the-art: Claude 4, GPT-5, DeepSeek-V3, Gemini 2, local Ollama.
 

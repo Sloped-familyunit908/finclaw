@@ -1,5 +1,5 @@
 """
-WhaleTrader - Agent Memory & Reputation System
+FinClaw - Agent Memory & Reputation System
 2027 Agentic AI核心方向：Agent有记忆，知道自己过去哪些判断对了。
 
 Inspired by:

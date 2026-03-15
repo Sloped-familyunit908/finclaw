@@ -1,4 +1,4 @@
-# WhaleTrader 重构计划 — 梁文峰 x Google CTO 视角
+# FinClaw 重构计划 — 梁文峰 x Google CTO 视角
 
 ## 竞品格局（2026年3月）
 
@@ -21,7 +21,7 @@
 
 ## 差异化定位
 
-**WhaleTrader = freqtrade的易用性 + Qlib的AI能力 + nautilus的性能 + ai-hedge-fund的理念**
+**FinClaw = freqtrade的易用性 + Qlib的AI能力 + nautilus的性能 + ai-hedge-fund的理念**
 
 一句话：**第一个让普通人用上专业AI量化的开源平台**
 
@@ -98,7 +98,7 @@ whale run golden-cross-ai --mode paper
 
 ```
 User: "当RSI低于30且MACD金叉时买入，持仓超过5%利润时卖出"
-WhaleTrader: [自动生成Python策略代码] → [自动回测] → [展示结果]
+FinClaw: [自动生成Python策略代码] → [自动回测] → [展示结果]
 ```
 
 这是 freqtrade 和 Qlib 都没有的功能。

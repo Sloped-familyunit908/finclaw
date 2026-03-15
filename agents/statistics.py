@@ -1,5 +1,5 @@
 """
-WhaleTrader - Rigorous Statistical Backtester
+FinClaw - Rigorous Statistical Backtester
 Institutional-grade validation: Walk-Forward, Monte Carlo, Bootstrap.
 
 Reference standards:

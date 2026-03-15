@@ -1,5 +1,5 @@
 """
-WhaleTrader — Dynamic Quarterly Rebalance + Extended Master Strategies
+FinClaw — Dynamic Quarterly Rebalance + Extended Master Strategies
 ======================================================================
 Key improvements:
 1. QUARTERLY REBALANCE: Re-grade and reallocate every 63 bars (~1 quarter)
@@ -311,7 +311,7 @@ async def main():
     CAPITAL = 1_000_000
 
     print("\n" + "="*110)
-    print("  WhaleTrader — EXTENDED MASTER STRATEGIES + QUARTERLY REBALANCE")
+    print("  FinClaw — EXTENDED MASTER STRATEGIES + QUARTERLY REBALANCE")
     print("  7 Masters | 100+ Stocks | Dynamic Quarterly Adjustment")
     print("="*110)
 

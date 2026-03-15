@@ -1,5 +1,5 @@
 """
-WhaleTrader — 5-Year Backtest (A-shares & US)
+FinClaw — 5-Year Backtest (A-shares & US)
 ==============================================
 Period: 5 years
 Capital: 1,000,000 per market
@@ -181,7 +181,7 @@ async def main():
     CAPITAL = 1_000_000
 
     print("\n" + "="*110)
-    print(f"  WhaleTrader -- 5-YEAR BACKTEST")
+    print(f"  FinClaw -- 5-YEAR BACKTEST")
     print(f"  Capital: RMB/USD {CAPITAL:,.0f} per market | Period: 5 Years")
     print("="*110)
 

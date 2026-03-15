@@ -1,11 +1,11 @@
-# 🐋 WhaleTrader — AI トレーディングエンジン
+# 🐋 FinClaw — AI トレーディングエンジン
 
 > **検証可能で再現性のあるアルファを持つ、初のAIトレーディングエンジン。**
 > Microsoftプリンシパルエンジニアによる機関投資家グレードの設計。
 
 ## 📊 パフォーマンス
 
-| 指標 | WhaleTrader | ai-hedge-fund |
+| 指標 | FinClaw | ai-hedge-fund |
 |------|:-----------:|:-------------:|
 | **グローバル勝率 (38銘柄)** | **25/38 (66%)** | 13/38 (34%) |
 | **平均アルファ** | **-12.2%** | -27.2% |
@@ -14,7 +14,7 @@
 
 ### 日本市場の実績
 
-| 銘柄 | B&H | WhaleTrader | アルファ |
+| 銘柄 | B&H | FinClaw | アルファ |
 |------|-----|-------------|---------|
 | トヨタ (7203.T) | +28.1% | +26.2% | -1.9% |
 | ソニー (6758.T) | -0.3% | -3.4% | -3.1% |
@@ -22,7 +22,7 @@
 | 三菱UFJ (8306.T) | +40.2% | +39.1% | -1.1% |
 | 日立 (6501.T) | +33.9% | +29.2% | -4.8% |
 
-**日本市場: WhaleTrader 5/6勝、AHFに+16.3%リード**
+**日本市場: FinClaw 5/6勝、AHFに+16.3%リード**
 
 ## 🏗️ アーキテクチャ
 
@@ -35,8 +35,8 @@
 ## 🚀 クイックスタート
 
 ```bash
-git clone https://github.com/your-username/whaletrader.git
-cd whaletrader
+git clone https://github.com/your-username/FinClaw.git
+cd FinClaw
 pip install aiohttp yfinance
 python tests/test_engine.py      # テスト実行
 python benchmark_multimarket.py  # マルチマーケットベンチマーク

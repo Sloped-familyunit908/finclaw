@@ -1,5 +1,5 @@
 """
-WhaleTrader v9 — PARADIGM SHIFT: Stock Selection + Signal Engine
+FinClaw v9 — PARADIGM SHIFT: Stock Selection + Signal Engine
 =================================================================
 Key insight: Instead of optimizing signal timing on fixed scenarios,
 add a PRE-FILTER layer that evaluates whether an asset is WORTH TRADING.

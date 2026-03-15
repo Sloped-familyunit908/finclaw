@@ -1,5 +1,5 @@
 """
-WhaleTrader — LLM-Enhanced Picker vs Pure Quant Picker
+FinClaw — LLM-Enhanced Picker vs Pure Quant Picker
 =======================================================
 Does AI disruption analysis actually improve stock selection?
 """

@@ -1,8 +1,8 @@
-# WhaleTrader: Academic Foundation & Research References
+# FinClaw: Academic Foundation & Research References
 
 ## Core Innovation: Multi-Agent Debate for Financial Decision Making
 
-WhaleTrader's Debate Arena is grounded in cutting-edge research:
+FinClaw's Debate Arena is grounded in cutting-edge research:
 
 ### Foundational Papers
 

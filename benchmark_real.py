@@ -1,5 +1,5 @@
 """
-WhaleTrader — Real Historical Data Benchmark
+FinClaw — Real Historical Data Benchmark
 =============================================
 Uses yfinance to get REAL stock data and validate our engine
 on actual market conditions (not simulations).
@@ -38,7 +38,7 @@ def fetch_real_data(ticker, period="1y"):
 
 async def main():
     print("\n" + "="*100)
-    print("  WhaleTrader v7 -- REAL DATA BENCHMARK")
+    print("  FinClaw v7 -- REAL DATA BENCHMARK")
     print("  (Yahoo Finance historical data, no simulations)")
     print("="*100 + "\n")
 
@@ -77,7 +77,7 @@ async def main():
 
             bh = h[-1]["price"] / h[0]["price"] - 1
 
-            # WhaleTrader v7
+            # FinClaw v7
             bt = BacktesterV7(initial_capital=10000)
             r = await bt.run(ticker, "v7", h)
             wt_alpha = r.total_return - bh
@@ -116,15 +116,15 @@ async def main():
     print(f"\n" + "="*100)
     print(f"  REAL DATA RESULTS")
     print("="*100)
-    print(f"\n  {'Metric':<30} {'WhaleTrader':>12} {'AHF':>12}")
+    print(f"\n  {'Metric':<30} {'FinClaw':>12} {'AHF':>12}")
     print("  " + "-"*60)
     print(f"  {'Avg Alpha':<30} {avg_wt_alpha:>+11.2%} {avg_ahf_alpha:>+11.2%}")
     print(f"  {'Avg MaxDD':<30} {avg_wt_dd:>+11.2%}          —")
     print(f"  {'Win Rate vs opponent':<30} {wt_wins_ahf}/{total}          {total-wt_wins_ahf}/{total}")
-    print(f"\n  Gap: WhaleTrader {avg_wt_alpha-avg_ahf_alpha:+.2%} vs AHF")
+    print(f"\n  Gap: FinClaw {avg_wt_alpha-avg_ahf_alpha:+.2%} vs AHF")
 
     if avg_wt_alpha > avg_ahf_alpha:
-        print(f"\n  >>> WhaleTrader WINS on real data! <<<")
+        print(f"\n  >>> FinClaw WINS on real data! <<<")
     print("="*100)
 
 if __name__ == "__main__":

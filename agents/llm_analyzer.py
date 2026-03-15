@@ -1,5 +1,5 @@
 """
-WhaleTrader — LLM-Enhanced Stock Analysis
+FinClaw — LLM-Enhanced Stock Analysis
 ==========================================
 Uses AI (Claude/GPT) to analyze:
 1. Industry disruption risk (AI replacing their business?)

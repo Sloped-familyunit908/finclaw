@@ -1,5 +1,5 @@
 """
-WhaleTrader — Deep QA Test Suite
+FinClaw — Deep QA Test Suite
 =================================
 Systematic testing of EVERY feature, edge case, and user scenario.
 Run this before any release.
@@ -48,7 +48,7 @@ async def main():
     start = time.time()
 
     print("="*80)
-    print("  WhaleTrader — DEEP QA TEST")
+    print("  FinClaw — DEEP QA TEST")
     print("  Testing every feature systematically")
     print("="*80)
 

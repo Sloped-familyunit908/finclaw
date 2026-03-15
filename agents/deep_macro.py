@@ -1,5 +1,5 @@
 """
-WhaleTrader — Deep Macro Intelligence
+FinClaw — Deep Macro Intelligence
 =======================================
 6 layers of macro analysis:
 

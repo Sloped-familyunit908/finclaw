@@ -1,5 +1,5 @@
 """
-WhaleTrader — Smart Picker Validation
+FinClaw — Smart Picker Validation
 =======================================
 Does the multi-factor picker ACTUALLY select better stocks?
 Test: scan 100+ stocks, pick top-10, compare vs random and vs old method.
@@ -57,7 +57,7 @@ async def main():
     CAPITAL = 1_000_000
 
     print("\n" + "="*110)
-    print("  WhaleTrader — SMART PICKER VALIDATION")
+    print("  FinClaw — SMART PICKER VALIDATION")
     print("  Multi-Factor (Quant + Fundamental) Stock Selection")
     print("="*110)
 

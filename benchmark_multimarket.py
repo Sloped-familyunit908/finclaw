@@ -1,5 +1,5 @@
 """
-WhaleTrader — Multi-Market Real Data Benchmark
+FinClaw — Multi-Market Real Data Benchmark
 ================================================
 Tests across US, China A-shares, Hong Kong, Korean, and Japanese markets.
 
@@ -100,7 +100,7 @@ MARKETS = {
 
 async def main():
     print("\n" + "="*110)
-    print("  WhaleTrader v7 -- MULTI-MARKET REAL DATA BENCHMARK")
+    print("  FinClaw v7 -- MULTI-MARKET REAL DATA BENCHMARK")
     print("  US | China A-shares | Hong Kong | Korea | Japan")
     print("="*110)
 
@@ -181,7 +181,7 @@ async def main():
 
         # Top 5 WT performers
         top5 = sorted(all_results, key=lambda x: x["wt_alpha"], reverse=True)[:5]
-        print(f"\n  Top 5 WhaleTrader performers:")
+        print(f"\n  Top 5 FinClaw performers:")
         for r in top5:
             print(f"    {r['ticker']:<12} {r['name']:<20} alpha={r['wt_alpha']:>+6.1%} ({r['market']})")
 
@@ -192,7 +192,7 @@ async def main():
             print(f"    {r['ticker']:<12} {r['name']:<20} alpha={r['wt_alpha']:>+6.1%} ({r['market']})")
 
         if global_wt > global_ahf:
-            print(f"\n  >>> WhaleTrader WINS globally by {global_wt-global_ahf:+.2%} <<<")
+            print(f"\n  >>> FinClaw WINS globally by {global_wt-global_ahf:+.2%} <<<")
         print("="*110)
 
 if __name__ == "__main__":

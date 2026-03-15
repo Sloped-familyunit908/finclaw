@@ -1,5 +1,5 @@
 """
-WhaleTrader — Macro Environment Analyzer
+FinClaw — Macro Environment Analyzer
 ==========================================
 Analyzes global macro factors that affect stock selection:
 

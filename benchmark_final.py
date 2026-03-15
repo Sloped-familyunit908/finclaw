@@ -1,5 +1,5 @@
 """
-WhaleTrader FINAL Portfolio Benchmark
+FinClaw FINAL Portfolio Benchmark
 ======================================
 Optimal configuration from grid search:
 - Grade weights: top-heavy (A+=12, A=6, B=1.5, C=0.5, F=0.2)
@@ -59,7 +59,7 @@ def _corr(pa, pb, w=60):
 
 async def main():
     print("\n" + "="*100)
-    print("  WhaleTrader FINAL Portfolio -- Optimized Selection + v7 Engine")
+    print("  FinClaw FINAL Portfolio -- Optimized Selection + v7 Engine")
     print("="*100 + "\n")
 
     OPTIMAL_WEIGHTS = {

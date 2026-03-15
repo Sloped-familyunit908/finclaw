@@ -1,11 +1,11 @@
 """
-WhaleTrader - Strategy YAML Specification
+FinClaw - Strategy YAML Specification
 Defines the standard format for community-contributed strategies.
 """
 
 # whale-strategy.yaml schema
 SCHEMA_EXAMPLE = """
-# WhaleTrader Strategy Definition
+# FinClaw Strategy Definition
 # This is the standard format for all strategies in the marketplace
 
 apiVersion: whale/v1

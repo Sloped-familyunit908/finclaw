@@ -1,11 +1,11 @@
-# 🐋 WhaleTrader — AI 交易引擎
+# 🐋 FinClaw — AI 交易引擎
 
 > **首个具有可验证、可复现 alpha 的 AI 交易引擎。**
 > 由微软首席工程师 (Principal Engineer) 以机构级工程标准打造。
 
 ## 📊 核心数据
 
-| 指标 | WhaleTrader | ai-hedge-fund |
+| 指标 | FinClaw | ai-hedge-fund |
 |------|:-----------:|:-------------:|
 | **全球38只真实股票 Win Rate** | **25/38 (66%)** | 13/38 (34%) |
 | **全球平均 Alpha** | **-12.2%** | -27.2% |
@@ -25,7 +25,7 @@
 ## 🏗️ 系统架构
 
 ```
-WhaleTrader v7
+FinClaw v7
 ┌──────────────────────────────────────────────┐
 │  信号引擎 (6因子)  →  仓位管理  →  风险控制    │
 │  Regime检测(7种)  →  资产选择  →  组合优化     │
@@ -59,8 +59,8 @@ WhaleTrader v7
 ## 🚀 快速开始
 
 ```bash
-git clone https://github.com/your-username/whaletrader.git
-cd whaletrader
+git clone https://github.com/your-username/FinClaw.git
+cd FinClaw
 pip install aiohttp yfinance
 
 # 运行测试

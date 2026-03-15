@@ -1,4 +1,4 @@
-# 🐋 WhaleTrader
+# 🐋 FinClaw
 
 **AI Trading Engine with Verified Alpha**
 
@@ -14,24 +14,24 @@ Tested on 100+ real stocks across US, China, Hong Kong
 
 ## What does it do?
 
-WhaleTrader scans stocks, picks winners, manages risk, and validates everything with real data.
+FinClaw scans stocks, picks winners, manages risk, and validates everything with real data.
 
 ```bash
 # Pick 5 best US stocks with Soros-style momentum strategy
-python whaletrader.py scan --market us --style soros --top 5
+python FinClaw.py scan --market us --style soros --top 5
 
 # Backtest any stock
-python whaletrader.py backtest --ticker NVDA --period 5y
+python FinClaw.py backtest --ticker NVDA --period 5y
 
 # Run full test suite
-python whaletrader.py test
+python FinClaw.py test
 ```
 
-## Why WhaleTrader?
+## Why FinClaw?
 
 Most "AI trading" projects generate signals and stop there. No backtesting, no risk management, no validation.
 
-WhaleTrader is different:
+FinClaw is different:
 
 - **Verified**: Every claim backed by reproducible backtests
 - **Complete**: Selection → Entry → Position Management → Exit → Portfolio
@@ -57,7 +57,7 @@ WhaleTrader is different:
 Tested head-to-head against AHF's technical analysis on 34 stocks:
 
 ```
-WhaleTrader wins: 30/34 (88%)
+FinClaw wins: 30/34 (88%)
 Average edge: +10.8% per year
 ```
 
@@ -66,15 +66,15 @@ Average edge: +10.8% per year
 ### 1. Install
 
 ```bash
-git clone https://github.com/user/whaletrader.git
-cd whaletrader
+git clone https://github.com/user/FinClaw.git
+cd FinClaw
 pip install -r requirements.txt  # aiohttp, yfinance
 ```
 
 ### 2. Verify
 
 ```bash
-python whaletrader.py test
+python FinClaw.py test
 # Expected: 34/34 tests passed
 ```
 
@@ -82,20 +82,20 @@ python whaletrader.py test
 
 ```bash
 # US market, aggressive style
-python whaletrader.py scan --market us --style druckenmiller
+python FinClaw.py scan --market us --style druckenmiller
 
 # China A-shares, balanced
-python whaletrader.py scan --market china --style buffett
+python FinClaw.py scan --market china --style buffett
 
 # All markets
-python whaletrader.py scan --market all --style soros
+python FinClaw.py scan --market all --style soros
 ```
 
 ### 4. Backtest
 
 ```bash
-python whaletrader.py backtest --ticker NVDA --period 5y
-python whaletrader.py backtest --ticker 688256.SS --period 3y
+python FinClaw.py backtest --ticker NVDA --period 5y
+python FinClaw.py backtest --ticker 688256.SS --period 3y
 ```
 
 ## 8 Built-in Strategies
@@ -115,7 +115,7 @@ python whaletrader.py backtest --ticker 688256.SS --period 3y
 
 ```
 ┌──────────────────────────────────────────────────────┐
-│                    WhaleTrader v10                     │
+│                    FinClaw v10                     │
 │                                                        │
 │  1. SCAN        Multi-factor + AI disruption analysis  │
 │  2. RANK        7 master strategies vote               │
@@ -167,8 +167,8 @@ python whaletrader.py backtest --ticker 688256.SS --period 3y
 ## Project Structure
 
 ```
-whaletrader/
-├── whaletrader.py              # CLI entry point
+FinClaw/
+├── FinClaw.py              # CLI entry point
 ├── agents/
 │   ├── signal_engine_v7.py     # 6-factor signal engine
 │   ├── backtester_v7.py        # Full lifecycle backtester
@@ -194,7 +194,7 @@ whaletrader/
 ### Run Tests
 
 ```bash
-python whaletrader.py test
+python FinClaw.py test
 # or directly:
 python tests/test_engine.py
 ```
@@ -253,7 +253,7 @@ A: No. This is a research tool. Use at your own risk.
 A: Not yet. Currently analysis and backtesting only. Live trading is on the roadmap.
 
 **Q: How is this different from ai-hedge-fund?**
-A: AHF generates signals. WhaleTrader is a complete system — it selects, enters, manages, exits, and validates. We beat AHF on 88% of stocks tested.
+A: AHF generates signals. FinClaw is a complete system — it selects, enters, manages, exits, and validates. We beat AHF on 88% of stocks tested.
 
 **Q: What data does it need?**
 A: Just an internet connection. Uses Yahoo Finance (free) for price data.

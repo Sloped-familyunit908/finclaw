@@ -1,4 +1,4 @@
-"""WhaleTrader Agents Package"""
+"""FinClaw Agents Package"""
 
 from .registry import get_agent, list_agents, BUILTIN_AGENTS
 from .debate_arena import DebateArena, DebateResult, DebateStatement, DebatePhase

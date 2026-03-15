@@ -1,5 +1,5 @@
 """
-WhaleTrader - Signal Engine v7: Momentum-Adaptive Regime Engine
+FinClaw - Signal Engine v7: Momentum-Adaptive Regime Engine
 ================================================================
 Key changes from v6:
 1. Trend-Following Core: ride trends harder, cut losers faster

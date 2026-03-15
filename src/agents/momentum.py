@@ -1,5 +1,5 @@
 """
-WhaleTrader - Momentum Agent
+FinClaw - Momentum Agent
 Technical analysis and trend following.
 """
 

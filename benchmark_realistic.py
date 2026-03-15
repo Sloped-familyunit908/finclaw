@@ -1,5 +1,5 @@
 """
-WhaleTrader v7 — REALISTIC BENCHMARK
+FinClaw v7 — REALISTIC BENCHMARK
 =====================================
 Uses actual AHF technical analysis logic instead of random simulation.
 This is the FAIR comparison.
@@ -59,7 +59,7 @@ async def fetch_crypto(asset, days=365):
 
 async def main():
     print("\n" + "="*100)
-    print("  WhaleTrader v7 -- REALISTIC BENCHMARK")
+    print("  FinClaw v7 -- REALISTIC BENCHMARK")
     print("  (AHF simulated with actual technical analysis logic)")
     print("="*100 + "\n")
 
@@ -103,7 +103,7 @@ async def main():
         h = sc["h"]
         bh = h[-1]["price"]/h[0]["price"]-1
 
-        # WhaleTrader v7
+        # FinClaw v7
         bt = BacktesterV7(initial_capital=10000)
         r = await bt.run("T","v7",h)
         wt_alpha = r.total_return - bh
@@ -136,7 +136,7 @@ async def main():
     print("="*100)
     print(f"\n  {'Strategy':<30} {'Avg Alpha':>10} {'Wins':>8}")
     print("  " + "-"*55)
-    print(f"  >> WhaleTrader v7             {avg_wt:>+9.2%}   {total}/{total}")
+    print(f"  >> FinClaw v7             {avg_wt:>+9.2%}   {total}/{total}")
     print(f"     freqtrade                  {avg_ft:>+9.2%}   —")
     print(f"     AHF (real technicals)      {avg_ahf:>+9.2%}   —")
     print(f"\n  vs FT:  {wt_beat_ft}/{total} ({wt_beat_ft/total*100:.0f}%)")

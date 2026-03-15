@@ -1,1 +1,1 @@
-# WhaleTrader - Init files
+# FinClaw - Init files

@@ -1,4 +1,4 @@
-# WhaleTrader v7 — Final Performance Report
+# FinClaw v7 — Final Performance Report
 
 **Date:** 2026-03-15  
 **Status:** Production-ready  

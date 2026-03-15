@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-WhaleTrader CLI — One-command trading system
+FinClaw CLI — One-command trading system
 =============================================
 Usage:
-  python whaletrader.py scan --market us --style aggressive
-  python whaletrader.py scan --market china --style buffett --capital 1000000
-  python whaletrader.py scan --market all --style soros --report
-  python whaletrader.py backtest --ticker NVDA --period 5y
-  python whaletrader.py test
-  python whaletrader.py info
+  python FinClaw.py scan --market us --style aggressive
+  python FinClaw.py scan --market china --style buffett --capital 1000000
+  python FinClaw.py scan --market all --style soros --report
+  python FinClaw.py backtest --ticker NVDA --period 5y
+  python FinClaw.py test
+  python FinClaw.py info
 
 Styles:
   druckenmiller  — Top-3 momentum, max conviction (年化20-35%)
@@ -246,7 +246,7 @@ async def cmd_scan(args):
     style = args.style
     markets = [args.market] if args.market != "all" else ["us", "china", "hk"]
 
-    print(f"\n  WhaleTrader Scan")
+    print(f"\n  FinClaw Scan")
     print(f"  Market: {args.market} | Style: {style} | Capital: {capital:,.0f} | Period: {period}")
     print(f"  Strategy: {STRATEGIES[style]['desc']}")
     print(f"  Risk Level: {STRATEGIES[style]['risk']}")
@@ -300,7 +300,7 @@ async def cmd_backtest(args):
     period = args.period
     capital = args.capital
 
-    print(f"\n  WhaleTrader Single Backtest: {ticker}")
+    print(f"\n  FinClaw Single Backtest: {ticker}")
     h = fetch_data(ticker, period)
     if not h:
         print(f"  ERROR: No data for {ticker}. Check ticker symbol.")
@@ -323,7 +323,7 @@ async def cmd_backtest(args):
 
 def cmd_info(args):
     """Show available strategies and markets."""
-    print("\n  WhaleTrader — Available Strategies\n")
+    print("\n  FinClaw — Available Strategies\n")
     print(f"  {'Style':<18} {'Risk':<15} {'Target':>12} {'Description'}")
     print("  " + "-"*75)
     for name, s in STRATEGIES.items():
@@ -334,7 +334,7 @@ def cmd_info(args):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="WhaleTrader AI Trading Engine")
+    parser = argparse.ArgumentParser(description="FinClaw AI Trading Engine")
     sub = parser.add_subparsers(dest="command")
 
     # scan
@@ -377,9 +377,9 @@ def main():
     else:
         parser.print_help()
         print("\n  Quick start:")
-        print("    python whaletrader.py info")
-        print("    python whaletrader.py scan --market us --style soros")
-        print("    python whaletrader.py backtest --ticker NVDA")
+        print("    python FinClaw.py info")
+        print("    python FinClaw.py scan --market us --style soros")
+        print("    python FinClaw.py backtest --ticker NVDA")
 
 
 if __name__ == "__main__":

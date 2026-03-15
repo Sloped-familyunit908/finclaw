@@ -1,5 +1,5 @@
 """
-WhaleTrader - Value Agent (Buffett Style)
+FinClaw - Value Agent (Buffett Style)
 Focuses on fundamental analysis, intrinsic value, and margin of safety.
 """
 

@@ -1,4 +1,4 @@
-# WhaleTrader — 梁文锋视角深度诊断 & v0.3 架构升级
+# FinClaw — 梁文锋视角深度诊断 & v0.3 架构升级
 
 ## 严酷自审：什么是花架子，什么是真正的核心
 
@@ -92,7 +92,7 @@ class HybridAgent:
 
 ```python
 # strategies/community/example.py
-from whaletrader import Strategy, Signal
+from FinClaw import Strategy, Signal
 
 class MyStrategy(Strategy):
     """最简单的策略写法 — 3行代码"""

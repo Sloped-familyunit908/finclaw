@@ -1,5 +1,5 @@
 """
-WhaleTrader — AI-Powered Stock Picker (LLM + Multi-Factor)
+FinClaw — AI-Powered Stock Picker (LLM + Multi-Factor)
 ===========================================================
 The ULTIMATE stock selection system. Combines:
 

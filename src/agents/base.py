@@ -1,5 +1,5 @@
 """
-WhaleTrader - Base Agent Class
+FinClaw - Base Agent Class
 All trading agents inherit from this base class.
 """
 

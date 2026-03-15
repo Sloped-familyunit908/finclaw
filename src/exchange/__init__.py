@@ -1,1 +1,1 @@
-# WhaleTrader Exchange Connectors
+# FinClaw Exchange Connectors

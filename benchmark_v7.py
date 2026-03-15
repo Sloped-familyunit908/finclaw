@@ -1,4 +1,4 @@
-"""WhaleTrader v7 — BENCHMARK"""
+"""FinClaw v7 — BENCHMARK"""
 import asyncio, random, math, statistics
 from datetime import datetime, timedelta
 import sys, os
@@ -61,7 +61,7 @@ def benchmark_avg(h, kind="trend", n=7):
 
 async def run_wt(h):
     bt = BacktesterV7(initial_capital=10000)
-    r = await bt.run("TEST","WhaleTrader v7",h)
+    r = await bt.run("TEST","FinClaw v7",h)
     bh = h[-1]["price"]/h[0]["price"]-1
     return {"total_return":r.total_return,"alpha":r.total_return-bh,
             "sharpe":r.sharpe_ratio,"max_dd":r.max_drawdown,
@@ -69,7 +69,7 @@ async def run_wt(h):
 
 async def main():
     print("\n" + "="*90)
-    print("  WhaleTrader v7 -- BENCHMARK (Momentum-Adaptive)")
+    print("  FinClaw v7 -- BENCHMARK (Momentum-Adaptive)")
     print("="*90 + "\n")
 
     scenarios = [
@@ -138,7 +138,7 @@ async def main():
     print("="*90)
     print(f"\n  {'Strategy':<22} {'Avg Alpha':>10} {'Avg MaxDD':>10}  Wins vs FT/AHF/Both")
     print("  " + "-"*70)
-    print(f"  >> WhaleTrader v7      {wt_a:>+9.2%} {wt_dd:>10.2%}   {wt_wins_ft}/{wt_wins_ahf}/{wt_wins_both} of {N}")
+    print(f"  >> FinClaw v7      {wt_a:>+9.2%} {wt_dd:>10.2%}   {wt_wins_ft}/{wt_wins_ahf}/{wt_wins_both} of {N}")
     print(f"     freqtrade           {ft_a:>+9.2%} {ft_dd:>10.2%}")
     print(f"     ai-hedge-fund       {ahf_a:>+9.2%} {ahf_dd:>10.2%}")
 
@@ -152,7 +152,7 @@ async def main():
     print(f"  v7 delta:    {delta:+.2%}")
 
     if wt_a > ahf_a:
-        print(f"\n  🏆🏆🏆 VICTORY! WhaleTrader v7 BEATS ALL COMPETITORS! 🏆🏆🏆")
+        print(f"\n  🏆🏆🏆 VICTORY! FinClaw v7 BEATS ALL COMPETITORS! 🏆🏆🏆")
     elif wt_a > ft_a:
         print(f"\n  Beats freqtrade. Still {-gap_ahf:.1%} behind AHF.")
     print("="*90)

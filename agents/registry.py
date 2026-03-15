@@ -1,5 +1,5 @@
 """
-WhaleTrader - Agent Registry
+FinClaw - Agent Registry
 Defines all available trading agents with their personas and system prompts.
 """
 

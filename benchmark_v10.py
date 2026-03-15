@@ -1,5 +1,5 @@
 """
-WhaleTrader v10 — Unified Intelligence Engine
+FinClaw v10 — Unified Intelligence Engine
 ===============================================
 The COMPLETE trading system that fuses ALL innovations:
 
@@ -163,7 +163,7 @@ def should_rebalance(current_grade, new_grade, current_regime, position_pnl):
 
 
 class UnifiedEngine:
-    """The complete WhaleTrader v10 unified engine."""
+    """The complete FinClaw v10 unified engine."""
 
     def __init__(self, capital=1_000_000, max_stocks=10):
         self.capital = capital
@@ -307,7 +307,7 @@ UNIVERSE = {
 async def main():
     CAPITAL = 1_000_000
     print("\n" + "="*110)
-    print("  WhaleTrader v10 -- UNIFIED INTELLIGENCE ENGINE")
+    print("  FinClaw v10 -- UNIFIED INTELLIGENCE ENGINE")
     print("  Quant + Fundamentals + LLM Disruption + Master Fusion + Smart Rebalance")
     print("="*110)
 
@@ -338,7 +338,7 @@ async def main():
 
     # Compare all methods
     print(f"\n" + "="*110)
-    print("  COMPARISON: All WhaleTrader Generations")
+    print("  COMPARISON: All FinClaw Generations")
     print("="*110)
     print(f"\n  {'Method':<45} {'Annual':>8} {'100W->':>10}")
     print("  " + "-"*65)

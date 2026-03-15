@@ -1,5 +1,5 @@
 """
-WhaleTrader — 100万A股实盘模拟
+FinClaw — 100万A股实盘模拟
 ================================
 用真实A股数据回测3种风格：
 1. 激进型：Top-5集中持仓，高Grade高仓位
@@ -74,7 +74,7 @@ async def main():
     CAPITAL = 1_000_000  # 100万
 
     print("\n" + "="*110)
-    print(f"  WhaleTrader -- 100W A-SHARE PORTFOLIO SIMULATION")
+    print(f"  FinClaw -- 100W A-SHARE PORTFOLIO SIMULATION")
     print(f"  Capital: RMB {CAPITAL:,.0f} | Data: Real 1Y | 3 Strategies")
     print("="*110)
 

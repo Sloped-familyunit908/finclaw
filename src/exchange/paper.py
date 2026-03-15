@@ -1,5 +1,5 @@
 """
-WhaleTrader - Paper Trading Engine
+FinClaw - Paper Trading Engine
 Simulates trades without real money. Default mode for safety.
 """
 

@@ -1,5 +1,5 @@
 """
-WhaleTrader - Backtesting Engine
+FinClaw - Backtesting Engine
 Multi-round validation, strategy comparison, performance ranking.
 
 Design philosophy (from competitive analysis):
@@ -130,7 +130,7 @@ class BacktestResult:
             f"║    Losses: {self.losing_trades:<6}  Avg Loss:  {self.avg_loss:>+6.2%}                    ║",
             f"║    Profit Factor: {self.profit_factor:>6.2f}                                  ║",
             f"╠══════════════════════════════════════════════════════════════╣",
-            f"║  DEBATE ARENA METRICS (WhaleTrader Exclusive)               ║",
+            f"║  DEBATE ARENA METRICS (FinClaw Exclusive)               ║",
             f"║    Avg Confidence:         {self.avg_debate_confidence:>6.1%}                        ║",
             f"║    High-Conf Win Rate:     {self.high_confidence_win_rate:>6.1%}  (conf > 80%)         ║",
             f"║    Low-Conf Win Rate:      {self.low_confidence_win_rate:>6.1%}  (conf < 50%)         ║",
