@@ -323,7 +323,7 @@ class BacktesterV7:
                 # ── EXIT SIGNALS ──
                 bars_held = i - position.entry_bar_idx
 
-                # In non-trend: exit faster on sell signals
+                # In non-trend: exit on sell signals
                 if not in_trend and pnl_pct <= 0 and bars_held > 1:
                     if sig.signal in ("sell", "strong_sell") and sig.confidence > 0.55:
                         trade = self._close(position, price, date, "signal_exit")
