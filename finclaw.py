@@ -34,40 +34,11 @@ except ImportError:
 
 
 # ═══ PRESET STOCK UNIVERSES ═══
+from agents.universe import US_EXTENDED, A_SHARES_EXTENDED, HK_EXTENDED
 UNIVERSES = {
-    "us": {
-        "NVDA": "NVIDIA", "AVGO": "Broadcom", "ANET": "Arista",
-        "NFLX": "Netflix", "LLY": "Eli Lilly", "PLTR": "Palantir",
-        "META": "Meta", "GOOG": "Alphabet", "AMD": "AMD",
-        "AAPL": "Apple", "MSFT": "Microsoft", "AMZN": "Amazon",
-        "TSLA": "Tesla", "COST": "Costco", "WMT": "Walmart",
-        "XOM": "ExxonMobil", "CVX": "Chevron", "ABBV": "AbbVie",
-        "JPM": "JPMorgan", "V": "Visa", "CAT": "Caterpillar",
-        "KO": "Coca-Cola", "PG": "P&G", "ISRG": "Intuitive Surg",
-        "CRWD": "CrowdStrike", "PANW": "Palo Alto", "UBER": "Uber",
-    },
-    "china": {
-        "688256.SS": "Cambricon", "601899.SS": "Zijin Mining",
-        "601600.SS": "Aluminum Corp", "603019.SS": "Zhongke Shuguang",
-        "300750.SZ": "CATL", "300274.SZ": "Sungrow Power",
-        "002812.SZ": "Yunnan Energy", "603993.SS": "Luoyang Moly",
-        "600547.SS": "Shandong Gold", "601985.SS": "CRPC Nuclear",
-        "300474.SZ": "Kingdee", "002371.SZ": "Naura Tech",
-        "600900.SS": "CYPC Hydro", "000333.SZ": "Midea Group",
-        "300124.SZ": "Inovance Tech", "002594.SZ": "BYD",
-        "600519.SS": "Moutai", "000858.SZ": "Wuliangye",
-        "601318.SS": "Ping An", "600036.SS": "CMB",
-    },
-    "hk": {
-        "0700.HK": "Tencent", "9988.HK": "Alibaba",
-        "3690.HK": "Meituan", "1211.HK": "BYD HK",
-        "9618.HK": "JD.com", "1810.HK": "Xiaomi",
-        "2318.HK": "Ping An HK", "0941.HK": "China Mobile",
-        "0388.HK": "HKEX", "0005.HK": "HSBC",
-        "1024.HK": "Kuaishou", "9888.HK": "Baidu",
-        "2020.HK": "ANTA Sports", "0241.HK": "Alibaba Health",
-        "1347.HK": "Hua Hong Semi", "6060.HK": "ZhongAn Online",
-    },
+    "us": US_EXTENDED,
+    "china": A_SHARES_EXTENDED,
+    "hk": HK_EXTENDED,
     "japan": {
         "7203.T": "Toyota", "6758.T": "Sony",
         "9984.T": "SoftBank", "6861.T": "Keyence",
@@ -344,8 +315,20 @@ def cmd_info(args):
     for name, s in STRATEGIES.items():
         print(f"  {name:<18} {s['risk']:<15} {s['target_ann']:>12} {s['desc']}")
 
-    print(f"\n  Available Markets: us, china, hk, all")
+    print(f"\n  Available Markets: us ({len(UNIVERSES['us'])}), china ({len(UNIVERSES['china'])}), hk ({len(UNIVERSES['hk'])}), japan, korea, all")
+    total = sum(len(v) for v in UNIVERSES.values())
+    print(f"  Total stocks: {total}")
     print(f"  Default Period: 5y (options: 1y, 2y, 5y, 10y)")
+
+    # Show sector linkages
+    from agents.universe import SECTOR_LINKAGE
+    print(f"\n  Cross-Market Sector Linkages ({len(SECTOR_LINKAGE)}):")
+    for name, link in SECTOR_LINKAGE.items():
+        markets = []
+        if link.get("us"): markets.append(f"US({len(link['us'])})")
+        if link.get("china"): markets.append(f"CN({len(link['china'])})")
+        if link.get("hk"): markets.append(f"HK({len(link.get('hk',[]))})")
+        print(f"    {name:<22} {' <-> '.join(markets)}  corr={link['correlation']}")
 
 
 def main():
