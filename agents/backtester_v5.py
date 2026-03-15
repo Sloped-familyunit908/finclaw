@@ -1,12 +1,11 @@
 """
-WhaleTrader - Backtester v7 (Momentum-Adaptive)
-=================================================
-Key changes from v5:
-1. Smarter trailing: profit-tier based, regime-aware, widens more aggressively
-2. Faster re-entry: 0 cooldown in any positive-momentum regime
-3. More aggressive pyramiding with trend confirmation
-4. Dynamic max-loss: widen in strong trends, tighten in ranging
-5. Breakeven stop: move stop to breakeven at +8% profit
+WhaleTrader - Backtester v5 (High-Participation + Pyramiding)
+==============================================================
+v6.5-stable:
+- Forced entry after 8 bars (bull/volatile) or 15 bars (other)
+- Volatile cooldown = 0 (immediate re-entry)
+- Dynamic trailing with standard tiers
+- Warmup = 20
 """
 
 import math
@@ -16,7 +15,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 from agents.backtester import BacktestResult, Trade
-from agents.signal_engine_v7 import SignalEngineV7, SignalResult, MarketRegime
+from agents.signal_engine_v6 import SignalEngineV6, SignalResult, MarketRegime
 
 
 @dataclass
@@ -33,10 +32,9 @@ class Position:
     signal_confidence: float
     regime_at_entry: MarketRegime
     num_add_ons: int = 0
-    max_add_ons: int = 4  # up from 3
+    max_add_ons: int = 3
     avg_entry_price: float = 0
     entry_bar_idx: int = 0
-    breakeven_triggered: bool = False
 
     def __post_init__(self):
         if self.avg_entry_price == 0:
@@ -72,7 +70,7 @@ class Position:
         self.num_add_ons += 1
 
 
-class BacktesterV7:
+class BacktesterV5:
     def __init__(self,
                  initial_capital: float = 10000.0,
                  commission_pct: float = 0.001,
@@ -90,7 +88,7 @@ class BacktesterV7:
                   arena=None, agents=None,
                   decision_interval: int = 1) -> BacktestResult:
 
-        engine = SignalEngineV7()
+        engine = SignalEngineV6()
 
         if not price_history or len(price_history) < 20:
             raise ValueError("Need at least 20 data points")
@@ -135,49 +133,34 @@ class BacktesterV7:
                 in_trend = position.regime_at_entry in (
                     MarketRegime.STRONG_BULL, MarketRegime.BULL, MarketRegime.VOLATILE)
 
-                # Get current regime
-                sig_check = engine.generate_signal(
-                    prices_arr[:i+1],
-                    volumes_arr[:i+1] if has_volume else None,
-                    current_position=position.quantity,
-                )
-                current_is_trend = sig_check.regime in (
-                    MarketRegime.STRONG_BULL, MarketRegime.BULL, MarketRegime.VOLATILE)
-
-                if in_trend or current_is_trend:
-                    # ── Profit-tier trailing stop ──
-                    # Key insight: at high profits, TIGHTEN trailing to lock gains
-                    if pnl_pct > 1.00:
+                if in_trend:
+                    # Widen trailing as profit grows
+                    if pnl_pct > 0.60:
                         position.trailing_stop_pct = max(position.trailing_stop_pct, 0.30)
-                    elif pnl_pct > 0.60:
-                        position.trailing_stop_pct = max(position.trailing_stop_pct, 0.28)
                     elif pnl_pct > 0.40:
-                        position.trailing_stop_pct = max(position.trailing_stop_pct, 0.25)
-                    elif pnl_pct > 0.25:
+                        position.trailing_stop_pct = max(position.trailing_stop_pct, 0.27)
+                    elif pnl_pct > 0.20:
                         position.trailing_stop_pct = max(position.trailing_stop_pct, 0.23)
-                    elif pnl_pct > 0.12:
+                    elif pnl_pct > 0.10:
                         position.trailing_stop_pct = max(position.trailing_stop_pct, 0.20)
 
+                    sig_check = engine.generate_signal(
+                        prices_arr[:i+1],
+                        volumes_arr[:i+1] if has_volume else None,
+                        current_position=position.quantity,
+                    )
                     if sig_check.regime == MarketRegime.STRONG_BULL:
-                        position.trailing_stop_pct = max(position.trailing_stop_pct, 0.30)
+                        position.trailing_stop_pct = max(position.trailing_stop_pct, 0.25)
 
-                    # No take profit in trends
                     if position.take_profit < price * 5:
                         position.take_profit = price * 100.0
 
                 position.update_trailing(price)
                 exit_reason = position.should_exit(price)
 
-        # Dynamic max loss — key v7: regime-specific
-                max_loss = self.max_loss_per_trade  # 6%
-                if position.regime_at_entry in (MarketRegime.STRONG_BULL,):
-                    max_loss = 0.30
-                elif position.regime_at_entry in (MarketRegime.BULL,):
-                    max_loss = 0.25
-                elif position.regime_at_entry == MarketRegime.VOLATILE:
-                    max_loss = 0.20
-                elif position.regime_at_entry == MarketRegime.RANGING:
-                    max_loss = 0.08
+                max_loss = self.max_loss_per_trade
+                if in_trend:
+                    max_loss = 0.28
 
                 if pnl_pct < -max_loss:
                     exit_reason = "max_loss"
@@ -193,7 +176,7 @@ class BacktesterV7:
                         prices_arr[:i+1],
                         volumes_arr[:i+1] if has_volume else None,
                     )
-                    # 0 cooldown in any momentum regime
+                    # 0 cooldown in bull AND volatile
                     if last_sig.regime in (MarketRegime.STRONG_BULL, MarketRegime.BULL,
                                            MarketRegime.VOLATILE):
                         cooldown = 0
@@ -215,10 +198,10 @@ class BacktesterV7:
                 current_position=position.quantity if position else 0,
             )
 
-            # ── ENTRY ──
+            # ── EXECUTE ──
             if position is None:
-                min_conf = 0.35 if sig.regime in (
-                    MarketRegime.STRONG_BULL, MarketRegime.BULL) else 0.45
+                min_conf = 0.40 if sig.regime in (
+                    MarketRegime.STRONG_BULL, MarketRegime.BULL) else 0.50
 
                 # Forced entry
                 bars_without_position = i - warmup
@@ -227,9 +210,9 @@ class BacktesterV7:
 
                 if sig.regime in (MarketRegime.BULL, MarketRegime.STRONG_BULL,
                                   MarketRegime.VOLATILE):
-                    force_threshold = 6
+                    force_threshold = 8
                 else:
-                    force_threshold = 12
+                    force_threshold = 15
 
                 force_entry = (bars_without_position > force_threshold and
                                sig.regime not in (MarketRegime.CRASH, MarketRegime.STRONG_BEAR))
@@ -239,7 +222,7 @@ class BacktesterV7:
 
                 if should_enter:
                     if force_entry and sig.signal not in ("buy", "strong_buy"):
-                        pos_size_pct = 0.40  # bigger forced entry (was 0.35)
+                        pos_size_pct = 0.35
                     else:
                         pos_size_pct = min(sig.position_size, self.max_portfolio_exposure)
 
@@ -252,10 +235,9 @@ class BacktesterV7:
                     actual_invest = trade_amount - commission
                     qty = actual_invest / effective_price
 
-                    # Initial stop based on regime
                     if sig.regime in (MarketRegime.STRONG_BULL, MarketRegime.BULL,
                                       MarketRegime.VOLATILE):
-                        initial_stop = effective_price * (1 - 0.28)  # wider (was 0.25)
+                        initial_stop = effective_price * (1 - 0.25)
                     else:
                         initial_stop = effective_price * (1 - self.max_loss_per_trade)
 
@@ -278,35 +260,30 @@ class BacktesterV7:
                     capital -= trade_amount
 
             else:
-                # ── PYRAMIDING (more aggressive) ──
+                # ── PYRAMIDING ──
                 in_trend = sig.regime in (MarketRegime.STRONG_BULL, MarketRegime.BULL)
                 pnl_pct = position.pnl_pct(price)
 
-                # Pyramid at +3%, +6%, +12%, +20% (lower thresholds)
-                pyr_thresholds = [0.03, 0.06, 0.12, 0.20]
-                next_threshold = pyr_thresholds[min(position.num_add_ons, len(pyr_thresholds)-1)]
-
                 if (in_trend and
                         position.num_add_ons < position.max_add_ons and
-                        pnl_pct > next_threshold and
+                        pnl_pct > 0.05 * (position.num_add_ons + 1) and
                         capital > self.initial_capital * 0.05 and
                         sig.signal in ("buy", "strong_buy")):
 
-                    add_size = min(capital * 0.35, capital * 0.9)  # up from 0.30
+                    add_size = min(capital * 0.30, capital * 0.9)
                     if add_size > 100:
                         effective_price = price * (1 + self.slippage_pct)
                         commission = add_size * self.commission_pct
                         add_qty = (add_size - commission) / effective_price
                         position.add_position(effective_price, add_qty, add_size)
                         capital -= add_size
-                        position.trailing_stop_pct = max(position.trailing_stop_pct, 0.25)
+                        position.trailing_stop_pct = max(position.trailing_stop_pct, 0.22)
 
-                # ── EXIT SIGNALS ──
+                # ── EXIT SIGNALS (non-trend) ──
+                # Only signal-exit if held > 2 bars to avoid whipsaw churn
                 bars_held = i - position.entry_bar_idx
-
-                # In non-trend: exit faster on sell signals
-                if not in_trend and pnl_pct <= 0 and bars_held > 1:
-                    if sig.signal in ("sell", "strong_sell") and sig.confidence > 0.55:
+                if not in_trend and pnl_pct <= 0 and bars_held > 2:
+                    if sig.signal in ("sell", "strong_sell") and sig.confidence > 0.65:
                         trade = self._close(position, price, date, "signal_exit")
                         capital += trade.pnl + position.capital_used
                         trades.append(trade)
