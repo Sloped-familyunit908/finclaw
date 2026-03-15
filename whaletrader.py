@@ -344,9 +344,13 @@ def main():
         asyncio.run(cmd_backtest(args))
     elif args.command == "test":
         import subprocess
-        r1 = subprocess.run([sys.executable, "tests/test_engine.py"], cwd=os.path.dirname(__file__))
-        r2 = subprocess.run([sys.executable, "tests/test_picker.py"], cwd=os.path.dirname(__file__))
-        exit(r1.returncode or r2.returncode)
+        all_pass = True
+        for test_file in ["tests/test_engine.py", "tests/test_picker.py", "tests/test_strategy.py"]:
+            result = subprocess.run([sys.executable, test_file], cwd=os.path.dirname(__file__))
+            if result.returncode != 0: all_pass = False
+        if all_pass:
+            print("\n  ALL TEST SUITES PASSED!")
+        exit(0 if all_pass else 1)
     elif args.command == "info":
         cmd_info(args)
     else:
