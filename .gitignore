@@ -1,7 +1,39 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+.conda/
+
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project-specific
 dashboard/.next/
 node_modules/
 engine/target/
-__pycache__/
-*.pyc
-.env
-.venv/
+
+# Logs & output
+*.log
+*.csv
+*.html
