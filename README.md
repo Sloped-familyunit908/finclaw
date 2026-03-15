@@ -1,5 +1,9 @@
 # 🐋 FinClaw
 
+[![PyPI](https://img.shields.io/pypi/v/finclaw-ai?label=PyPI&color=blue)](https://pypi.org/project/finclaw-ai/)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
+[![GitHub Stars](https://img.shields.io/github/stars/NeuZhou/finclaw)](https://github.com/NeuZhou/finclaw)
+
 **AI Trading Engine with Verified Alpha**
 
 **[English](README.md)** | **[中文](docs/README_zh.md)** | **[日本語](docs/README_ja.md)** | **[한국어](docs/README_ko.md)** | **[Français](docs/README_fr.md)**

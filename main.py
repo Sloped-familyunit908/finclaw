@@ -18,7 +18,7 @@ BANNER = """
 ║║║╠═╣╠═╣║  ║╣  ║ ╠╦╝╠═╣ ║║║╣ ╠╦╝
 ╚╩╝╩ ╩╩ ╩╩═╝╚═╝ ╩ ╩╚═╩ ╩═╩╝╚═╝╩╚═
     AI-Powered Quantitative Trading Engine
-    Built with 🦞 by Lobster Labs
+    Built with 🦞 by NeuZhou
 """
 
 
