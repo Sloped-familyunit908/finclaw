@@ -66,7 +66,7 @@ class AssetSelector:
         # ═══ MOMENTUM SCORE ═══
         # Absolute momentum: is the asset trending up?
         ret_20 = prices[-1] / prices[-21] - 1
-        ret_60 = prices[-1] / prices[-61] - 1
+        ret_60 = prices[-1] / prices[max(0, n-61)] - 1
         ret_120 = prices[-1] / prices[max(0, n-121)] - 1 if n > 120 else ret_60
         
         # Hurst exponent proxy: are returns persistent or mean-reverting?
