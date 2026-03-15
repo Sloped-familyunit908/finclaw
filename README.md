@@ -178,7 +178,7 @@ python FinClaw.py backtest --ticker 688256.SS --period 3y
 
 ```
 FinClaw/
-├── FinClaw.py              # CLI entry point
+├── FinClaw.py                  # CLI entry point
 ├── agents/
 │   ├── signal_engine_v7.py     # 6-factor signal engine
 │   ├── backtester_v7.py        # Full lifecycle backtester
@@ -191,12 +191,12 @@ FinClaw/
 ├── benchmark_v10.py            # Unified engine benchmark
 ├── benchmark_multimarket.py    # Global market test
 ├── benchmark_real.py           # Real data validation
-├── docs/
-│   ├── README_zh.md            # 中文文档
-│   ├── README_ja.md            # 日本語ドキュメント
-│   ├── README_ko.md            # 한국어 문서
-│   └── README_fr.md            # Documentation française
-└── _scratch/                   # Archived experiments
+├── daily_alert.py              # Daily stock scanner & alerts
+├── mcp_server.py               # MCP server (4 tools)
+├── telegram_bot.py             # Telegram bot interface
+├── docs/                       # Multi-language documentation
+├── CHANGELOG.md                # Version history
+└── _scratch/                   # Archived experiments & old benchmarks
 ```
 
 ## Development
@@ -278,3 +278,5 @@ MIT License. Not financial advice. Past performance does not guarantee future re
 ---
 
 *Built by an engineer who believes trading systems should be engineered, not hoped.* 🐋
+
+See [CHANGELOG.md](CHANGELOG.md) for version history.
