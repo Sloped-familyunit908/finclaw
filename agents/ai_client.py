@@ -200,7 +200,7 @@ class OllamaClient(AIClient):
 
 
 class AzureOpenAIClient(AIClient):
-    """Azure OpenAI client — uses kazhou's $150/month Azure credits"""
+    """Azure OpenAI client for enterprise deployments"""
     
     def __init__(self, endpoint: str = None, api_key: str = None,
                  deployment: str = "gpt-4o", api_version: str = "2024-02-15-preview"):

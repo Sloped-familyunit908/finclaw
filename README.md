@@ -267,4 +267,4 @@ MIT License. Not financial advice. Past performance does not guarantee future re
 
 ---
 
-*Built by a Microsoft Principal Engineer who believes trading systems should be engineered, not hoped.* 🐋
+*Built by an engineer who believes trading systems should be engineered, not hoped.* 🐋
