@@ -1,5 +1,6 @@
 # 🐋 FinClaw
 
+[![CI](https://github.com/NeuZhou/finclaw/actions/workflows/ci.yml/badge.svg)](https://github.com/NeuZhou/finclaw/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/finclaw-ai?label=PyPI&color=blue)](https://pypi.org/project/finclaw-ai/)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![GitHub Stars](https://img.shields.io/github/stars/NeuZhou/finclaw)](https://github.com/NeuZhou/finclaw)

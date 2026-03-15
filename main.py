@@ -22,7 +22,7 @@ BANNER = """
 """
 
 
-async def analyze_asset(asset: str, agents: list, verbose: bool = True):
+async def analyze_asset(asset: str, agents: list, verbose: bool = True) -> list | None:
     """Run all agents on a single asset"""
     print(f"\n{'='*60}")
     print(f"📊 Analyzing {asset}...")
@@ -101,7 +101,7 @@ async def analyze_asset(asset: str, agents: list, verbose: bool = True):
     return analyses
 
 
-async def main():
+async def main() -> None:
     parser = argparse.ArgumentParser(description="FinClaw - AI Trading Engine")
     parser.add_argument("--assets", type=str, default="BTC,ETH,SOL",
                         help="Comma-separated asset symbols")
