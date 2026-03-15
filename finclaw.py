@@ -63,6 +63,21 @@ UNIVERSES = {
         "3690.HK": "Meituan", "1211.HK": "BYD HK",
         "9618.HK": "JD.com", "1810.HK": "Xiaomi",
         "2318.HK": "Ping An HK", "0941.HK": "China Mobile",
+        "0388.HK": "HKEX", "0005.HK": "HSBC",
+        "1024.HK": "Kuaishou", "9888.HK": "Baidu",
+        "2020.HK": "ANTA Sports", "0241.HK": "Alibaba Health",
+        "1347.HK": "Hua Hong Semi", "6060.HK": "ZhongAn Online",
+    },
+    "japan": {
+        "7203.T": "Toyota", "6758.T": "Sony",
+        "9984.T": "SoftBank", "6861.T": "Keyence",
+        "8306.T": "MUFG", "6501.T": "Hitachi",
+        "6902.T": "Denso", "7741.T": "HOYA",
+    },
+    "korea": {
+        "005930.KS": "Samsung", "000660.KS": "SK Hynix",
+        "373220.KS": "LG Energy", "005380.KS": "Hyundai",
+        "051910.KS": "LG Chem", "207940.KS": "Samsung Bio",
     },
 }
 
@@ -244,7 +259,7 @@ async def cmd_scan(args):
     capital = args.capital
     period = args.period
     style = args.style
-    markets = [args.market] if args.market != "all" else ["us", "china", "hk"]
+    markets = [args.market] if args.market != "all" else ["us", "china", "hk", "japan", "korea"]
 
     print(f"\n  FinClaw Scan")
     print(f"  Market: {args.market} | Style: {style} | Capital: {capital:,.0f} | Period: {period}")
@@ -339,7 +354,7 @@ def main():
 
     # scan
     p_scan = sub.add_parser("scan", help="Scan market with strategy")
-    p_scan.add_argument("--market", "-m", default="us", choices=["us","china","hk","all"])
+    p_scan.add_argument("--market", "-m", default="us", choices=["us","china","hk","japan","korea","all"])
     p_scan.add_argument("--style", "-s", default="soros", choices=list(STRATEGIES.keys()))
     p_scan.add_argument("--capital", "-c", type=float, default=1000000)
     p_scan.add_argument("--period", "-p", default="5y")
