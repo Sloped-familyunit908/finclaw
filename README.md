@@ -66,8 +66,14 @@ Average edge: +10.8% per year
 ### 1. Install
 
 ```bash
-git clone https://github.com/user/FinClaw.git
-cd FinClaw
+pip install finclaw-ai
+```
+
+Or from source:
+
+```bash
+git clone https://github.com/NeuZhou/finclaw.git
+cd finclaw
 pip install -r requirements.txt  # aiohttp, yfinance
 ```
 
