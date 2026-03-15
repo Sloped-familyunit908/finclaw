@@ -280,3 +280,9 @@ MIT License. Not financial advice. Past performance does not guarantee future re
 *Built by an engineer who believes trading systems should be engineered, not hoped.* 🐋
 
 See [CHANGELOG.md](CHANGELOG.md) for version history.
+
+## 👀 See Also
+
+- [repo2skill](https://github.com/NeuZhou/repo2skill) — Convert GitHub repos into OpenClaw skills
+- [ClawGuard](https://github.com/NeuZhou/clawguard) — AI Agent Immune System
+- [awesome-llm-security](https://github.com/NeuZhou/awesome-llm-security) — Curated LLM security resources
