@@ -343,7 +343,10 @@ def main():
     elif args.command == "backtest":
         asyncio.run(cmd_backtest(args))
     elif args.command == "test":
-        os.system(f"{sys.executable} tests/test_engine.py")
+        import subprocess
+        r1 = subprocess.run([sys.executable, "tests/test_engine.py"], cwd=os.path.dirname(__file__))
+        r2 = subprocess.run([sys.executable, "tests/test_picker.py"], cwd=os.path.dirname(__file__))
+        exit(r1.returncode or r2.returncode)
     elif args.command == "info":
         cmd_info(args)
     else:
