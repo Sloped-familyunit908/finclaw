@@ -131,12 +131,16 @@ STRATEGIES = {
 
 def fetch_data(ticker, period="5y"):
     try:
-        stock = yf.Ticker(ticker)
-        df = stock.history(period=period)
+        import logging, warnings
+        logging.getLogger("yfinance").setLevel(logging.CRITICAL)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            stock = yf.Ticker(ticker)
+            df = stock.history(period=period)
         if df.empty or len(df) < 60: return None
         return [{"date": idx.to_pydatetime(), "price": float(row["Close"]),
                  "volume": float(row["Volume"])} for idx, row in df.iterrows()]
-    except:
+    except Exception:
         return None
 
 
@@ -283,7 +287,8 @@ async def cmd_backtest(args):
     print(f"\n  WhaleTrader Single Backtest: {ticker}")
     h = fetch_data(ticker, period)
     if not h:
-        print(f"  ERROR: No data for {ticker}"); return
+        print(f"  ERROR: No data for {ticker}. Check ticker symbol.")
+        return
 
     bh = h[-1]["price"]/h[0]["price"]-1
     years = len(h)/252
