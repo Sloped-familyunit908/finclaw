@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "finclaw-ai"
+version = "1.0.0"
+description = "AI-Powered Financial Intelligence Engine. 8 Master Strategies, 3 Markets, 227 Tests."
+readme = "README.md"
+license = {text = "AGPL-3.0-only"}
+requires-python = ">=3.9"
+authors = [
+    {name = "NeuZhou", email = "justboy1987@gmail.com"}
+]
+keywords = ["ai", "trading", "quant", "finance", "agent", "investment", "backtesting", "strategy"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: GNU Affero General Public License v3",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business :: Financial :: Investment",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "aiohttp>=3.8.0",
+    "yfinance>=0.2.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/NeuZhou/finclaw"
+Repository = "https://github.com/NeuZhou/finclaw"
+Issues = "https://github.com/NeuZhou/finclaw/issues"
+
+[project.scripts]
+finclaw = "finclaw:main"
+
+[tool.setuptools.packages.find]
+include = ["src*", "agents*", "strategies*", "engine*"]
