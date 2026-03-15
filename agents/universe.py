@@ -49,6 +49,21 @@ A_SHARES_EXTENDED = {
     "300474.SZ": "Kingdee", "688111.SS": "Montage Tech",
     "002049.SZ": "Unigroup Guoxin", "688036.SS": "Transmit Tech",
     "300496.SZ": "AMEC (Etch)", "688981.SS": "CXMT Memory",
+    # 光模块 / 通信 (2024-2025最火板块)
+    "002281.SZ": "Guangxun Tech", "300308.SZ": "Zhongji Innolight",
+    "688498.SS": "RuiChip Micro", "002396.SZ": "Star Semicom",
+    "300602.SZ": "Flyco Fiber", "688186.SS": "Guangzhi Tech",
+    # PCB / 电子制造
+    "002938.SZ": "Shennan Circuits", "002916.SZ": "Suntak Tech",
+    "603228.SS": "Jingwang Electronics", "000063.SZ": "ZTE Corp",
+    # AI 应用 / 软件
+    "688047.SS": "Longshine Tech", "300033.SZ": "Hikvision SW",
+    "002410.SZ": "Glodon (BIM)", "688561.SS": "Qi-An-Xin (Cyber)",
+    "300454.SZ": "Shenzhen Sunline",
+    # 商业航天 / 卫星
+    "688066.SS": "Aerospace Hi-Tech", "002025.SZ": "Space Star",
+    "600118.SS": "China Spacesat", "600855.SS": "Aerospace Times",
+    "300101.SZ": "Fiberhome Telecom",
     # 新能源 / 电池 / 光伏
     "300750.SZ": "CATL", "002594.SZ": "BYD",
     "300274.SZ": "Sungrow Power", "002812.SZ": "Yunnan Energy",
@@ -185,7 +200,40 @@ SECTOR_LINKAGE = {
         "hk": ["2382.HK"],
         "correlation": 0.45,
         "lag_days": 1,
-        "description": "Tesla robot/ISRG → A-share robotics concept stocks",
+        "description": "Tesla robot/ISRG -> A-share robotics concept stocks",
+    },
+    # Optical module — A-share hottest sector 2024-2025
+    "optical_module": {
+        "us": ["NVDA", "AVGO", "ANET"],
+        "china": ["002281.SZ", "300308.SZ", "002396.SZ", "300602.SZ", "688186.SS"],
+        "correlation": 0.80,
+        "lag_days": 1,
+        "description": "US AI infra demand -> Chinese optical module makers",
+    },
+    # PCB / electronics manufacturing
+    "pcb_electronics": {
+        "us": ["AVGO", "QCOM"],
+        "china": ["002938.SZ", "002916.SZ", "603228.SS", "000063.SZ"],
+        "correlation": 0.50,
+        "lag_days": 1,
+        "description": "AI server demand -> PCB/electronics chain",
+    },
+    # Commercial space / satellite
+    "commercial_space": {
+        "us": ["BA", "LMT", "RTX"],
+        "china": ["688066.SS", "002025.SZ", "600118.SS", "600855.SS"],
+        "correlation": 0.35,
+        "lag_days": 2,
+        "description": "US defense/space -> A-share commercial space",
+    },
+    # AI applications / enterprise software
+    "ai_applications": {
+        "us": ["CRM", "PLTR", "ORCL"],
+        "china": ["688047.SS", "002410.SZ", "300454.SZ", "688561.SS"],
+        "hk": ["0700.HK"],
+        "correlation": 0.40,
+        "lag_days": 1,
+        "description": "US AI enterprise -> Chinese AI software",
     },
 }
 
