@@ -197,7 +197,6 @@ class SignalEngineV7:
 
         if self._consecutive_bull_bars > 15:
             pos_size = min(pos_size * 1.15, 0.95)
-
         # Adaptive stops based on regime strength
         if regime == MarketRegime.STRONG_BULL:
             stop_pct = 0.28
@@ -269,9 +268,11 @@ class SignalEngineV7:
         raw_sell = score < -0.30
 
         # Anti-whipsaw: require 2 consecutive buy signals in ranging
+        # Exception: RSI extreme oversold (<20) = capitulation, bypass pending
+        rsi_extreme = factors.get("rsi", 0) >= 0.9  # rsi < 25 → factor=0.9 (see above)
         if raw_buy:
             self._pending_buy_signal += 1
-            if self._pending_buy_signal >= 2:
+            if self._pending_buy_signal >= 2 or rsi_extreme:
                 signal = "buy"
             else:
                 signal = "hold"
