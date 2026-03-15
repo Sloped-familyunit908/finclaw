@@ -253,6 +253,22 @@ async def cmd_scan(args):
     print(f"  Target Annual: {STRATEGIES[style]['target_ann']}")
     print("="*80)
 
+    # Macro environment
+    try:
+        from agents.macro_analyzer import MacroAnalyzer
+        ma = MacroAnalyzer()
+        snap = ma.get_macro_snapshot()
+        print(f"\n  MACRO ENVIRONMENT: {snap.regime.value.upper()}")
+        print(f"  VIX={snap.vix:.1f} | 10Y={snap.us_10y_yield:.1f}% | "
+              f"Oil={snap.oil_trend} | Gold={snap.gold_trend} | DXY={snap.dxy_trend}")
+        favored = [s for s, v in snap.sector_recommendations.items() if v > 0.1]
+        if favored:
+            print(f"  Favored sectors: {', '.join(favored[:5])}")
+    except Exception:
+        pass
+
+    print("="*80)
+
     for market in markets:
         if market not in UNIVERSES:
             print(f"  Unknown market: {market}"); continue
