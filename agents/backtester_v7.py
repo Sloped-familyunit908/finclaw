@@ -102,6 +102,7 @@ class BacktesterV7:
         daily_returns = []
         cooldown = 0
         last_exit_idx = None
+        consecutive_losses = 0
 
         prices_arr = [bar["price"] for bar in price_history]
         volumes_arr = [bar.get("volume", 0) for bar in price_history]
@@ -189,6 +190,12 @@ class BacktesterV7:
                     position = None
                     last_exit_idx = i
 
+                    # Track consecutive losses for anti-whipsaw cooldown
+                    if trade.pnl < 0:
+                        consecutive_losses += 1
+                    else:
+                        consecutive_losses = 0
+
                     last_sig = engine.generate_signal(
                         prices_arr[:i+1],
                         volumes_arr[:i+1] if has_volume else None,
@@ -198,7 +205,8 @@ class BacktesterV7:
                                            MarketRegime.VOLATILE):
                         cooldown = 0
                     else:
-                        cooldown = 1
+                        # Extended cooldown after consecutive losses
+                        cooldown = min(1 + consecutive_losses, 4)
                     continue
 
             if (i - warmup) % decision_interval != 0:
