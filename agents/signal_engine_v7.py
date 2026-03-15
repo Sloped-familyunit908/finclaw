@@ -162,9 +162,16 @@ class SignalEngineV7:
                  factors["volume"]         * 0.10)
 
         # Entry decision
+        # Downtrend protection: if price is in a falling channel, require stronger signal
+        ret_30 = prices[-1] / prices[max(0, n-31)] - 1 if n > 30 else 0
+        in_falling_channel = ret_30 < -0.10  # down >10% in last 30 bars
+
         if cur_pos == 0:
             if ema_full_align or factors["breakout"] > 0.5:
                 signal = "strong_buy"
+            elif in_falling_channel:
+                # In falling channel: require clear momentum (score > 0.10)
+                signal = "buy" if score > 0.10 else "hold"
             elif score > -0.15:  # aggressive in bull
                 signal = "strong_buy" if score > 0.15 else "buy"
             else:
@@ -334,7 +341,7 @@ class SignalEngineV7:
                  factors["bounce"]           * 0.35 +
                  factors["capitulation"]     * 0.20)
 
-        threshold = 0.45 if regime == MarketRegime.CRASH else 0.30
+        threshold = 0.45 if regime in (MarketRegime.CRASH, MarketRegime.STRONG_BEAR) else 0.30
 
         if score > threshold:
             signal = "buy"
