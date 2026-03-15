@@ -257,6 +257,8 @@ class BacktesterV7:
                         recent_wr = sum(1 for t in recent if t.pnl > 0) / 3
                         if recent_wr >= 0.67:  # 2/3 or 3/3 recent wins
                             pos_size_pct = min(pos_size_pct * 1.10, 0.95)
+                        elif consecutive_losses >= 3:
+                            pos_size_pct *= 0.70  # heavy reduce after 3+ losing streak
                         elif recent_wr <= 0.33 and consecutive_losses >= 2:
                             pos_size_pct *= 0.80  # reduce after losing streak
 
