@@ -1,14 +1,15 @@
 """
-WhaleTrader - Signal Engine v7: Momentum-Adaptive Regime Engine
-================================================================
-Key changes from v6:
-1. Trend-Following Core: ride trends harder, cut losers faster
-2. Adaptive Position Sizing: scale up in confirmed trends (Kelly-inspired)
-3. Multi-Timeframe Momentum: align 5/10/20/50-bar momentum for conviction
-4. Regime-Specific Trailing: wide in trends, tight in ranging
-5. Volatility-Normalized Signals: normalize all factors by rolling vol
-6. Break-and-Retest Entry: detect breakout-pullback patterns for high-conviction entries
-7. Anti-Whipsaw: require consecutive signal confirmation in ranging markets
+WhaleTrader - Signal Engine v8: Hybrid Regime-Momentum Engine
+==============================================================
+Core insight from v7 experiments: we're strong in bear/correction but weak
+in bull capture. v8 addresses this with:
+
+1. BULL: More aggressive entry, wider initial trailing, no TP
+2. VOLATILE: Split into vol-up/vol-down sub-modes with distinct strategies
+3. RANGING: Smarter mean-reversion with faster TP cycle
+4. BEAR: Bounce-trade with tighter risk
+5. NEW: Volatility-scaled position sizing (higher vol → smaller pos but wider stops)
+6. NEW: Momentum acceleration factor (2nd derivative of price)
 """
 
 import math
@@ -29,7 +30,7 @@ class MarketRegime(Enum):
 
 @dataclass
 class SignalResult:
-    signal: str          # buy / strong_buy / sell / hold
+    signal: str
     confidence: float
     regime: MarketRegime
     position_size: float
@@ -40,14 +41,13 @@ class SignalResult:
     reasoning: str
 
 
-class SignalEngineV7:
-    def __init__(self,
-                 risk_per_trade: float = 0.02,
-                 max_position_size: float = 0.95):
+class SignalEngineV8:
+    def __init__(self):
         self._prev_regime = None
         self._regime_hold_count = 0
         self._consecutive_bull_bars = 0
-        self._pending_buy_signal = 0  # anti-whipsaw: consecutive buy signals in ranging
+        self._pending_buy_signal = 0
+        self._bars_in_regime = 0
 
     def generate_signal(self, prices: list[float],
                         volumes: list[float] = None,
@@ -58,6 +58,7 @@ class SignalEngineV7:
 
         price = prices[-1]
         atr = _atr(prices, min(14, n - 1))
+        ann_vol = _rolling_vol(prices, 20)
 
         raw_regime, regime_conf = self._detect_regime(prices)
         regime = self._apply_inertia(raw_regime, regime_conf)
@@ -68,154 +69,151 @@ class SignalEngineV7:
             self._consecutive_bull_bars = 0
 
         if regime in (MarketRegime.STRONG_BULL, MarketRegime.BULL):
-            return self._bull_signal(prices, volumes, price, atr, regime, current_position)
+            return self._bull_signal(prices, volumes, price, atr, ann_vol, regime, current_position)
         elif regime in (MarketRegime.BEAR, MarketRegime.STRONG_BEAR, MarketRegime.CRASH):
-            return self._bear_signal(prices, volumes, price, atr, regime, current_position)
+            return self._bear_signal(prices, volumes, price, atr, ann_vol, regime, current_position)
         elif regime == MarketRegime.VOLATILE:
-            # Volatile: lean toward trend direction, but with stricter threshold
-            ret_10 = prices[-1] / prices[max(0, n - 11)] - 1 if n > 10 else 0
-            ret_5  = prices[-1] / prices[max(0, n - 6)] - 1 if n > 5 else 0
-            ema8 = _ema_val(prices, min(8, n))
-            ema21 = _ema_val(prices, min(21, n))
-            if (ret_10 > 0.02 and ret_5 > 0) or (price > ema8 > ema21 and ret_5 > 0):
-                return self._bull_signal(prices, volumes, price, atr, regime, current_position)
-            elif ret_10 < -0.02 or ret_5 < -0.015:
-                return self._bear_signal(prices, volumes, price, atr, regime, current_position)
-            else:
-                return self._range_signal(prices, volumes, price, atr, regime, current_position)
+            return self._volatile_signal(prices, volumes, price, atr, ann_vol, regime, current_position)
         else:
-            return self._range_signal(prices, volumes, price, atr, regime, current_position)
+            return self._range_signal(prices, volumes, price, atr, ann_vol, regime, current_position)
 
     # ═══════════════════════════════════════════════════════
-    # BULL SIGNAL — aggressive trend-following
+    # BULL SIGNAL
     # ═══════════════════════════════════════════════════════
 
-    def _bull_signal(self, prices, volumes, price, atr, regime, cur_pos):
+    def _bull_signal(self, prices, volumes, price, atr, ann_vol, regime, cur_pos):
         factors = {}
         n = len(prices)
 
-        # Multi-timeframe momentum (normalized)
         mom_5  = prices[-1] / prices[max(0, n - 6)]  - 1 if n > 5  else 0
         mom_10 = prices[-1] / prices[max(0, n - 11)] - 1 if n > 10 else 0
         mom_20 = prices[-1] / prices[max(0, n - 21)] - 1 if n > 20 else 0
         mom_50 = prices[-1] / prices[max(0, n - 51)] - 1 if n > 50 else mom_20
 
-        # Normalize momentum by rolling volatility
-        vol_20 = _rolling_vol(prices, 20)
-        vol_norm = max(vol_20, 0.005)
+        vol_norm = max(ann_vol, 0.005)
         factors["momentum"] = _clamp(
-            (mom_5 / vol_norm * 0.30 +
-             mom_10 / vol_norm * 0.25 +
-             mom_20 / vol_norm * 0.25 +
-             mom_50 / vol_norm * 0.20) * 0.05, -1, 1)
+            (mom_5 / vol_norm * 0.30 + mom_10 / vol_norm * 0.25 +
+             mom_20 / vol_norm * 0.25 + mom_50 / vol_norm * 0.20) * 0.05, -1, 1)
 
-        # EMA stack alignment — strongest bull signal
+        # Momentum acceleration (2nd derivative)
+        if n > 10:
+            mom_5_prev = prices[-6] / prices[max(0, n - 11)] - 1
+            accel = mom_5 - mom_5_prev
+            factors["acceleration"] = _clamp(accel * 20, -1, 1)
+        else:
+            factors["acceleration"] = 0
+
         ema5  = _ema_val(prices, min(5,  n))
-        ema8  = _ema_val(prices, min(8,  n))
         ema10 = _ema_val(prices, min(10, n))
         ema21 = _ema_val(prices, min(21, n))
         ema50 = _ema_val(prices, min(50, n))
 
-        # Full alignment: price > ema5 > ema10 > ema21 > ema50
-        alignment = 0
-        if price > ema5:  alignment += 1
-        if ema5 > ema10:  alignment += 1
-        if ema10 > ema21: alignment += 1
-        if ema21 > ema50: alignment += 1
-        factors["ema_alignment"] = (alignment / 4.0) * 2 - 1  # [-1, 1]
+        alignment = sum([price > ema5, ema5 > ema10, ema10 > ema21, ema21 > ema50])
+        factors["ema_alignment"] = (alignment / 4.0) * 2 - 1
 
         ema_full_align = (ema5 > ema10 > ema21) and (price > ema5) and (mom_5 > 0)
 
-        # RSI with trend context
         rsi = _rsi(prices, min(14, n - 1))
         if rsi is not None:
-            if rsi > 80:
-                factors["rsi"] = -0.3  # overbought, but don't sell in bull
-            elif rsi > 60:
-                factors["rsi"] = 0.3   # healthy momentum
-            elif rsi < 35:
-                factors["rsi"] = 0.8   # oversold in bull = buy the dip!
-            elif rsi < 45:
-                factors["rsi"] = 0.5   # mild dip
-            else:
-                factors["rsi"] = 0.2
+            if rsi > 80: factors["rsi"] = -0.3
+            elif rsi > 60: factors["rsi"] = 0.3
+            elif rsi < 35: factors["rsi"] = 0.8
+            elif rsi < 45: factors["rsi"] = 0.5
+            else: factors["rsi"] = 0.2
         else:
             factors["rsi"] = 0.2
 
-        # Donchian breakout (20-bar high)
         high_20 = max(prices[max(0, n-21):n-1]) if n > 2 else price
         factors["breakout"] = 0.7 if price > high_20 else -0.1
 
-        # Volume surge (if available)
         if volumes and len(volumes) > 20:
             avg_vol = sum(volumes[-20:]) / 20
-            cur_vol = volumes[-1]
-            factors["volume"] = _clamp((cur_vol / max(avg_vol, 1) - 1) * 2, -0.5, 0.8)
+            factors["volume"] = _clamp((volumes[-1] / max(avg_vol, 1) - 1) * 2, -0.5, 0.8)
         else:
             factors["volume"] = 0.1
 
-        # Composite score
-        score = (factors["momentum"]      * 0.30 +
+        score = (factors["momentum"]      * 0.25 +
+                 factors["acceleration"]   * 0.10 +
                  factors["ema_alignment"]  * 0.25 +
                  factors["rsi"]            * 0.15 +
-                 factors["breakout"]       * 0.20 +
+                 factors["breakout"]       * 0.15 +
                  factors["volume"]         * 0.10)
 
-        # Entry decision
         if cur_pos == 0:
             if ema_full_align or factors["breakout"] > 0.5:
                 signal = "strong_buy"
-            elif score > -0.15:  # aggressive in bull
+            elif score > -0.15:
                 signal = "strong_buy" if score > 0.15 else "buy"
             else:
                 signal = "hold"
         else:
-            # Exit on reversal — use tiered thresholds
             if score < -0.40:
                 signal = "sell"
             elif score < -0.20 and not ema_full_align:
-                signal = "sell"  # weaker sell if momentum fading
+                signal = "sell"
             else:
                 signal = "hold"
 
         confidence = min(0.60 + abs(score) * 0.7, 0.95)
 
-        # Aggressive position sizing
+        # Position sizing — match v7 (no vol adjustment)
         if regime == MarketRegime.STRONG_BULL:
             pos_size = 0.92
         elif regime == MarketRegime.BULL:
             pos_size = 0.80
-        else:  # volatile trending up
+        else:
             pos_size = 0.65
 
         if self._consecutive_bull_bars > 15:
-            pos_size = min(pos_size * 1.15, 0.95)
+            pos_size = min(pos_size * 1.10, 0.95)
 
-        # Adaptive stops based on regime strength
         if regime == MarketRegime.STRONG_BULL:
             stop_pct = 0.28
-        elif regime == MarketRegime.BULL:
+        else:
             stop_pct = 0.22
-        else:  # volatile trending up
-            stop_pct = 0.18
 
         stop_loss    = price * (1 - stop_pct)
-        take_profit  = price * 100.0  # no TP in trends
-        # Trailing: ATR-based, minimum = stop_pct
+        take_profit  = price * 100.0
         trailing_pct = max(atr * 4.5 / price, stop_pct)
 
-        self._pending_buy_signal = 0  # reset anti-whipsaw
+        self._pending_buy_signal = 0
 
         reasoning = (f"BULL score={score:+.3f} align={alignment}/4 "
-                     f"mom5={mom_5:+.2%} breakout={'Y' if factors['breakout']>0.5 else 'N'}")
+                     f"accel={factors['acceleration']:+.2f} mom5={mom_5:+.2%}")
         return SignalResult(signal, confidence, regime, pos_size, stop_loss,
                             take_profit, trailing_pct, factors, reasoning)
 
     # ═══════════════════════════════════════════════════════
-    # RANGE SIGNAL — mean reversion with anti-whipsaw
+    # VOLATILE SIGNAL — split into vol-up/vol-down
     # ═══════════════════════════════════════════════════════
 
-    def _range_signal(self, prices, volumes, price, atr, regime, cur_pos):
+    def _volatile_signal(self, prices, volumes, price, atr, ann_vol, regime, cur_pos):
+        n = len(prices)
+        ret_10 = prices[-1] / prices[max(0, n - 11)] - 1 if n > 10 else 0
+        ret_5  = prices[-1] / prices[max(0, n - 6)]  - 1 if n > 5  else 0
+        ema8 = _ema_val(prices, min(8, n))
+        ema21 = _ema_val(prices, min(21, n))
+
+        # Volatile-up: use bull strategy (no stop modification — let trend logic handle it)
+        if (ret_10 > 0.02 and ret_5 > 0) or (price > ema8 > ema21 and ret_5 > 0):
+            result = self._bull_signal(prices, volumes, price, atr, ann_vol, regime, cur_pos)
+            result.position_size = min(result.position_size, 0.70)
+            return result
+
+        # Volatile-down: use bear strategy
+        if ret_10 < -0.02 or ret_5 < -0.015:
+            return self._bear_signal(prices, volumes, price, atr, ann_vol, regime, cur_pos)
+
+        # Volatile-neutral: range strategy with smaller positions
+        result = self._range_signal(prices, volumes, price, atr, ann_vol, regime, cur_pos)
+        result.position_size = min(result.position_size * 0.8, 0.40)
+        return result
+
+    # ═══════════════════════════════════════════════════════
+    # RANGE SIGNAL
+    # ═══════════════════════════════════════════════════════
+
+    def _range_signal(self, prices, volumes, price, atr, ann_vol, regime, cur_pos):
         factors = {}
         n = len(prices)
 
@@ -236,11 +234,9 @@ class SignalEngineV7:
         else:
             factors["rsi"] = 0
 
-        # Short momentum for timing
         mom_3 = prices[-1] / prices[max(0, n - 4)] - 1 if n > 3 else 0
         factors["short_mom"] = _clamp(mom_3 * 15, -1, 1)
 
-        # Mean reversion strength: how far from mean + reversal signal
         mom_1 = prices[-1] / prices[-2] - 1 if n > 1 else 0
         factors["reversal"] = 0.5 if (factors["z_score"] > 0.3 and mom_1 > 0) else 0
 
@@ -249,7 +245,6 @@ class SignalEngineV7:
                  factors["short_mom"] * 0.20 +
                  factors["reversal"]  * 0.15)
 
-        # Trend filter
         ret_20 = prices[-1] / prices[max(0, n - 21)] - 1 if n > 20 else 0
         if ret_20 < -0.08:
             buy_threshold = 0.40
@@ -261,7 +256,6 @@ class SignalEngineV7:
         raw_buy = score > buy_threshold
         raw_sell = score < -0.30
 
-        # Anti-whipsaw: require 2 consecutive buy signals in ranging
         if raw_buy:
             self._pending_buy_signal += 1
             if self._pending_buy_signal >= 2:
@@ -276,19 +270,11 @@ class SignalEngineV7:
             self._pending_buy_signal = 0
 
         confidence = min(0.45 + abs(score) * 1.0, 0.85)
-
-        # Upward-drifting ranging: larger position (e.g. Moutai-style)
-        # Downtrending ranging: stay conservative
-        if ret_20 > 0.02:
-            pos_size = _clamp(0.62 * confidence, 0.30, 0.68)
-        elif ret_20 > -0.02:
-            pos_size = _clamp(0.50 * confidence, 0.22, 0.55)
-        else:
-            pos_size = _clamp(0.38 * confidence, 0.18, 0.45)
+        pos_size = _clamp(0.45 * confidence, 0.20, 0.50)
 
         stop_loss   = max(price - atr * 2.0, price * 0.93)
         risk        = price - stop_loss
-        take_profit = price + risk * 2.0  # 2:1 R:R for range trading
+        take_profit = price + risk * 2.0
         trailing_pct = max(atr * 2.5 / price, 0.10)
 
         reasoning = (f"RANGE score={score:+.3f} z={factors['z_score']:+.2f} "
@@ -297,10 +283,10 @@ class SignalEngineV7:
                             take_profit, trailing_pct, factors, reasoning)
 
     # ═══════════════════════════════════════════════════════
-    # BEAR SIGNAL — defensive with bounce trades
+    # BEAR SIGNAL
     # ═══════════════════════════════════════════════════════
 
-    def _bear_signal(self, prices, volumes, price, atr, regime, cur_pos):
+    def _bear_signal(self, prices, volumes, price, atr, ann_vol, regime, cur_pos):
         factors = {}
         n = len(prices)
 
@@ -316,17 +302,14 @@ class SignalEngineV7:
         if n >= 5:
             ret_3  = prices[-1] / prices[-4] - 1
             ret_10 = prices[-1] / prices[max(0, n - 11)] - 1
-            # Stronger bounce detection
             factors["bounce"] = 0.7 if (ret_10 < -0.08 and ret_3 > 0.02) else (
                 0.3 if (ret_10 < -0.06 and ret_3 > 0.01) else -0.3)
         else:
             factors["bounce"] = 0
 
-        # Volume capitulation (if available) — extreme volume = potential bottom
         if volumes and len(volumes) > 20:
             avg_vol = sum(volumes[-20:]) / 20
-            cur_vol = volumes[-1]
-            factors["capitulation"] = 0.5 if cur_vol > avg_vol * 2.0 else 0
+            factors["capitulation"] = 0.5 if volumes[-1] > avg_vol * 2.0 else 0
         else:
             factors["capitulation"] = 0
 
@@ -344,7 +327,7 @@ class SignalEngineV7:
             signal = "hold"
 
         confidence   = min(0.35 + abs(score) * 0.8, 0.75)
-        pos_size     = _clamp(0.10, 0.05, 0.15)  # small in bear
+        pos_size     = _clamp(0.10, 0.05, 0.15)
         stop_loss    = price * 0.95
         take_profit  = price + atr * 2.5
         trailing_pct = max(atr * 1.5 / price, 0.06)
@@ -355,7 +338,7 @@ class SignalEngineV7:
                             take_profit, trailing_pct, factors, f"BEAR score={score:+.3f}")
 
     # ═══════════════════════════════════════════════════════
-    # REGIME DETECTION — improved with volatility-aware thresholds
+    # REGIME DETECTION
     # ═══════════════════════════════════════════════════════
 
     def _detect_regime(self, prices: list[float]) -> tuple[MarketRegime, float]:
@@ -367,15 +350,13 @@ class SignalEngineV7:
 
         ema8  = _ema_val(prices, min(8,  n))
         ema21 = _ema_val(prices, min(21, n))
-        ema50 = _ema_val(prices, min(50, n))
         p     = prices[-1]
 
         rets    = [prices[i] / prices[i - 1] - 1 for i in range(max(1, n - 20), n)]
         vol     = _stdev_s(rets) if len(rets) >= 2 else 0.02
         ann_vol = vol * math.sqrt(252)
 
-        # Volatility-adjusted thresholds
-        vol_scale = max(ann_vol / 0.30, 0.5)  # normalize to 30% annual vol
+        vol_scale = max(ann_vol / 0.30, 0.5)
 
         if ret_5 < -0.07 and vol > 0.025:
             return MarketRegime.CRASH, 0.85
@@ -385,7 +366,6 @@ class SignalEngineV7:
         if ret_20 < -0.05 * vol_scale and ema8 < ema21:
             return MarketRegime.BEAR, 0.70
 
-        # Multi-EMA confirmation for bull
         if ret_20 > 0.05 and p > ema8 > ema21:
             return MarketRegime.STRONG_BULL, 0.85
         if p > ema8 and p > ema21 and ret_10 > 0.015:
@@ -412,17 +392,14 @@ class SignalEngineV7:
 
         self._regime_hold_count += 1
 
-        # Instant transitions
         if new_regime == MarketRegime.CRASH:
             self._prev_regime = new_regime
             self._regime_hold_count = 0
             return new_regime
 
-        # Fast into bull (2 bars), fast out of bear (2), slow out of bull (3)
         if new_regime in (MarketRegime.BULL, MarketRegime.STRONG_BULL):
             required = 2
         elif self._prev_regime in (MarketRegime.BULL, MarketRegime.STRONG_BULL):
-            # Exit bull into bear: needs 3 bars (sticky bull)
             if new_regime in (MarketRegime.BEAR, MarketRegime.STRONG_BEAR):
                 required = 3
             else:
@@ -467,7 +444,6 @@ def _atr(prices, period=14):
     return sum(trs[-period:]) / min(len(trs), period)
 
 def _rolling_vol(prices, window=20):
-    """Annualized rolling volatility"""
     n = len(prices)
     if n < 3: return 0.02
     rets = [prices[i] / prices[i-1] - 1 for i in range(max(1, n-window), n)]
