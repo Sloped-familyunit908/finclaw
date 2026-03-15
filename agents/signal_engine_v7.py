@@ -155,11 +155,25 @@ class SignalEngineV7:
             factors["volume"] = 0.1
 
         # Composite score
-        score = (factors["momentum"]      * 0.30 +
+        # Cross-strategy confirmation (inspired by AHF's ensemble approach)
+        # Add Bollinger Band mean-reversion check as confirmation factor
+        bb_period = min(20, n)
+        bb_sma = sum(prices[-bb_period:]) / bb_period
+        bb_std = _stdev_s(prices[-bb_period:])
+        if bb_std > 0:
+            bb_position = (price - bb_sma) / (bb_std * 2)  # [-1, 1] roughly
+            # Near upper band = overbought (negative for entry)
+            # Near lower band = oversold (positive for entry in uptrend)
+            factors["bb_confirmation"] = _clamp(-bb_position * 0.5, -0.5, 0.5)
+        else:
+            factors["bb_confirmation"] = 0
+
+        score = (factors["momentum"]      * 0.25 +
                  factors["ema_alignment"]  * 0.25 +
                  factors["rsi"]            * 0.15 +
-                 factors["breakout"]       * 0.20 +
-                 factors["volume"]         * 0.10)
+                 factors["breakout"]       * 0.15 +
+                 factors["volume"]         * 0.10 +
+                 factors["bb_confirmation"]* 0.10)
 
         # Entry decision
         # Downtrend protection: if price is in a falling channel, require stronger signal
