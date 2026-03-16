@@ -794,6 +794,19 @@ Examples:
     p_pinfo = plugin_sub.add_parser("info", help="Show plugin details")
     p_pinfo.add_argument("name", help="Plugin name")
 
+    # strategy library
+    p_strat = sub.add_parser("strategy", help="Built-in strategy library")
+    strat_sub = p_strat.add_subparsers(dest="strategy_cmd")
+    strat_sub.add_parser("list", help="List all built-in strategies")
+    p_si = strat_sub.add_parser("info", help="Show strategy details")
+    p_si.add_argument("name", help="Strategy slug (e.g. grid-trading)")
+    p_sb = strat_sub.add_parser("backtest", help="Backtest a built-in strategy")
+    p_sb.add_argument("name", help="Strategy slug (e.g. trend-following)")
+    p_sb.add_argument("--symbol", "-s", default="AAPL", help="Ticker symbol")
+    p_sb.add_argument("--start", default="2024-01-01", help="Start date")
+    p_sb.add_argument("--end", default=None, help="End date")
+    p_sb.add_argument("--capital", type=float, default=10000, help="Initial capital")
+
     return parser
 
 
@@ -865,6 +878,69 @@ def _compare_exchanges(names: list[str]) -> None:
         print(f"    {name}: {adapter.exchange_type}")
 
 
+def cmd_strategy(args):
+    """Handle strategy library commands: list, info, backtest."""
+    from src.strategies.library import list_strategies, get_strategy, STRATEGY_REGISTRY
+
+    if args.strategy_cmd == "list":
+        strategies = list_strategies()
+        print(f"\n  📚 Built-in Strategies ({len(strategies)}):\n")
+        for cat in ("crypto", "stock", "universal"):
+            cat_strats = [s for s in strategies if s.category == cat]
+            if cat_strats:
+                print(f"  [{cat.upper()}]")
+                for s in cat_strats:
+                    print(f"    {s.slug:<22} {s.name} — {s.description[:60]}")
+                print()
+    elif args.strategy_cmd == "info":
+        try:
+            cls = get_strategy(args.name)
+        except KeyError as e:
+            print(f"  ❌ {e}")
+            return
+        m = cls.meta()
+        print(f"\n  📊 {m.name} ({m.slug})")
+        print(f"  Category: {m.category}")
+        print(f"  {m.description}\n")
+        print("  Parameters:")
+        for k, v in m.parameters.items():
+            print(f"    --{k}: {v}")
+        print(f"\n  Example: {m.usage_example}\n")
+    elif args.strategy_cmd == "backtest":
+        try:
+            cls = get_strategy(args.name)
+        except KeyError as e:
+            print(f"  ❌ {e}")
+            return
+        m = cls.meta()
+        print(f"\n  🚀 Backtesting {m.name} on {args.symbol} from {args.start}...")
+        data = _fetch_data(args.symbol, start=args.start, end=args.end)
+        if data is None or len(data) == 0:
+            print("  ❌ No data fetched.")
+            return
+        # Convert to list of dicts
+        ohlcv = []
+        for _, row in data.iterrows():
+            ohlcv.append({
+                "open": float(row.get("Open", row.get("open", 0))),
+                "high": float(row.get("High", row.get("high", 0))),
+                "low": float(row.get("Low", row.get("low", 0))),
+                "close": float(row.get("Close", row.get("close", 0))),
+                "volume": float(row.get("Volume", row.get("volume", 0))),
+            })
+        strat = cls(initial_capital=args.capital)
+        result = strat.backtest(ohlcv)
+        print(f"\n  📈 Results:")
+        print(f"    Total Return:  {result['total_return']:.2f}%")
+        print(f"    Sharpe Ratio:  {result['sharpe_ratio']:.2f}")
+        print(f"    Max Drawdown:  {result['max_drawdown']:.2f}%")
+        print(f"    Win Rate:      {result['win_rate']:.1f}%")
+        print(f"    Trades:        {result['num_trades']}")
+        print(f"    Final Equity:  ${result['final_equity']:,.2f}\n")
+    else:
+        print("  Usage: finclaw strategy [list|info|backtest]")
+
+
 def main(argv=None):
     """Main CLI entry point."""
     parser = build_parser()
@@ -915,7 +991,7 @@ def main(argv=None):
                 stats = cache.stats()
                 print(f"  Entries: {stats['entries']} | Size: {stats['size_kb']:.1f} KB")
         elif args.command == "info":
-            print("  FinClaw v4.0.0 — AI-Powered Financial Intelligence Engine")
+            print("  FinClaw v5.0.0 — AI-Powered Financial Intelligence Engine")
             print("  Commands: backtest, screen, analyze, portfolio, price, options, paper-trade, report, interactive, exchanges, quote, history")
         elif args.command == "exchanges":
             from src.exchanges.registry import ExchangeRegistry
@@ -976,6 +1052,8 @@ def main(argv=None):
                     print(f"  Plugin not found: {args.name}")
             else:
                 print("  Usage: finclaw plugin [list|install|create|info]")
+        elif args.command == "strategy":
+            cmd_strategy(args)
         else:
             parser.print_help()
     except KeyboardInterrupt:
