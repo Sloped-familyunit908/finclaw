@@ -662,7 +662,7 @@ def build_parser() -> argparse.ArgumentParser:
     """Build the full CLI argument parser."""
     parser = argparse.ArgumentParser(
         prog="finclaw",
-        description="FinClaw v3.9.0 — AI-Powered Financial Intelligence Engine",
+        description="FinClaw v5.1.0 — AI-Powered Financial Intelligence Engine",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -680,7 +680,7 @@ Examples:
   finclaw interactive
 """,
     )
-    parser.add_argument("--version", action="version", version="finclaw 3.9.0")
+    parser.add_argument("--version", action="version", version="finclaw 5.1.0")
     sub = parser.add_subparsers(dest="command", help="Available commands")
 
     # backtest
@@ -753,6 +753,13 @@ Examples:
     p = sub.add_parser("risk", help="Portfolio risk analysis")
     p.add_argument("--portfolio", "-p", required=True, help="Portfolio JSON file")
     p.add_argument("--output", "-o", help="Save risk report to JSON")
+
+    # serve
+    p = sub.add_parser("serve", help="Start REST API server")
+    p.add_argument("--host", default="0.0.0.0", help="Bind host")
+    p.add_argument("--port", "-p", type=int, default=8080, help="Port number")
+    p.add_argument("--auth", action="store_true", help="Enable API key auth")
+    p.add_argument("--rate-limit", type=int, default=100, help="Max requests per minute")
 
     # interactive
     sub.add_parser("interactive", help="Launch interactive mode")
@@ -979,6 +986,15 @@ def main(argv=None):
             cmd_compare(args)
         elif args.command == "risk":
             cmd_risk(args)
+        elif args.command == "serve":
+            from src.api.server import FinClawAPI
+            api = FinClawAPI(
+                host=args.host,
+                port=args.port,
+                auth_enabled=args.auth,
+                max_requests=args.rate_limit,
+            )
+            api.start()
         elif args.command == "interactive":
             cmd_interactive(args)
         elif args.command == "cache":
@@ -991,7 +1007,7 @@ def main(argv=None):
                 stats = cache.stats()
                 print(f"  Entries: {stats['entries']} | Size: {stats['size_kb']:.1f} KB")
         elif args.command == "info":
-            print("  FinClaw v5.0.0 — AI-Powered Financial Intelligence Engine")
+            print("  FinClaw v5.1.0 — AI-Powered Financial Intelligence Engine")
             print("  Commands: backtest, screen, analyze, portfolio, price, options, paper-trade, report, interactive, exchanges, quote, history")
         elif args.command == "exchanges":
             from src.exchanges.registry import ExchangeRegistry
