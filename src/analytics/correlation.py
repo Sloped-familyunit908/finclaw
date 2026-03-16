@@ -175,6 +175,70 @@ class CorrelationAnalyzer:
 
         return regimes
 
+    def compute(self, returns: dict[str, list[float]]) -> dict[str, dict[str, float]]:
+        """Compute full correlation matrix. Alias for correlation_matrix."""
+        return self.correlation_matrix(returns)
+
+    def find_uncorrelated(self, returns: dict[str, list[float]], threshold: float = 0.3) -> list[tuple[str, str, float]]:
+        """
+        Find pairs of assets with absolute correlation below threshold.
+        
+        Returns:
+            List of (asset_a, asset_b, correlation) tuples
+        """
+        matrix = self.correlation_matrix(returns)
+        tickers = list(returns.keys())
+        pairs = []
+        for i, a in enumerate(tickers):
+            for b in tickers[i + 1:]:
+                corr = matrix[a][b]
+                if abs(corr) < threshold:
+                    pairs.append((a, b, corr))
+        return sorted(pairs, key=lambda x: abs(x[2]))
+
+    def render_heatmap_html(self, returns: dict[str, list[float]], output_path: str) -> str:
+        """
+        Render correlation matrix as an HTML heatmap file.
+
+        Args:
+            returns: Dict of ticker → return series
+            output_path: File path to write HTML
+
+        Returns:
+            The output_path written
+        """
+        matrix = self.correlation_matrix(returns)
+        tickers = list(returns.keys())
+
+        def _color(v: float) -> str:
+            # Red for positive, blue for negative correlation
+            if v >= 0:
+                r, g, b = 255, int(255 * (1 - v)), int(255 * (1 - v))
+            else:
+                r, g, b = int(255 * (1 + v)), int(255 * (1 + v)), 255
+            return f'rgb({r},{g},{b})'
+
+        rows_html = []
+        for a in tickers:
+            cells = ''.join(
+                f'<td style="background:{_color(matrix[a][b])};text-align:center;padding:8px">{matrix[a][b]:.2f}</td>'
+                for b in tickers
+            )
+            rows_html.append(f'<tr><th style="padding:8px">{a}</th>{cells}</tr>')
+
+        header = ''.join(f'<th style="padding:8px">{t}</th>' for t in tickers)
+        html = f"""<!DOCTYPE html>
+<html><head><title>Correlation Heatmap</title></head>
+<body><h2>Correlation Matrix</h2>
+<table border="1" style="border-collapse:collapse;font-family:monospace">
+<tr><th></th>{header}</tr>
+{''.join(rows_html)}
+</table></body></html>"""
+
+        with open(output_path, 'w') as f:
+            f.write(html)
+        return output_path
+
     def diversification_ratio(self, returns: dict[str, list[float]], weights: dict[str, float]) -> float:
         """
         Diversification ratio = weighted avg vol / portfolio vol.
