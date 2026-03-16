@@ -136,17 +136,26 @@ class BaseAgent(ABC):
         pass
 
     async def _call_ai(self, system_prompt: str, user_prompt: str) -> str:
-        """Call AI model for analysis. Override for different AI providers."""
+        """Call AI model for analysis via unified LLM provider."""
         if self.ai_client is None:
-            raise ValueError(f"Agent {self.name} has no AI client configured")
-        
-        # TODO: Implement actual Claude API call
-        # For now, return a placeholder
-        response = await self.ai_client.chat(
-            system=system_prompt,
-            message=user_prompt
-        )
-        return response
+            # Try auto-detect
+            from src.llm import auto_detect_provider
+            self.ai_client = auto_detect_provider()
+        if self.ai_client is None:
+            raise ValueError(
+                f"Agent {self.name} has no AI client. Set an API key env var "
+                "(OPENAI_API_KEY, ANTHROPIC_API_KEY, etc.) or pass ai_client."
+            )
+
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ]
+
+        # Support both LLMProvider and legacy clients
+        if hasattr(self.ai_client, "chat"):
+            return await self.ai_client.chat(messages)
+        raise TypeError(f"Unsupported ai_client type: {type(self.ai_client)}")
 
     def __repr__(self):
         return f"<{self.__class__.__name__}: {self.name}>"

@@ -4,6 +4,16 @@
 default_strategy: momentum
 default_universe: us
 
+# LLM Provider Configuration
+# API keys can also be set via environment variables:
+#   OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY,
+#   DEEPSEEK_API_KEY, MOONSHOT_API_KEY, GROQ_API_KEY,
+#   MISTRAL_API_KEY, AZURE_OPENAI_API_KEY
+# llm:
+#   provider: openai          # or: anthropic, gemini, deepseek, moonshot, ollama, groq, mistral, azure_openai
+#   model: gpt-4o-mini        # override default model
+#   temperature: 0.7
+
 backtest:
   start: "2020-01-01"
   initial_capital: 100000
