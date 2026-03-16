@@ -764,7 +764,8 @@ Examples:
 
     # exchanges
     p_ex = sub.add_parser("exchanges", help="Exchange adapter commands")
-    p_ex.add_argument("exchanges_cmd", nargs="?", default="list", choices=["list"])
+    p_ex.add_argument("exchanges_cmd", nargs="?", default="list", choices=["list", "compare"])
+    p_ex.add_argument("exchange_names", nargs="*", help="Exchanges to compare")
 
     # quote (multi-exchange)
     p_q = sub.add_parser("quote", help="Get quote from any exchange")
@@ -794,6 +795,74 @@ Examples:
     p_pinfo.add_argument("name", help="Plugin name")
 
     return parser
+
+
+def _compare_exchanges(names: list[str]) -> None:
+    """Print a feature comparison table for given exchanges."""
+    from src.exchanges.registry import ExchangeRegistry
+    from src.exchanges.base import ExchangeAdapter
+
+    features = [
+        ("OHLCV/Candles", "get_ohlcv"),
+        ("Ticker", "get_ticker"),
+        ("Orderbook", "get_orderbook"),
+        ("Place Order", "place_order"),
+        ("Cancel Order", "cancel_order"),
+        ("Balance", "get_balance"),
+        ("Positions", "get_positions"),
+    ]
+    # optional extras
+    optional = [
+        ("Trades", "get_trades"),
+        ("Quotes", "get_quotes"),
+        ("Fills", "get_fills"),
+        ("Dividends", "get_dividends"),
+        ("Industry", "get_industry"),
+        ("Ticker Details", "get_ticker_details"),
+        ("Market Status", "get_market_status"),
+        ("Paper Trading", None),
+    ]
+
+    adapters = {}
+    for name in names:
+        try:
+            adapters[name] = ExchangeRegistry.get(name)
+        except KeyError:
+            print(f"  ⚠ Exchange '{name}' not found, skipping")
+
+    if not adapters:
+        print("  No valid exchanges to compare.")
+        return
+
+    col_w = max(len(n) for n in adapters) + 2
+    header = f"  {'Feature':<20}" + "".join(f"{n:^{col_w}}" for n in adapters)
+    print(header)
+    print("  " + "─" * (len(header) - 2))
+
+    all_features = features + optional
+    for label, method in all_features:
+        row = f"  {label:<20}"
+        for name, adapter in adapters.items():
+            if method is None:
+                # Special: paper trading
+                has = hasattr(adapter, "paper") or hasattr(adapter, "PAPER_URL")
+                row += f"{'✅':^{col_w}}" if has else f"{'—':^{col_w}}"
+            elif hasattr(adapter, method):
+                # Check if it raises NotImplementedError
+                import inspect
+                src = inspect.getsource(getattr(type(adapter), method))
+                if "NotImplementedError" in src:
+                    row += f"{'—':^{col_w}}"
+                else:
+                    row += f"{'✅':^{col_w}}"
+            else:
+                row += f"{'—':^{col_w}}"
+        print(row)
+
+    print()
+    print("  Exchange types:")
+    for name, adapter in adapters.items():
+        print(f"    {name}: {adapter.exchange_type}")
 
 
 def main(argv=None):
@@ -850,11 +919,14 @@ def main(argv=None):
             print("  Commands: backtest, screen, analyze, portfolio, price, options, paper-trade, report, interactive, exchanges, quote, history")
         elif args.command == "exchanges":
             from src.exchanges.registry import ExchangeRegistry
-            print("  Available exchanges:")
-            for etype in ("crypto", "stock_us", "stock_cn"):
-                names = ExchangeRegistry.list_by_type(etype)
-                if names:
-                    print(f"    [{etype}] {', '.join(names)}")
+            if getattr(args, "exchanges_cmd", "list") == "compare":
+                _compare_exchanges(args.exchange_names if args.exchange_names else ExchangeRegistry.list_exchanges())
+            else:
+                print("  Available exchanges:")
+                for etype in ("crypto", "stock_us", "stock_cn"):
+                    names = ExchangeRegistry.list_by_type(etype)
+                    if names:
+                        print(f"    [{etype}] {', '.join(names)}")
         elif args.command == "quote":
             from src.exchanges.registry import ExchangeRegistry
             adapter = ExchangeRegistry.get(args.exchange)

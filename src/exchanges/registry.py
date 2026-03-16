@@ -54,14 +54,24 @@ def _register_all() -> None:
     from src.exchanges.alpha_vantage import AlphaVantageAdapter
     from src.exchanges.tushare_adapter import TushareAdapter
     from src.exchanges.akshare_adapter import AKShareAdapter
+    from src.exchanges.coinbase import CoinbaseAdapter
+    from src.exchanges.kraken import KrakenAdapter
+    from src.exchanges.alpaca import AlpacaAdapter
+    from src.exchanges.polygon import PolygonAdapter
+    from src.exchanges.baostock_adapter import BaostockAdapter
 
     ExchangeRegistry.register("binance", BinanceAdapter, "crypto")
     ExchangeRegistry.register("okx", OKXAdapter, "crypto")
     ExchangeRegistry.register("bybit", BybitAdapter, "crypto")
+    ExchangeRegistry.register("coinbase", CoinbaseAdapter, "crypto")
+    ExchangeRegistry.register("kraken", KrakenAdapter, "crypto")
     ExchangeRegistry.register("yahoo", YahooFinanceAdapter, "stock_us")
     ExchangeRegistry.register("alpha_vantage", AlphaVantageAdapter, "stock_us")
+    ExchangeRegistry.register("alpaca", AlpacaAdapter, "stock_us")
+    ExchangeRegistry.register("polygon", PolygonAdapter, "stock_us")
     ExchangeRegistry.register("tushare", TushareAdapter, "stock_cn")
     ExchangeRegistry.register("akshare", AKShareAdapter, "stock_cn")
+    ExchangeRegistry.register("baostock", BaostockAdapter, "stock_cn")
 
 
 _register_all()
