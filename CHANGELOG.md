@@ -3,6 +3,15 @@
 All notable changes to FinClaw are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.4.0] - 2026-03-16
+
+### Added
+- **Paper Trading Engine** (`src/trading/paper_trader.py`): Async simulated live trading with risk checks, slippage modeling, position limits, and trade logging
+- **Strategy Sandbox** (`src/sandbox/strategy_sandbox.py`): Safe execution environment for user-defined strategies with AST validation, forbidden construct blocking, and built-in backtesting
+- **Portfolio Risk Dashboard** (`src/dashboard/risk_dashboard.py`): Real-time risk monitoring with VaR (95%/99%), HHI concentration, sector exposure, beta, drawdown, and HTML rendering
+- **Fama-French Factor Model** (`src/ml/factor_model.py`): Multi-factor regression with OLS fitting, return prediction, factor attribution/decomposition, and t-statistics
+- 37 new tests covering all v2.4.0 modules
+
 ## [2.3.0] - 2026-03-16
 
 ### Added
