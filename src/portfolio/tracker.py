@@ -1,7 +1,9 @@
-"""Portfolio Tracker — track positions, cash, and performance over time."""
+"""Portfolio Tracker - track positions, cash, and performance over time."""
 
 from __future__ import annotations
 
+import csv
+import math
 from dataclasses import dataclass, field
 from datetime import date
 from typing import Any, Callable
@@ -36,6 +38,9 @@ class PortfolioTracker:
         self.transactions: list[dict[str, Any]] = []
 
     # ------------------------------------------------------------------
+    # Position management (original API)
+    # ------------------------------------------------------------------
+
     def buy(self, ticker: str, shares: float, price: float, dt: date) -> None:
         """Buy *shares* of *ticker* at *price* on *dt*."""
         cost = shares * price
@@ -61,6 +66,68 @@ class PortfolioTracker:
         if pos.shares <= 0:
             del self.positions[ticker]
         self.transactions.append({"type": "sell", "ticker": ticker, "shares": shares, "price": price, "date": dt})
+
+    # ------------------------------------------------------------------
+    # Simplified API (from spec)
+    # ------------------------------------------------------------------
+
+    def add_position(self, ticker: str, shares: float, price: float) -> None:
+        """Add or increase a position (no cash accounting)."""
+        if ticker in self.positions:
+            pos = self.positions[ticker]
+            total = pos.shares + shares
+            pos.avg_cost = (pos.avg_cost * pos.shares + price * shares) / total if total > 0 else price
+            pos.shares = total
+        else:
+            self.positions[ticker] = Position(ticker=ticker, shares=shares, avg_cost=price, entry_date=date.today())
+
+    def update_prices(self, prices: dict[str, float]) -> None:
+        """Update current market prices and record a snapshot."""
+        self.snapshot(date.today(), prices)
+
+    def summary(self) -> dict[str, Any]:
+        """Return portfolio summary using latest snapshot if available."""
+        if not self.positions:
+            return {"total_value": self.cash, "pnl": 0.0, "allocation": {}, "daily_change": 0.0}
+
+        # Use last snapshot for valuation, or fall back to avg_cost
+        if self.history:
+            total = self.history[-1].total_value
+        else:
+            total = self.cash + sum(p.shares * p.avg_cost for p in self.positions.values())
+
+        cost_basis = sum(p.shares * p.avg_cost for p in self.positions.values())
+        equity = total - self.cash
+        pnl = equity - cost_basis
+
+        allocation: dict[str, float] = {}
+        for t, p in self.positions.items():
+            val = p.shares * p.avg_cost  # Approximate if no snapshot
+            allocation[t] = val / total if total > 0 else 0.0
+
+        daily_change = 0.0
+        if len(self.history) >= 2:
+            prev = self.history[-2].total_value
+            daily_change = (total / prev - 1.0) if prev > 0 else 0.0
+
+        return {
+            "total_value": round(total, 2),
+            "pnl": round(pnl, 2),
+            "allocation": allocation,
+            "daily_change": round(daily_change, 6),
+        }
+
+    def export_csv(self, path: str) -> None:
+        """Export transaction history to CSV."""
+        with open(path, "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=["type", "ticker", "shares", "price", "date"])
+            writer.writeheader()
+            for t in self.transactions:
+                writer.writerow(t)
+
+    # ------------------------------------------------------------------
+    # Snapshot & performance (original)
+    # ------------------------------------------------------------------
 
     def snapshot(self, dt: date, prices: dict[str, float]) -> Snapshot:
         """Record a daily snapshot given current *prices*."""
@@ -89,10 +156,8 @@ class PortfolioTracker:
             dd = (peak - v) / peak
             if dd > max_dd:
                 max_dd = dd
-        # Daily returns
         daily_returns = [(values[i] / values[i - 1]) - 1.0 for i in range(1, len(values))]
         avg_daily = sum(daily_returns) / len(daily_returns) if daily_returns else 0.0
-        import math
         std_daily = (sum((r - avg_daily) ** 2 for r in daily_returns) / max(len(daily_returns) - 1, 1)) ** 0.5 if daily_returns else 0.0
         sharpe = (avg_daily / std_daily * math.sqrt(252)) if std_daily > 0 else 0.0
         return {
