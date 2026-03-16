@@ -801,6 +801,13 @@ Examples:
     p_pinfo = plugin_sub.add_parser("info", help="Show plugin details")
     p_pinfo.add_argument("name", help="Plugin name")
 
+    # MCP server
+    p_mcp = sub.add_parser("mcp", help="MCP (Model Context Protocol) server for AI agents")
+    mcp_sub = p_mcp.add_subparsers(dest="mcp_cmd")
+    mcp_sub.add_parser("serve", help="Start MCP server (stdio JSON-RPC)")
+    p_mcp_cfg = mcp_sub.add_parser("config", help="Generate MCP client config")
+    p_mcp_cfg.add_argument("--client", "-c", default="claude", help="Client: claude, cursor, openclaw, vscode, generic")
+
     # strategy library
     p_strat = sub.add_parser("strategy", help="Built-in strategy library")
     strat_sub = p_strat.add_subparsers(dest="strategy_cmd")
@@ -1007,7 +1014,7 @@ def main(argv=None):
                 stats = cache.stats()
                 print(f"  Entries: {stats['entries']} | Size: {stats['size_kb']:.1f} KB")
         elif args.command == "info":
-            print("  FinClaw v5.1.0 — AI-Powered Financial Intelligence Engine")
+            print("  FinClaw v5.2.0 — AI-Powered Financial Intelligence Engine")
             print("  Commands: backtest, screen, analyze, portfolio, price, options, paper-trade, report, interactive, exchanges, quote, history")
         elif args.command == "exchanges":
             from src.exchanges.registry import ExchangeRegistry
@@ -1068,6 +1075,18 @@ def main(argv=None):
                     print(f"  Plugin not found: {args.name}")
             else:
                 print("  Usage: finclaw plugin [list|install|create|info]")
+        elif args.command == "mcp":
+            if args.mcp_cmd == "serve":
+                from src.mcp.server import FinClawMCPServer
+                from src.mcp.protocol import MCPProtocol
+                server = FinClawMCPServer()
+                protocol = MCPProtocol(server)
+                protocol.run()
+            elif args.mcp_cmd == "config":
+                from src.mcp.config import MCPConfigGenerator
+                MCPConfigGenerator.print_config(args.client)
+            else:
+                print("  Usage: finclaw mcp [serve|config]")
         elif args.command == "strategy":
             cmd_strategy(args)
         else:
