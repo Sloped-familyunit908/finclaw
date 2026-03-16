@@ -725,11 +725,47 @@ Examples:
     p_oprice.add_argument("--r", type=float, required=True, help="Risk-free rate")
     p_oprice.add_argument("--sigma", type=float, required=True, help="Volatility")
 
-    # paper-trade
-    p = sub.add_parser("paper-trade", help="Paper trading simulation")
+    # paper-trade (legacy)
+    p = sub.add_parser("paper-trade", help="Paper trading simulation (legacy)")
     p.add_argument("--strategy", "-s", default="trend", help="Strategy name")
     p.add_argument("--tickers", "-t", required=True, help="Comma-separated tickers")
     p.add_argument("--capital", "-c", type=float, default=100000)
+
+    # paper (new paper trading engine)
+    p_paper = sub.add_parser("paper", help="Paper trading simulator")
+    paper_sub = p_paper.add_subparsers(dest="paper_cmd")
+
+    p_ps = paper_sub.add_parser("start", help="Start paper trading session")
+    p_ps.add_argument("--balance", type=float, default=100000, help="Initial balance")
+    p_ps.add_argument("--exchange", default="yahoo", help="Exchange adapter")
+
+    p_pb = paper_sub.add_parser("buy", help="Buy shares")
+    p_pb.add_argument("symbol", help="Ticker symbol")
+    p_pb.add_argument("quantity", type=float, help="Number of shares")
+    p_pb.add_argument("--type", default="market", choices=["market", "limit"])
+    p_pb.add_argument("--limit-price", type=float, default=None)
+
+    p_pse = paper_sub.add_parser("sell", help="Sell shares")
+    p_pse.add_argument("symbol", help="Ticker symbol")
+    p_pse.add_argument("quantity", type=float, help="Number of shares")
+    p_pse.add_argument("--type", default="market", choices=["market", "limit"])
+    p_pse.add_argument("--limit-price", type=float, default=None)
+
+    paper_sub.add_parser("portfolio", help="Show portfolio")
+    paper_sub.add_parser("pnl", help="Show P&L")
+    paper_sub.add_parser("history", help="Show trade history")
+    paper_sub.add_parser("dashboard", help="Show dashboard")
+
+    p_prs = paper_sub.add_parser("run-strategy", help="Run a strategy")
+    p_prs.add_argument("strategy", help="Strategy name (golden-cross, momentum)")
+    p_prs.add_argument("--symbols", required=True, help="Comma-separated symbols")
+    p_prs.add_argument("--ticks", type=int, default=10, help="Number of ticks to run")
+
+    p_pj = paper_sub.add_parser("journal", help="Show trade journal")
+    p_pj.add_argument("--export", choices=["csv", "json"], default=None)
+    p_pj.add_argument("--date", default=None, help="Date for summary (YYYY-MM-DD)")
+
+    paper_sub.add_parser("reset", help="Reset paper trading session")
 
     # report
     p = sub.add_parser("report", help="Generate report from results")
@@ -1648,6 +1684,164 @@ def _cmd_a2a(args):
         print("  Usage: finclaw a2a {serve,card}")
 
 
+# Paper trading session state (persisted in memory for CLI session)
+_paper_state_path = os.path.join(os.path.expanduser("~"), ".finclaw", "paper_state.json")
+
+
+def _load_paper_engine():
+    """Load or create paper trading engine."""
+    import json as _json
+    from src.paper.engine import PaperTradingEngine
+    engine = PaperTradingEngine()
+    if os.path.exists(_paper_state_path):
+        try:
+            with open(_paper_state_path) as f:
+                state = _json.load(f)
+            engine = PaperTradingEngine(
+                initial_balance=state.get("initial_balance", 100000),
+                exchange=state.get("exchange", "yahoo"),
+            )
+            engine.balance = state.get("balance", engine.initial_balance)
+            engine._realized_pnl = state.get("realized_pnl", 0.0)
+            engine.trade_log = state.get("trade_log", [])
+            from src.paper.engine import Position
+            for sym, pdata in state.get("positions", {}).items():
+                engine.positions[sym] = Position(
+                    symbol=sym,
+                    quantity=pdata["quantity"],
+                    avg_cost=pdata["avg_cost"],
+                    current_price=pdata.get("current_price", 0),
+                )
+        except Exception:
+            pass
+    return engine
+
+
+def _save_paper_engine(engine):
+    """Persist paper trading engine state."""
+    import json as _json
+    os.makedirs(os.path.dirname(_paper_state_path), exist_ok=True)
+    state = {
+        "initial_balance": engine.initial_balance,
+        "exchange": engine.exchange,
+        "balance": engine.balance,
+        "realized_pnl": engine._realized_pnl,
+        "trade_log": engine.trade_log,
+        "positions": {s: {"quantity": p.quantity, "avg_cost": p.avg_cost, "current_price": p.current_price}
+                      for s, p in engine.positions.items()},
+    }
+    with open(_paper_state_path, "w") as f:
+        _json.dump(state, f, indent=2)
+
+
+def _handle_paper(args):
+    """Handle paper trading subcommands."""
+    from src.paper.engine import PaperTradingEngine
+    from src.paper.dashboard import PaperDashboard
+    from src.paper.runner import StrategyRunner, BUILTIN_STRATEGIES
+    from src.paper.journal import TradeJournal
+
+    cmd = getattr(args, "paper_cmd", None)
+    if not cmd:
+        print("  Usage: finclaw paper {start,buy,sell,portfolio,pnl,history,dashboard,run-strategy,journal,reset}")
+        return
+
+    if cmd == "start":
+        engine = PaperTradingEngine(initial_balance=args.balance, exchange=args.exchange)
+        _save_paper_engine(engine)
+        print(f"  📄 Paper trading started!")
+        print(f"  Balance: ${args.balance:,.2f} | Exchange: {args.exchange}")
+        return
+
+    if cmd == "reset":
+        if os.path.exists(_paper_state_path):
+            os.remove(_paper_state_path)
+        print("  📄 Paper trading session reset.")
+        return
+
+    engine = _load_paper_engine()
+
+    if cmd == "buy":
+        order = engine.buy(args.symbol, args.quantity, getattr(args, "type", "market"), getattr(args, "limit_price", None))
+        _save_paper_engine(engine)
+        if order.status.value == "filled":
+            print(f"  🟢 BUY {args.symbol} x{args.quantity} @${order.filled_price:.2f} = ${order.filled_price * args.quantity:,.2f}")
+        else:
+            print(f"  ❌ Order {order.status.value}: {args.symbol}")
+
+    elif cmd == "sell":
+        order = engine.sell(args.symbol, args.quantity, getattr(args, "type", "market"), getattr(args, "limit_price", None))
+        _save_paper_engine(engine)
+        if order.status.value == "filled":
+            print(f"  🔴 SELL {args.symbol} x{args.quantity} @${order.filled_price:.2f}")
+        else:
+            print(f"  ❌ Order {order.status.value}: {args.symbol}")
+
+    elif cmd == "portfolio":
+        portfolio = engine.get_portfolio()
+        print(f"\n  💼 Paper Portfolio")
+        print(f"  Cash:      ${portfolio.cash:>12,.2f}")
+        print(f"  Positions: ${portfolio.positions_value:>12,.2f}")
+        print(f"  Total:     ${portfolio.total_value:>12,.2f}")
+        print(f"  Return:    {portfolio.total_return:>+11.2f}%")
+        if portfolio.positions:
+            print(f"\n  {'Symbol':<8} {'Qty':>8} {'Avg':>10} {'Price':>10} {'P&L':>12}")
+            for sym, pos in sorted(portfolio.positions.items()):
+                print(f"  {sym:<8} {pos.quantity:>8.1f} ${pos.avg_cost:>9.2f} ${pos.current_price:>9.2f} ${pos.unrealized_pnl:>+11.2f}")
+
+    elif cmd == "pnl":
+        pnl = engine.get_pnl()
+        print(f"\n  📊 Paper P&L")
+        print(f"  Realized:   ${pnl.realized:>+12,.2f}")
+        print(f"  Unrealized: ${pnl.unrealized:>+12,.2f}")
+        print(f"  Total:      ${pnl.total:>+12,.2f}")
+        print(f"  Return:     {pnl.total_return_pct:>+11.2f}%")
+        if pnl.total_trades > 0:
+            print(f"  Win Rate:   {pnl.win_rate:.1f}% ({pnl.win_count}W/{pnl.loss_count}L)")
+
+    elif cmd == "history":
+        trades = engine.get_trade_history()
+        if not trades:
+            print("  No trades yet.")
+        else:
+            for t in trades:
+                ts = datetime.fromtimestamp(t["timestamp"]).strftime("%Y-%m-%d %H:%M")
+                print(f"  {ts} {t['side']:<4} {t['symbol']:<6} x{t['quantity']:<8} @${t['price']:.2f}")
+
+    elif cmd == "dashboard":
+        dashboard = PaperDashboard()
+        print(dashboard.render(engine))
+
+    elif cmd == "run-strategy":
+        strategy_name = args.strategy
+        if strategy_name not in BUILTIN_STRATEGIES:
+            print(f"  Unknown strategy: {strategy_name}")
+            print(f"  Available: {', '.join(BUILTIN_STRATEGIES.keys())}")
+            return
+        symbols = [s.strip() for s in args.symbols.split(",")]
+        strategy = BUILTIN_STRATEGIES[strategy_name]()
+        runner = StrategyRunner(engine, strategy, symbols=symbols)
+        for _ in range(args.ticks):
+            runner.tick()
+        _save_paper_engine(engine)
+        stats = runner.get_stats()
+        print(f"  📈 Strategy: {strategy_name}")
+        print(f"  Ticks: {stats['ticks']} | Trades: {stats['trades']}")
+        print(f"  P&L: ${stats['total_pnl']:+,.2f} | Win Rate: {stats['win_rate']:.1f}%")
+
+    elif cmd == "journal":
+        journal_path = os.path.join(os.path.expanduser("~"), ".finclaw", "paper_journal.json")
+        journal = TradeJournal(journal_path)
+        # Auto-record any trades from engine
+        for t in engine.get_trade_history():
+            journal.record_trade(t)
+        if getattr(args, "export", None):
+            print(journal.export(args.export))
+        else:
+            date = getattr(args, "date", None)
+            print(journal.daily_summary(date))
+
+
 def main(argv=None):
     """Main CLI entry point."""
     parser = build_parser()
@@ -1678,6 +1872,8 @@ def main(argv=None):
                 print("  Usage: finclaw options price --type call --S 150 --K 155 --T 0.5 --r 0.05 --sigma 0.25")
         elif args.command == "paper-trade":
             cmd_paper_trade(args)
+        elif args.command == "paper":
+            _handle_paper(args)
         elif args.command == "report":
             cmd_report(args)
         elif args.command == "tearsheet":
