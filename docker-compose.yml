@@ -1,0 +1,24 @@
+version: "3.8"
+
+services:
+  finclaw:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - FINCLAW_DATA_DIR=/app/data
+    restart: unless-stopped
+    command: ["python", "finclaw.py", "info"]
+
+  finclaw-api:
+    build: .
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - FINCLAW_DATA_DIR=/app/data
+    restart: unless-stopped
+    command: ["python", "-m", "src.api.server"]

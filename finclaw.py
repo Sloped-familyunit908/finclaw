@@ -279,54 +279,85 @@ async def cmd_scan(args, config):
 
 
 async def cmd_backtest(args, config):
-    """Backtest a single ticker with a strategy."""
+    """Backtest one or more tickers with a strategy."""
     BacktesterV7 = _load_backtester()
-    ticker = args.ticker
+    tickers = [t.strip() for t in args.ticker.split(",")]
     period = args.period or config.backtest.period
     capital = args.capital or config.backtest.initial_capital
     strategy = args.strategy or config.default_strategy
+    benchmark = getattr(args, "benchmark", None)
+    report_fmt = getattr(args, "report", None)
 
-    print(f"\n  FinClaw Backtest: {ticker} | Strategy: {strategy}")
-    h = fetch_data(ticker, period)
-    if not h:
-        print(f"  ERROR: No data for {ticker}.")
-        return
-    h = _parse_data_for_backtest(h)
+    all_results = []
 
-    bh = h[-1]["price"] / h[0]["price"] - 1
-    years = len(h) / 252
+    for ticker in tickers:
+        print(f"\n  FinClaw Backtest: {ticker} | Strategy: {strategy}")
+        h = fetch_data(ticker, period)
+        if not h:
+            print(f"  ERROR: No data for {ticker}.")
+            continue
+        h = _parse_data_for_backtest(h)
 
-    bt = BacktesterV7(initial_capital=capital)
-    r = await bt.run(ticker, "v7", h)
-    ann = (1 + r.total_return)**(1/years) - 1 if r.total_return > -1 else -1
+        bh = h[-1]["price"] / h[0]["price"] - 1
+        years = len(h) / 252
 
-    print(f"  Period: {years:.1f} years | B&H: {bh:+.1%}")
-    print(f"  WT Return: {r.total_return:+.1%} ({ann:+.1%}/year)")
-    print(f"  Alpha: {r.total_return - bh:+.1%}")
-    print(f"  MaxDD: {r.max_drawdown:+.1%}")
-    print(f"  Trades: {r.total_trades} | Win Rate: {r.win_rate:.0%}")
-    print(f"  P&L: {capital * r.total_return:+,.0f} | Final: {capital * (1 + r.total_return):,.0f}")
+        bt = BacktesterV7(initial_capital=capital)
+        r = await bt.run(ticker, "v7", h)
+        ann = (1 + r.total_return)**(1/years) - 1 if r.total_return > -1 else -1
 
-    # Save results for report generation
-    results = {
-        "ticker": ticker, "strategy": strategy, "period": period,
-        "total_return": r.total_return, "annualized_return": ann,
-        "max_drawdown": r.max_drawdown, "total_trades": r.total_trades,
-        "win_rate": r.win_rate, "buy_hold": bh,
-        "sharpe_ratio": getattr(r, "sharpe_ratio", 0),
-        "sortino_ratio": getattr(r, "sortino_ratio", 0),
-        "profit_factor": getattr(r, "profit_factor", 0),
-        "num_trades": r.total_trades,
-        "avg_trade_return": 0, "avg_win": 0, "avg_loss": 0,
-        "equity_curve": [x["price"] for x in h],
-        "monthly_returns": [],
-        "trade_log": [],
-    }
+        print(f"  Period: {years:.1f} years | B&H: {bh:+.1%}")
+        print(f"  WT Return: {r.total_return:+.1%} ({ann:+.1%}/year)")
+        print(f"  Alpha: {r.total_return - bh:+.1%}")
+        print(f"  MaxDD: {r.max_drawdown:+.1%}")
+        print(f"  Trades: {r.total_trades} | Win Rate: {r.win_rate:.0%}")
+        print(f"  P&L: {capital * r.total_return:+,.0f} | Final: {capital * (1 + r.total_return):,.0f}")
+
+        # Benchmark comparison
+        bench_ret = None
+        if benchmark:
+            bh_data = fetch_data(benchmark, period)
+            if bh_data:
+                bh_data = _parse_data_for_backtest(bh_data)
+                bench_ret = bh_data[-1]["price"] / bh_data[0]["price"] - 1
+                print(f"  Benchmark ({benchmark}): {bench_ret:+.1%} | Excess: {r.total_return - bench_ret:+.1%}")
+
+        results = {
+            "ticker": ticker, "strategy": strategy, "period": period,
+            "total_return": r.total_return, "annualized_return": ann,
+            "max_drawdown": r.max_drawdown, "total_trades": r.total_trades,
+            "win_rate": r.win_rate, "buy_hold": bh,
+            "sharpe_ratio": getattr(r, "sharpe_ratio", 0),
+            "sortino_ratio": getattr(r, "sortino_ratio", 0),
+            "profit_factor": getattr(r, "profit_factor", 0),
+            "num_trades": r.total_trades,
+            "benchmark": benchmark, "benchmark_return": bench_ret,
+            "avg_trade_return": 0, "avg_win": 0, "avg_loss": 0,
+            "equity_curve": [x["price"] for x in h],
+            "monthly_returns": [],
+            "trade_log": [],
+        }
+        all_results.append(results)
 
     if args.output:
+        out_data = all_results if len(all_results) > 1 else all_results[0] if all_results else {}
         with open(args.output, "w") as f:
-            json.dump(results, f, indent=2, default=str)
-        print(f"  Results saved to {args.output}")
+            json.dump(out_data, f, indent=2, default=str)
+        print(f"\n  Results saved to {args.output}")
+
+    # Generate HTML report if requested
+    if report_fmt == "html" and all_results:
+        try:
+            from src.reports.html_report import generate_html_report
+            for res in all_results:
+                output_path = os.path.join(
+                    config.report.output_dir,
+                    f"backtest_{res['ticker']}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html"
+                )
+                os.makedirs(config.report.output_dir, exist_ok=True)
+                generate_html_report(res, title=f"FinClaw - {res['ticker']}", output_path=output_path)
+                print(f"  HTML report: {output_path}")
+        except Exception as e:
+            print(f"  Report generation failed: {e}")
 
 
 async def cmd_signal(args, config):
@@ -558,7 +589,7 @@ async def cmd_cache(args, config):
 def cmd_info(args, config):
     """Show available strategies and markets."""
     UNIVERSES = _load_universes()
-    print("\n  FinClaw v2.0.0 - AI-Powered Financial Intelligence Engine\n")
+    print("\n  FinClaw v2.1.0 - AI-Powered Financial Intelligence Engine\n")
     print(f"  {'Strategy':<18} {'Risk':<15} {'Target':>12} {'Description'}")
     print("  " + "-" * 75)
     for name, s in STRATEGIES.items():
@@ -602,6 +633,8 @@ def main():
     p_bt.add_argument("--period", "-p", default=None)
     p_bt.add_argument("--capital", "-c", type=float, default=None)
     p_bt.add_argument("--output", "-o", help="Save results JSON")
+    p_bt.add_argument("--benchmark", "-b", default=None, help="Benchmark ticker (e.g. SPY)")
+    p_bt.add_argument("--report", default=None, choices=["html"], help="Generate report")
 
     # signal
     p_sig = sub.add_parser("signal", help="Get trading signal")
