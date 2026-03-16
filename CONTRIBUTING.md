@@ -1,99 +1,113 @@
-# Contributing to FinClaw
+# Contributing to FinClaw 🐋
 
-Thank you for considering contributing to FinClaw! 🐋
-
-## Quick Links
-
-- [Strategy Contribution Guide](docs/ECOSYSTEM.md#1-contribute-a-strategy)
-- [Agent Plugin Guide](docs/ECOSYSTEM.md#2-create-an-agent-plugin)
-- [Data Connector Guide](docs/ECOSYSTEM.md#3-add-a-data-connector)
-- [Research Foundation](docs/RESEARCH.md)
+Thank you for your interest in contributing!
 
 ## Getting Started
 
 ### Prerequisites
-- **Rust 1.80+** — For the engine core
-- **Python 3.11+** — For strategies and AI agents
-- **Node.js 20+** — For the dashboard (optional)
 
-### Development Setup
+- Python 3.9+
+- pip
+
+### Setup
 
 ```bash
-# Clone
-git clone https://github.com/lobster-labs/whale-trader.git
-cd whale-trader
-
-# Build Rust engine
-cd engine && cargo build && cargo test && cd ..
-
-# Install Python deps
+git clone https://github.com/NeuZhou/finclaw.git
+cd finclaw
 pip install -r requirements.txt
-
-# Run the demo
-python whale.py
+pip install pytest pytest-asyncio ruff
 ```
 
-## Contribution Types
+### Verify
 
-### 🎯 Strategy (Easiest — Just YAML!)
+```bash
+python -m pytest tests/ -v
+```
 
-The fastest way to contribute. No Rust, no complex Python:
+## How to Contribute
 
-1. Create `strategies/community/your-strategy-name.yaml`
-2. Follow the [YAML spec](strategies/builtin/golden-cross-momentum.yaml)
-3. Submit a PR
-4. Our CI will auto-backtest and add results
+### 🐛 Bug Reports
 
-### 🤖 Agent Plugin (Python)
+Open an issue with:
+- Steps to reproduce
+- Expected vs actual behavior
+- Python version, OS
 
-Create a custom AI agent personality:
+### 🎯 Strategy Contributions
 
-1. Create `agents/plugins/your_agent.py`
-2. Define an `AgentProfile` with name, role, and system prompt
-3. Submit a PR
+Add a new trading strategy:
 
-### 🔧 Engine Enhancement (Rust)
+1. Add selection logic to `finclaw.py` STRATEGIES dict
+2. Add tests in `tests/`
+3. Run benchmarks: `python benchmark_real.py`
+4. Submit PR with backtest results
 
-For performance-critical features:
+### 🧪 Tests
 
-1. Work in `engine/src/`
-2. Run `cargo test` — all tests must pass
-3. Run `cargo clippy` — no warnings
-4. Submit a PR
+We have 100+ tests. All PRs must pass:
 
-### 📊 Data Source (Rust/Python)
+```bash
+python -m pytest tests/ -v --tb=short
+```
 
-Add a new market data provider:
+Add tests for any new feature. Use `tests/conftest.py` fixtures for synthetic price data.
 
-1. Implement the data source interface
+### 🤖 Agent Plugins
+
+Create custom AI agent personalities in `agents/`:
+
+1. Add your agent profile to `agents/registry.py`
+2. Follow the `AgentProfile` dataclass pattern
+3. Add tests
+
+### 📊 Data Sources
+
+Add support for new market data providers:
+
+1. Implement in `agents/` or `src/data/`
 2. Add tests with mock data
-3. Submit a PR
+3. Document in README
 
 ## Code Style
 
-### Rust
-- Follow standard Rust conventions
-- Use `cargo fmt` before committing
-- All public APIs must have doc comments
+- **Python**: Follow PEP 8, use type hints
+- **Lint**: `ruff check . --select E,F,W --ignore E501`
+- **Tests**: pytest, use fixtures from `conftest.py`
+- **Commits**: Conventional commits (`feat:`, `fix:`, `docs:`, `test:`, `ci:`)
 
-### Python
-- Follow PEP 8
-- Type hints required for all function signatures
-- Docstrings for all public functions
+## Pull Request Process
 
-### Commit Messages
+1. Fork the repo
+2. Create a feature branch: `git checkout -b feat/my-feature`
+3. Make changes, add tests
+4. Run `python -m pytest tests/ -v`
+5. Run `ruff check .`
+6. Commit with conventional message
+7. Push and open PR
+
+## Project Structure
+
 ```
-feat(agents): add sentiment analysis agent
-fix(engine): correct RSI calculation for short series
-docs(strategy): add MACD crossover strategy example
+finclaw/
+├── finclaw.py          # CLI entry point
+├── agents/             # Signal engines, backtester, stock picker
+├── strategies/         # Strategy definitions
+├── tests/              # 100+ pytest tests
+├── mcp_server.py       # MCP protocol server
+├── telegram_bot.py     # Telegram interface
+└── daily_alert.py      # Daily alerts
 ```
 
 ## Code of Conduct
 
 Be kind, be constructive, be collaborative.
-We're building something cool together.
 
 ## License
 
-By contributing, you agree that your contributions will be licensed
-under the MIT License.
+By contributing, you agree that your contributions will be licensed under [AGPL-3.0](LICENSE).
+
+## 🌐 Related Tools for Contributors
+
+- **[ClawGuard](https://github.com/NeuZhou/clawguard)** — Scan for security vulnerabilities in AI agent code
+- **[AgentProbe](https://github.com/NeuZhou/agentprobe)** — Test framework for AI agent tools
+- **[repo2skill](https://github.com/NeuZhou/repo2skill)** — Convert repos into AI agent skills
