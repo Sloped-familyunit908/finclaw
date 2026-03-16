@@ -282,8 +282,10 @@ MIT License. Not financial advice. Past performance does not guarantee future re
 
 See [CHANGELOG.md](CHANGELOG.md) for version history.
 
-## 👀 See Also
+## 🌐 Related Projects
 
-- [repo2skill](https://github.com/NeuZhou/repo2skill) — Convert GitHub repos into OpenClaw skills
-- [ClawGuard](https://github.com/NeuZhou/clawguard) — AI Agent Immune System
-- [awesome-llm-security](https://github.com/NeuZhou/awesome-llm-security) — Curated LLM security resources
+| Project | Description |
+|---------|-------------|
+| [repo2skill](https://github.com/NeuZhou/repo2skill) | 🔄 Convert any GitHub repo into an AI agent skill |
+| [ClawGuard](https://github.com/NeuZhou/clawguard) | 🛡️ AI Agent Security Scanner |
+| [awesome-llm-security](https://github.com/NeuZhou/awesome-llm-security) | 📚 Curated LLM security resources |
