@@ -376,7 +376,7 @@ class TestWalkForward:
         async def _run():
             return await wf.run("TEST", "v7", history, lambda: BacktesterV7(initial_capital=100000))
 
-        report = asyncio.get_event_loop().run_until_complete(_run())
+        report = asyncio.run(_run())
         assert len(report.windows) >= 1
         assert report.oos_total_trades >= 0
 

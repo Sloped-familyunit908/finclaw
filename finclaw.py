@@ -85,6 +85,18 @@ class FinClawError(Exception):
     pass
 
 
+class FinClaw:
+    """Main FinClaw facade — convenience entry point for programmatic access."""
+
+    version = "5.14.0"
+
+    def __init__(self, config: dict | None = None):
+        self.config = config or {}
+
+    def __repr__(self):
+        return f"FinClaw(version={self.version})"
+
+
 def fetch_data(ticker, period="5y"):
     """Fetch price data via yfinance with cache."""
     try:

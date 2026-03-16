@@ -11,7 +11,7 @@ from unittest.mock import MagicMock
 # --- Helpers ---
 
 def run_async(coro):
-    return asyncio.get_event_loop().run_until_complete(coro)
+    return asyncio.run(coro)
 
 
 def make_prices(start=100, n=300, trend=0.0005, vol=0.01):

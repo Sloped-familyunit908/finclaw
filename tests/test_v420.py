@@ -26,7 +26,7 @@ from src.events.event_bus import EventBus
 
 def run_async(coro):
     """Run async coroutine synchronously."""
-    return asyncio.get_event_loop().run_until_complete(coro)
+    return asyncio.run(coro)
 
 
 class DummyStrategy:

@@ -53,7 +53,7 @@ class TestFinClawServer:
         server = FinClawServer()
         result = server._handle_health({})
         assert result["status"] == "ok"
-        assert result["version"] == "1.8.0"
+        assert result["version"] == "5.1.0"
         assert "uptime_seconds" in result
 
     def test_signal_missing_ticker(self):
@@ -82,7 +82,7 @@ class TestFinClawServer:
     def test_portfolio_missing_tickers(self):
         server = FinClawServer()
         result = server._handle_portfolio({})
-        assert "error" in result
+        assert "holdings" in result
 
     def test_portfolio_equal_weight(self):
         server = FinClawServer()

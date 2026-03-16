@@ -477,9 +477,9 @@ class TestTradeJournal:
 # ──────────────────────────────────────────────────────────
 
 def _import_main():
-    """Import main from src/cli.py (the file, not the cli package)."""
+    """Import main from src/cli/main.py."""
     import importlib.util
-    cli_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src", "cli.py")
+    cli_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src", "cli", "main.py")
     spec = importlib.util.spec_from_file_location("src_cli_main", cli_path)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)

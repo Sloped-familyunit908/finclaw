@@ -353,7 +353,7 @@ class TestCLIChart:
     def test_chart_parser(self):
         # cli.py is a module file alongside cli/ package — import directly
         import importlib.util
-        spec = importlib.util.spec_from_file_location("cli_main", os.path.join(os.path.dirname(__file__), "..", "src", "cli.py"))
+        spec = importlib.util.spec_from_file_location("cli_main", os.path.join(os.path.dirname(__file__), "..", "src", "cli", "main.py"))
         cli_mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(cli_mod)
         parser = cli_mod.build_parser()
@@ -365,7 +365,7 @@ class TestCLIChart:
 
     def test_chart_candle_parser(self):
         import importlib.util
-        spec = importlib.util.spec_from_file_location("cli_main", os.path.join(os.path.dirname(__file__), "..", "src", "cli.py"))
+        spec = importlib.util.spec_from_file_location("cli_main", os.path.join(os.path.dirname(__file__), "..", "src", "cli", "main.py"))
         cli_mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(cli_mod)
         parser = cli_mod.build_parser()
@@ -374,7 +374,7 @@ class TestCLIChart:
 
     def test_chart_default_type(self):
         import importlib.util
-        spec = importlib.util.spec_from_file_location("cli_main", os.path.join(os.path.dirname(__file__), "..", "src", "cli.py"))
+        spec = importlib.util.spec_from_file_location("cli_main", os.path.join(os.path.dirname(__file__), "..", "src", "cli", "main.py"))
         cli_mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(cli_mod)
         parser = cli_mod.build_parser()

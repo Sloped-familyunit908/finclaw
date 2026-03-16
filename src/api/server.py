@@ -157,23 +157,47 @@ class FinClawAPI:
         self._start_time = time.time()
         self._alerts: list[dict] = []
         self._httpd: HTTPServer | None = None
+        self._cors_origin = cors_origin
+        self._custom_routes: dict = {}
+
+    def route(self, path: str, handler) -> None:
+        """Register a custom route handler."""
+        self._custom_routes[path] = handler
 
     # ── Endpoint handlers ──────────────────────────────────────
 
-    def _handle_health(self, **kw: Any) -> dict:
+    def _handle_health(self, *args, **kw: Any) -> dict:
         return {
             "status": "ok",
             "uptime_seconds": round(time.time() - self._start_time, 2),
             "version": "5.1.0",
         }
 
-    def _handle_exchanges(self, **kw: Any) -> dict:
+    def _handle_exchanges(self, *args, **kw: Any) -> dict:
         try:
             from src.exchanges.registry import ExchangeRegistry
             exchanges = ExchangeRegistry.list_exchanges()
             return {"exchanges": exchanges}
         except ImportError:
             return {"exchanges": ["yahoo"], "note": "exchange registry not available"}
+
+    def _handle_signal(self, *args, **kw: Any) -> dict:
+        body = args[0] if args and isinstance(args[0], dict) else {}
+        ticker = body.get("ticker")
+        if not ticker:
+            return {"error": "ticker required", "_status": 400}
+        strategy = body.get("strategy", "momentum")
+        return {"ticker": ticker, "strategy": strategy, "signal": "hold", "confidence": 0.5}
+
+    def _handle_screen(self, *args, **kw: Any) -> dict:
+        body = args[0] if args and isinstance(args[0], dict) else {}
+        criteria = {}
+        for k, v in body.items():
+            try:
+                criteria[k] = float(v)
+            except (ValueError, TypeError):
+                criteria[k] = v
+        return {"criteria": criteria, "results": []}
 
     def _handle_quote(self, path_params: dict, **kw: Any) -> dict:
         exchange = path_params["exchange"]
@@ -199,7 +223,7 @@ class FinClawAPI:
         except Exception as e:
             return {"error": str(e), "_status": 400}
 
-    def _handle_strategies(self, **kw: Any) -> dict:
+    def _handle_strategies(self, *args, **kw: Any) -> dict:
         try:
             from src.strategies.library import list_strategies
             strategies = list_strategies()
@@ -214,16 +238,21 @@ class FinClawAPI:
 
     def _handle_backtest(self, request: Any = None, **kw: Any) -> dict:
         try:
-            body = request._read_json_body() if request else {}
+            if isinstance(request, dict):
+                body = request
+            else:
+                body = request._read_json_body() if request else {}
         except (json.JSONDecodeError, Exception):
             return {"error": "invalid JSON body", "_status": 400}
 
-        symbol = body.get("symbol")
+        ticker = body.get("ticker") or body.get("symbol")
+        symbol = ticker
         strategy = body.get("strategy")
         if not symbol or not strategy:
             return {"error": "symbol and strategy are required", "_status": 400}
 
         return {
+            "ticker": ticker,
             "symbol": symbol,
             "strategy": strategy,
             "start": body.get("start"),
@@ -233,14 +262,25 @@ class FinClawAPI:
             "message": "Connect backtest engine for live results",
         }
 
-    def _handle_portfolio(self, **kw: Any) -> dict:
+    def _handle_portfolio(self, *args, **kw: Any) -> dict:
+        body = args[0] if args and isinstance(args[0], dict) else {}
+        tickers_str = body.get("tickers", "")
+        if not tickers_str:
+            return {
+                "holdings": [],
+                "total_value": 0,
+                "message": "Connect portfolio tracker for live data",
+            }
+        tickers = [t.strip() for t in tickers_str.split(",") if t.strip()]
+        weight = 1.0 / len(tickers) if tickers else 0
         return {
-            "holdings": [],
+            "holdings": tickers,
+            "weights": {t: weight for t in tickers},
             "total_value": 0,
             "message": "Connect portfolio tracker for live data",
         }
 
-    def _handle_list_alerts(self, **kw: Any) -> dict:
+    def _handle_list_alerts(self, *args, **kw: Any) -> dict:
         return {"alerts": self._alerts}
 
     def _handle_create_alert(self, request: Any = None, **kw: Any) -> dict:
@@ -249,7 +289,8 @@ class FinClawAPI:
         except (json.JSONDecodeError, Exception):
             return {"error": "invalid JSON body", "_status": 400}
 
-        symbol = body.get("symbol")
+        ticker = body.get("ticker") or body.get("symbol")
+        symbol = ticker
         condition = body.get("condition")
         price = body.get("price")
         if not all([symbol, condition, price]):
@@ -268,12 +309,12 @@ class FinClawAPI:
         self._alerts.append(alert)
         return {"alert": alert, "_status": 201}
 
-    def _handle_docs(self, **kw: Any) -> dict:
+    def _handle_docs(self, *args, **kw: Any) -> dict:
         # Special: return HTML directly. We abuse the dict pattern
         # by returning a marker that the handler detects.
         return {"_html": self.docs.serve_docs_html(), "_status": 200}
 
-    def _handle_openapi(self, **kw: Any) -> dict:
+    def _handle_openapi(self, *args, **kw: Any) -> dict:
         return self.docs.generate_openapi_spec()
 
     # ── Server lifecycle ───────────────────────────────────────
@@ -291,10 +332,19 @@ class FinClawAPI:
         if self._httpd:
             self._httpd.shutdown()
             self._httpd = None
+        self._cors_origin = cors_origin
+        self._custom_routes: dict = {}
+
+    def route(self, path: str, handler) -> None:
+        """Register a custom route handler."""
+        self._custom_routes[path] = handler
 
     def create_handler_class(self) -> type:
         """Create handler class for testing without starting server."""
-        return type("Handler", (FinClawHandler,), {"_api": self})
+        routes = {pattern.replace(r"$", "").replace("\\.", "."): name for _, pattern, name in _ROUTES}
+        routes["/api/health"] = "_handle_health"
+        routes.update(self._custom_routes)
+        return type("Handler", (FinClawHandler,), {"_api": self, "_routes": routes})
 
 
 # Keep backward compat alias

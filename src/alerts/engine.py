@@ -126,6 +126,9 @@ class AlertEngine:
         self.rules.append(rule)
         return rule.rule_id
 
+    # Alias for backwards compatibility
+    add_alert = add_rule
+
     def remove_rule(self, rule_id: int) -> bool:
         for i, r in enumerate(self.rules):
             if r.rule_id == rule_id:
