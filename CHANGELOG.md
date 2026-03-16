@@ -3,6 +3,66 @@
 All notable changes to FinClaw are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.7.0] - 2026-03-16
+
+### 📚 Documentation & Polish
+
+- **Full API Reference** (`docs/api-reference.md`) — comprehensive docs for all strategies, TA indicators, ML models, risk tools, backtesting engine, CLI commands, and configuration
+- **Tutorials** — 4 tutorial guides: quickstart, first-backtest, custom-strategy, risk-management
+- **Architecture Document** (`docs/architecture.md`) — system architecture with Mermaid diagrams: module dependency graph, data flow, event system, plugin architecture
+- **CHANGELOG** — complete changelog from v0.1 to v3.7
+- Version bump to 3.7.0
+
+## [3.6.0] - 2026-03-16
+
+### Added
+- **Event-Driven Backtester** (`src/backtesting/event_engine.py`) — full event-driven architecture with MarketEvent, SignalEvent, OrderEvent, FillEvent
+- **Slippage Models v2** (`src/backtesting/slippage.py`) — configurable slippage models for event-driven backtester
+- **Commission Models v2** (`src/backtesting/commission.py`) — tiered and flat commission models
+- **Order Router** (`src/execution/order_router.py`) — smart order routing with venue selection
+- 40+ new tests
+
+## [3.5.0] - 2026-03-16
+
+### Added
+- **Market Data Router** (`src/data/data_router.py`) — automatic source selection and fallback
+- **Webhook Notifier** (`src/notifications/webhook.py`) — Slack, Discord, Teams webhook integration
+- **Tax Calculator** (`src/analytics/tax_calculator.py`) — tax lot tracking with FIFO/LIFO/specific ID
+- **Benchmark Comparator** (`src/analytics/benchmark.py`) — enhanced benchmark comparison tools
+
+## [3.4.0] - 2026-03-16
+
+### Added
+- **HTML Report Generator** enhancements — interactive equity curves, drawdown charts, trade table
+- **PDF Reports** (`src/reports/pdf_report.py`) — export backtest results to PDF
+- **Performance Report Card** (`src/reports/report_card.py`) — one-page strategy summary
+- **Export Module** (`src/export/exporter.py`) — CSV, JSON, Parquet export
+
+## [3.3.0] - 2026-03-16
+
+### Added
+- **Advanced Ensemble Model** (`src/ml/ensemble.py`) — stacking, blending, weighted average ensembles
+- **Feature Store** (`src/ml/feature_store.py`) — centralized feature storage with versioning
+- **News Sentiment ML** (`src/ml/news_sentiment.py`) — NLP-based news sentiment scoring
+- **Regime Detector** (`src/ml/regime_detector.py`) — HMM-based market regime detection
+
+## [3.2.0] - 2026-03-16
+
+### Added
+- **Advanced Risk Metrics** (`src/risk/advanced_metrics.py`) — Sharpe, Sortino, Calmar, Omega, tail ratio
+- **Stress Tester** (`src/risk/stress_test.py`) — historical scenario stress tests (2008, COVID, rate hike)
+- **Risk Budgeter** (`src/risk/risk_budget.py`) — risk parity allocation across strategies
+- **VaR Calculator** enhancements — Monte Carlo VaR, Conditional VaR
+
+## [3.1.0] - 2026-03-16
+
+### Added
+- **Sector Rotation** (`src/strategies/sector_rotation.py`) — relative momentum sector rotation
+- **Drawdown Analyzer** (`src/analytics/drawdown.py`) — drawdown decomposition and recovery analysis
+- **Trade Analyzer** (`src/analytics/trade_analyzer.py`) — per-trade P&L, win/loss streaks, trade duration
+- **Signal Combiner** (`src/strategies/signal_combiner.py`) — weighted signal combination with confidence scoring
+- 57 new tests
+
 ## [3.0.0] - 2026-03-16
 
 ### 🎉 Major Milestone — Platform Maturity Release
