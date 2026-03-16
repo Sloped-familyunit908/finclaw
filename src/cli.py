@@ -662,7 +662,7 @@ def build_parser() -> argparse.ArgumentParser:
     """Build the full CLI argument parser."""
     parser = argparse.ArgumentParser(
         prog="finclaw",
-        description="FinClaw v5.1.0 — AI-Powered Financial Intelligence Engine",
+        description="FinClaw v5.5.0 — AI-Powered Financial Intelligence Engine",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -680,7 +680,7 @@ Examples:
   finclaw interactive
 """,
     )
-    parser.add_argument("--version", action="version", version="finclaw 5.1.0")
+    parser.add_argument("--version", action="version", version="finclaw 5.5.0")
     sub = parser.add_subparsers(dest="command", help="Available commands")
 
     # backtest
@@ -846,6 +846,20 @@ Examples:
     p_wle.add_argument("name", help="Watchlist name")
     p_wle.add_argument("--format", default="csv", choices=["csv", "json"])
     wl_sub.add_parser("list", help="List all watchlists")
+
+    # sentiment
+    p_sent = sub.add_parser("sentiment", help="Sentiment analysis for a symbol")
+    p_sent.add_argument("symbol", help="Ticker symbol (e.g. AAPL, BTCUSDT)")
+    p_sent.add_argument("--reddit", action="store_true", help="Include Reddit sentiment")
+
+    # news
+    p_news = sub.add_parser("news", help="Get financial news for a symbol")
+    p_news.add_argument("symbol", help="Ticker symbol")
+    p_news.add_argument("--limit", "-l", type=int, default=10, help="Number of articles")
+    p_news.add_argument("--search", "-s", default=None, help="Search query instead of symbol")
+
+    # trending
+    sub.add_parser("trending", help="Show trending financial topics and WSB tickers")
 
     # scan
     p_scan = sub.add_parser("scan", help="Real-time market scanner")
@@ -1055,6 +1069,97 @@ def cmd_watchlist(args):
         print("  Usage: finclaw watchlist [create|quotes|add|remove|export|list]")
 
 
+def cmd_sentiment(args):
+    """Sentiment analysis for a symbol."""
+    from src.sentiment.analyzer import SentimentAnalyzer
+    from src.sentiment.news import NewsAggregator
+
+    symbol = args.symbol.upper()
+    print(f"\n  🧠 Sentiment Analysis: {symbol}\n")
+
+    # News sentiment
+    agg = NewsAggregator()
+    news = agg.get_news(symbol, limit=20)
+    analyzer = SentimentAnalyzer()
+
+    if news:
+        headlines = [a["title"] for a in news]
+        result = analyzer.analyze_headlines(headlines)
+        print(f"  News Sentiment:  {result['overall_score']:+.3f} ({result['overall_label']})")
+        print(f"  Headlines:       {result['total']} ({result['bullish_count']}↑ {result['bearish_count']}↓ {result['neutral_count']}—)")
+        print(f"  Trend:           {result['trend']}")
+    else:
+        print("  News:            No headlines fetched (offline or no results)")
+
+    # Fear & Greed
+    fg = analyzer.fear_greed_composite(symbol)
+    print(f"\n  Fear & Greed:    {fg['value']}/100 ({fg['label']})")
+    for k, v in fg["components"].items():
+        if k != "note":
+            print(f"    {k}: {v}")
+
+    # Reddit (optional)
+    if getattr(args, "reddit", False):
+        from src.sentiment.social import SocialMonitor
+        sm = SocialMonitor()
+        rd = sm.reddit_sentiment("stocks", symbol)
+        print(f"\n  Reddit (r/stocks): {rd['sentiment_score']:+.3f} ({rd['sentiment_label']}) | {rd['mentions']} mentions")
+
+    print()
+
+
+def cmd_news(args):
+    """Get financial news."""
+    from src.sentiment.news import NewsAggregator
+
+    agg = NewsAggregator()
+    symbol = args.symbol.upper()
+
+    if args.search:
+        articles = agg.search_news(args.search, days=7)
+        print(f"\n  🔍 News search: '{args.search}'\n")
+    else:
+        articles = agg.get_news(symbol, limit=args.limit)
+        print(f"\n  📰 News: {symbol} (latest {args.limit})\n")
+
+    if not articles:
+        print("  No articles found.")
+    else:
+        for i, a in enumerate(articles[:args.limit], 1):
+            pub = a.get("published", "")[:20]
+            src = a.get("source", "")
+            print(f"  {i:2}. [{src}] {a['title'][:80]}")
+            if pub:
+                print(f"      {pub}")
+    print()
+
+
+def cmd_trending(args):
+    """Show trending topics and WSB tickers."""
+    from src.sentiment.news import NewsAggregator
+    from src.sentiment.social import SocialMonitor
+
+    print("\n  🔥 Trending Topics\n")
+
+    agg = NewsAggregator()
+    topics = agg.trending_topics()
+    if topics:
+        for t in topics[:10]:
+            print(f"  • {t['topic']} ({t['mention_count']} mentions)")
+    else:
+        print("  No trending topics (feeds may be unavailable)")
+
+    print("\n  🦍 WSB Trending Tickers\n")
+    sm = SocialMonitor()
+    wsb = sm.wsb_trending()
+    if wsb:
+        for t in wsb[:10]:
+            print(f"  ${t['symbol']:<6} {t['mentions']} mentions | {t['sentiment_score']:+.3f} ({t['sentiment_label']})")
+    else:
+        print("  No WSB data (Reddit may be unavailable)")
+    print()
+
+
 def cmd_scan(args):
     """Run market scanner."""
     from src.screener.scanner import MarketScanner
@@ -1229,6 +1334,12 @@ def main(argv=None):
                 print("  Usage: finclaw mcp [serve|config]")
         elif args.command == "watchlist":
             cmd_watchlist(args)
+        elif args.command == "sentiment":
+            cmd_sentiment(args)
+        elif args.command == "news":
+            cmd_news(args)
+        elif args.command == "trending":
+            cmd_trending(args)
         elif args.command == "scan":
             cmd_scan(args)
         elif args.command == "strategy":
