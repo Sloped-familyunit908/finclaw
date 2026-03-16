@@ -870,9 +870,9 @@ Examples:
     p_scan.add_argument("--once", action="store_true", help="Run only once")
 
     # strategy library
-    p_strat = sub.add_parser("strategy", help="Built-in strategy library")
+    p_strat = sub.add_parser("strategy", help="Built-in strategy library & YAML DSL")
     strat_sub = p_strat.add_subparsers(dest="strategy_cmd")
-    strat_sub.add_parser("list", help="List all built-in strategies")
+    strat_sub.add_parser("list", help="List all built-in strategies (classic + YAML)")
     p_si = strat_sub.add_parser("info", help="Show strategy details")
     p_si.add_argument("name", help="Strategy slug (e.g. grid-trading)")
     p_sb = strat_sub.add_parser("backtest", help="Backtest a built-in strategy")
@@ -881,6 +881,20 @@ Examples:
     p_sb.add_argument("--start", default="2024-01-01", help="Start date")
     p_sb.add_argument("--end", default=None, help="End date")
     p_sb.add_argument("--capital", type=float, default=10000, help="Initial capital")
+
+    # YAML DSL strategy commands
+    strat_sub.add_parser("create", help="Interactive YAML strategy builder")
+    p_sv = strat_sub.add_parser("validate", help="Validate a YAML strategy file")
+    p_sv.add_argument("file", help="Path to YAML strategy file")
+    p_sbt = strat_sub.add_parser("dsl-backtest", help="Backtest a YAML strategy file")
+    p_sbt.add_argument("file", help="Path to YAML strategy file")
+    p_sbt.add_argument("--symbol", "-s", default="AAPL", help="Ticker symbol")
+    p_sbt.add_argument("--period", "-p", default="2y", help="Data period (e.g. 1y, 2y)")
+    p_sopt = strat_sub.add_parser("optimize", help="Optimize YAML strategy parameters")
+    p_sopt.add_argument("file", help="Path to YAML strategy file")
+    p_sopt.add_argument("--param", action="append", help="param:min:max:step (e.g. rsi_period:10:30:5)")
+    p_sopt.add_argument("--symbol", "-s", default="AAPL", help="Ticker symbol")
+    p_sopt.add_argument("--period", "-p", default="2y", help="Data period")
 
     # ── Alert commands ──────────────────────────────────────────
     p_alert = sub.add_parser("alert", help="Smart alert system")
@@ -1009,7 +1023,17 @@ def cmd_predict(args):
 
 
 def cmd_strategy(args):
-    """Handle strategy library commands: list, info, backtest."""
+    """Handle strategy library commands: list, info, backtest, create, validate, dsl-backtest, optimize."""
+    # YAML DSL commands first
+    if args.strategy_cmd == "create":
+        return _strategy_create_interactive()
+    if args.strategy_cmd == "validate":
+        return _strategy_validate(args.file)
+    if args.strategy_cmd == "dsl-backtest":
+        return _strategy_dsl_backtest(args)
+    if args.strategy_cmd == "optimize":
+        return _strategy_optimize(args)
+
     from src.strategies.library import list_strategies, get_strategy, STRATEGY_REGISTRY
 
     if args.strategy_cmd == "list":
@@ -1022,6 +1046,14 @@ def cmd_strategy(args):
                 for s in cat_strats:
                     print(f"    {s.slug:<22} {s.name} — {s.description[:60]}")
                 print()
+
+        # Also list YAML DSL strategies
+        from src.strategy.library import list_strategies as list_yaml_strategies
+        yaml_strats = list_yaml_strategies()
+        print(f"  [YAML DSL STRATEGIES]")
+        for s in yaml_strats:
+            print(f"    {s['id']:<22} {s['name']} — {s['description'][:60]}")
+        print()
     elif args.strategy_cmd == "info":
         try:
             cls = get_strategy(args.name)
@@ -1068,7 +1100,155 @@ def cmd_strategy(args):
         print(f"    Trades:        {result['num_trades']}")
         print(f"    Final Equity:  ${result['final_equity']:,.2f}\n")
     else:
-        print("  Usage: finclaw strategy [list|info|backtest]")
+        print("  Usage: finclaw strategy [list|info|backtest|create|validate|dsl-backtest|optimize]")
+
+
+def _strategy_create_interactive():
+    """Interactive YAML strategy builder."""
+    print("\n  🧙 Interactive Strategy Builder\n")
+    name = input("  Strategy name: ").strip() or "My Strategy"
+    desc = input("  Description: ").strip()
+    universe = input("  Universe (sp500/nasdaq/custom): ").strip() or "sp500"
+
+    print("\n  Entry conditions (one per line, empty to finish):")
+    print("  Examples: sma(20) > sma(50), rsi(14) < 30, volume > sma_volume(20) * 1.5")
+    entry = []
+    while True:
+        cond = input("    entry> ").strip()
+        if not cond:
+            break
+        entry.append(cond)
+
+    print("\n  Exit conditions (prefix with 'OR:' for OR logic, empty to finish):")
+    exit_conds = []
+    while True:
+        cond = input("    exit> ").strip()
+        if not cond:
+            break
+        if cond.upper().startswith("OR:"):
+            exit_conds.append({"OR": cond[3:].strip()})
+        else:
+            exit_conds.append(cond)
+
+    stop_loss = input("  Stop loss (e.g. 5%): ").strip() or "5%"
+    take_profit = input("  Take profit (e.g. 15%): ").strip() or "15%"
+    max_pos = input("  Max position (e.g. 10%): ").strip() or "10%"
+    rebalance = input("  Rebalance frequency (daily/weekly/monthly): ").strip() or "weekly"
+
+    import yaml
+    strategy = {
+        "name": name,
+        "description": desc,
+        "universe": universe,
+        "entry": entry,
+        "exit": exit_conds,
+        "risk": {"stop_loss": stop_loss, "take_profit": take_profit, "max_position": max_pos},
+        "rebalance": rebalance,
+    }
+    yaml_str = yaml.dump(strategy, default_flow_style=False, sort_keys=False)
+    print(f"\n  📄 Generated YAML:\n")
+    for line in yaml_str.splitlines():
+        print(f"    {line}")
+
+    save = input("\n  Save to file? (filename or empty to skip): ").strip()
+    if save:
+        if not save.endswith((".yaml", ".yml")):
+            save += ".yaml"
+        with open(save, "w") as f:
+            f.write(yaml_str)
+        print(f"  ✅ Saved to {save}")
+
+
+def _strategy_validate(filepath: str):
+    """Validate a YAML strategy file."""
+    from src.strategy.dsl import StrategyDSL
+    dsl = StrategyDSL()
+    try:
+        with open(filepath, "r") as f:
+            content = f.read()
+        strategy = dsl.parse(content)
+        print(f"\n  ✅ Strategy '{strategy.name}' is valid!")
+        print(f"    Entry conditions: {len(strategy.entry_conditions)}")
+        print(f"    Exit conditions: {len(strategy.exit_conditions)} AND + {len(strategy.exit_or_conditions)} OR")
+        if strategy.risk.stop_loss:
+            print(f"    Stop loss: {strategy.risk.stop_loss * 100:.0f}%")
+        if strategy.risk.take_profit:
+            print(f"    Take profit: {strategy.risk.take_profit * 100:.0f}%")
+        print(f"    Rebalance: {strategy.rebalance}\n")
+    except FileNotFoundError:
+        print(f"  ❌ File not found: {filepath}")
+    except ValueError as e:
+        print(f"  ❌ Validation failed: {e}")
+
+
+def _strategy_dsl_backtest(args):
+    """Backtest a YAML DSL strategy."""
+    from src.strategy.dsl import StrategyDSL
+    from src.strategy.expression import OHLCVData
+    from src.strategy.optimizer import StrategyOptimizer
+
+    dsl = StrategyDSL()
+    try:
+        strategy = dsl.parse_file(args.file)
+    except (FileNotFoundError, ValueError) as e:
+        print(f"  ❌ {e}")
+        return
+
+    print(f"\n  🚀 Backtesting '{strategy.name}' on {args.symbol} ({args.period})...")
+    df = _fetch_data(args.symbol, period=args.period)
+    if df is None or len(df) == 0:
+        print("  ❌ No data fetched.")
+        return
+
+    data = OHLCVData.from_dataframe(df)
+    optimizer = StrategyOptimizer()
+    result = optimizer._evaluate_strategy(strategy, data, {})
+    print(f"\n  📈 Results:")
+    print(f"    Trades:       {result.total_trades}")
+    print(f"    Win Rate:     {result.win_rate * 100:.1f}%")
+    print(f"    Total Return: {result.total_return * 100:.2f}%")
+    print(f"    Max Drawdown: {result.max_drawdown * 100:.2f}%")
+    print(f"    Sharpe Ratio: {result.sharpe_ratio:.2f}")
+    print(f"    Score:        {result.score:.4f}\n")
+
+
+def _strategy_optimize(args):
+    """Optimize a YAML DSL strategy via grid search."""
+    from src.strategy.optimizer import StrategyOptimizer
+    from src.strategy.expression import OHLCVData
+
+    if not args.param:
+        print("  ❌ Need at least one --param (e.g. --param rsi_period:10:30:5)")
+        return
+
+    with open(args.file, "r") as f:
+        yaml_str = f.read()
+
+    params = {}
+    for p in args.param:
+        parts = p.split(":")
+        if len(parts) != 4:
+            print(f"  ❌ Invalid param format '{p}' — use name:min:max:step")
+            return
+        name, mn, mx, step = parts[0], float(parts[1]), float(parts[2]), float(parts[3])
+        import numpy as np
+        params[name] = [int(v) if v == int(v) else v for v in np.arange(mn, mx + step, step)]
+
+    print(f"\n  🔬 Optimizing on {args.symbol} ({args.period})...")
+    df = _fetch_data(args.symbol, period=args.period)
+    if df is None:
+        print("  ❌ No data fetched.")
+        return
+
+    data = OHLCVData.from_dataframe(df)
+    optimizer = StrategyOptimizer()
+    results = optimizer.grid_search(yaml_str, params, data)
+    print(f"\n  📊 Top 5 Results ({len(results)} combinations tested):\n")
+    for i, r in enumerate(optimizer.top_n(5), 1):
+        print(f"    #{i}: {r.params}")
+        print(f"        Return: {r.total_return * 100:.2f}%  Win: {r.win_rate * 100:.0f}%  "
+              f"Sharpe: {r.sharpe_ratio:.2f}  DD: {r.max_drawdown * 100:.1f}%  Score: {r.score:.4f}")
+    print(f"\n  🏆 Best params: {optimizer.best_params()}\n")
 
 
 def cmd_watchlist(args):
