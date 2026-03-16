@@ -13,7 +13,8 @@ import logging, warnings
 logging.getLogger("yfinance").setLevel(logging.CRITICAL)
 warnings.filterwarnings("ignore")
 
-from finclaw import scan_universe, run_strategy, fetch_data, UNIVERSES, STRATEGIES
+from finclaw import scan_universe, run_strategy, fetch_data, _load_universes, STRATEGIES
+UNIVERSES = _load_universes()
 from agents.backtester_v7 import BacktesterV7
 from agents.stock_picker import MultiFactorPicker
 from agents.llm_analyzer import LLMStockAnalyzer

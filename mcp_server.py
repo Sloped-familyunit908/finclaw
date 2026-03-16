@@ -24,8 +24,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from finclaw import (
     scan_universe, run_strategy, fetch_data,
-    UNIVERSES, STRATEGIES
+    _load_universes, STRATEGIES
 )
+UNIVERSES = _load_universes()
 from agents.backtester_v7 import BacktesterV7
 from agents.deep_macro import DeepMacroAnalyzer
 
