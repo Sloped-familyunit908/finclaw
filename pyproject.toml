@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "finclaw-ai"
-version = "1.0.0"
-description = "AI-Powered Financial Intelligence Engine. 8 Master Strategies, 3 Markets, 227 Tests."
+version = "1.1.0"
+description = "AI-Powered Financial Intelligence Engine — 8 Master Strategies, 5 Markets, 100+ Tests."
 readme = "README.md"
 license = {text = "AGPL-3.0-only"}
 requires-python = ">=3.9"
@@ -38,6 +38,9 @@ Issues = "https://github.com/NeuZhou/finclaw/issues"
 
 [project.scripts]
 finclaw = "finclaw:main"
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0", "pytest-asyncio>=0.21", "ruff"]
 
 [tool.setuptools.packages.find]
 include = ["src*", "agents*", "strategies*", "engine*"]

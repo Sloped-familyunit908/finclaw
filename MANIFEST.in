@@ -1,0 +1,25 @@
+# Include package data
+include LICENSE
+include README.md
+include CHANGELOG.md
+include CONTRIBUTING.md
+include requirements.txt
+include pyproject.toml
+
+# Include source
+recursive-include agents *.py
+recursive-include strategies *.py
+recursive-include src *.py
+recursive-include tests *.py
+
+# Exclude dev/scratch files
+prune _scratch
+prune dashboard
+prune docs
+prune .github
+exclude benchmark_*.py
+exclude daily_alert.py
+exclude telegram_bot.py
+exclude mcp_server.py
+exclude Makefile
+exclude .env.example
