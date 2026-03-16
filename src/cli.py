@@ -935,6 +935,15 @@ Examples:
     p_chart.add_argument("--width", type=int, default=80, help="Chart width")
     p_chart.add_argument("--height", type=int, default=20, help="Chart height")
 
+    # ── A2A (Agent-to-Agent) protocol ─────────────────────────────
+    p_a2a = sub.add_parser("a2a", help="A2A (Agent-to-Agent) protocol server")
+    a2a_sub = p_a2a.add_subparsers(dest="a2a_cmd")
+    p_a2a_serve = a2a_sub.add_parser("serve", help="Start A2A server")
+    p_a2a_serve.add_argument("--host", default="localhost", help="Bind host")
+    p_a2a_serve.add_argument("--port", type=int, default=8081, help="Bind port")
+    p_a2a_serve.add_argument("--auth-token", default=None, help="Bearer auth token")
+    a2a_sub.add_parser("card", help="Print the A2A agent card")
+
     return parser
 
 
@@ -1624,6 +1633,21 @@ def cmd_backtest_visual(args):
     print("  Run a backtest first, then use --visual to see charts.\n")
 
 
+def _cmd_a2a(args):
+    """Handle 'finclaw a2a' subcommands."""
+    if args.a2a_cmd == "card":
+        from src.a2a.agent_card import FinClawAgentCard
+        card = FinClawAgentCard()
+        print(card.to_json())
+    elif args.a2a_cmd == "serve":
+        from src.a2a.server import run_server
+        print(f"  🦀 FinClaw A2A server starting on http://{args.host}:{args.port}")
+        print(f"  Agent card: http://{args.host}:{args.port}/.well-known/agent.json")
+        asyncio.run(run_server(host=args.host, port=args.port, auth_token=args.auth_token))
+    else:
+        print("  Usage: finclaw a2a {serve,card}")
+
+
 def main(argv=None):
     """Main CLI entry point."""
     parser = build_parser()
@@ -1774,6 +1798,8 @@ def main(argv=None):
             cmd_alert(args)
         elif args.command == "chart":
             cmd_chart(args)
+        elif args.command == "a2a":
+            _cmd_a2a(args)
         else:
             parser.print_help()
     except KeyboardInterrupt:
