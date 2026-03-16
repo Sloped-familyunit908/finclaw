@@ -6,6 +6,8 @@ from .models import LinearRegression, MAPredictor, RegimeClassifier, EnsembleMod
 from .sentiment import SimpleSentiment
 from .alpha import AlphaModel, Signal
 from .pipeline import WalkForwardPipeline
+from .ensemble import EnsembleModel as AdvancedEnsembleModel
+from .feature_store import FeatureStore
 
 __all__ = [
     "FeatureEngine",
@@ -17,4 +19,6 @@ __all__ = [
     "AlphaModel",
     "Signal",
     "WalkForwardPipeline",
+    "AdvancedEnsembleModel",
+    "FeatureStore",
 ]
