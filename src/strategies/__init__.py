@@ -5,6 +5,8 @@ from .pairs_trading import PairsTradingStrategy
 from .trend_following import TrendFollowingStrategy
 from .value_momentum import ValueMomentumStrategy
 from .combiner import StrategyCombiner, MeanReversionAdapter, MomentumAdapter, TrendFollowingAdapter, ValueMomentumAdapter
+from .sector_rotation import SectorRotation, SectorSignal
+from .signal_combiner import SignalCombiner, CombinedSignal
 
 __all__ = [
     "MeanReversionStrategy",
@@ -17,4 +19,8 @@ __all__ = [
     "MomentumAdapter",
     "TrendFollowingAdapter",
     "ValueMomentumAdapter",
+    "SectorRotation",
+    "SectorSignal",
+    "SignalCombiner",
+    "CombinedSignal",
 ]
