@@ -3,32 +3,99 @@
 All notable changes to FinClaw are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.0.0] - 2026-03-16
+
+### Added
+- **Configuration Validation** - validates `finclaw.yml` on load with required fields, type checking, and range validation (e.g., commission must be 0–1)
+- **Type Hints Audit** - added comprehensive type annotations to all public APIs in `src/strategies/`, `src/backtesting/`, `src/risk/`, and `src/ml/`
+- **Error Handling** - user-friendly error messages across CLI commands, data fetching, strategy execution, and backtest runner with graceful degradation
+- **Missing `__init__.py` files** - ensured all packages have proper `__init__.py` with clean imports
+- **CLI entry point** - `finclaw` command via `project.scripts` in pyproject.toml
+
+### Changed
+- **Version bumped to 2.0.0** - major milestone release
+- **pyproject.toml** - added all dependencies (numpy, pyyaml), proper classifiers, entry points
+- **Config loader** - now raises `ConfigValidationError` on invalid config instead of silently falling back to defaults
+- **CLI** - all commands now catch exceptions and print user-friendly error messages instead of tracebacks
+
+### Fixed
+- Clean imports across all modules
+
+## [1.9.0] - 2026-03-16
+
+### Added
+- Comprehensive README with architecture diagram, API reference, examples
+- Integration tests for full pipeline coverage
+- API documentation for all public modules
+
+## [1.8.0] - 2026-03-16
+
+### Added
+- **REST API layer** (`src/api/server.py`) - HTTP endpoints for scan, backtest, signal
+- **Webhook support** (`src/api/webhooks.py`) - push notifications for signals and alerts
+- Integration tests for API endpoints
+
+## [1.7.0] - 2026-03-16
+
+### Added
+- **Event-driven architecture** (`src/events/event_bus.py`) - pub/sub event system for strategy signals, trade executions, and alerts
+- **Advanced analytics** - rolling metrics, regime detection, correlation analysis, execution analytics
+
+## [1.6.0] - 2026-03-16
+
+### Added
+- **Portfolio tracker** (`src/portfolio/tracker.py`) - real-time portfolio value tracking
+- **Technical indicators** (`src/ta/indicators.py`) - RSI, MACD, Bollinger Bands, ATR, Stochastic
+- **Stock screener** (`src/screener/stock_screener.py`) - filter stocks by technical/fundamental criteria
+- **Alert engine** (`src/alerts/alert_engine.py`) - price and signal-based alerts
+- **Attribution analysis** (`src/analytics/attribution.py`) - Brinson-style performance attribution
+- 38 new tests
+
+## [1.5.0] - 2026-03-16
+
+### Added
+- **ML Integration** - feature engineering, numpy-only ML models, sentiment analysis, alpha model, walk-forward pipeline
+- `src/ml/features.py` - FeatureEngine with 20+ technical features
+- `src/ml/models.py` - LinearRegression, MAPredictor, RegimeClassifier, EnsembleModel
+- `src/ml/sentiment.py` - keyword-based sentiment analyzer
+- `src/ml/alpha.py` - multi-signal alpha model with IC tracking
+- `src/ml/pipeline.py` - walk-forward ML pipeline
+- 56 new tests
+
+## [1.4.0] - 2026-03-16
+
+### Added
+- **Enhanced CLI** - scan, backtest, signal, optimize, report, portfolio, cache commands
+- **HTML Reports** (`src/reports/html_report.py`) - interactive backtest reports
+- **Config System** (`src/config.py`) - YAML-based configuration with `finclaw.yml`
+- **SQLite Cache** (`src/pipeline/cache.py`) - persistent data cache with TTL
+- 38 new tests
+
 ## [1.3.0] - 2026-03-16
 
 ### Added
-- **Strategy Combiner** (`src/strategies/combiner.py`) — combine multiple strategies with configurable weights, confidence scoring, and regime detection. Includes adapters for all existing strategies.
-- **Strategy Optimizer** (`src/optimization/optimizer.py`) — grid search and random search over strategy parameters with walk-forward validation to prevent overfitting.
-- **Signal Dashboard** (`src/dashboard/signals.py`) — generate comprehensive signal reports with risk metrics, regime detection, and position suggestions.
-- **Backtest Report Generator** (`src/reports/backtest_report.py`) — full backtest reports with summary stats, monthly returns, equity curves, trade logs, rolling risk, and benchmark comparison (alpha/beta/IR).
-- **Portfolio Rebalancer** (`src/portfolio/rebalancer.py`) — calendar, threshold, and tax-aware rebalancing with turnover tracking and min-trade filtering.
-- 42 new tests in `tests/test_v130.py` covering all new modules.
+- **Strategy Combiner** (`src/strategies/combiner.py`) - combine multiple strategies with configurable weights, confidence scoring, and regime detection
+- **Strategy Optimizer** (`src/optimization/optimizer.py`) - grid search and random search over strategy parameters
+- **Signal Dashboard** (`src/dashboard/signals.py`) - signal reports with risk metrics
+- **Backtest Report Generator** (`src/reports/backtest_report.py`) - full backtest reports
+- **Portfolio Rebalancer** (`src/portfolio/rebalancer.py`) - calendar, threshold, and tax-aware rebalancing
+- 42 new tests
+
+## [1.2.0] - 2026-03-16
+
+### Added
+- Enhanced backtesting engine with walk-forward analysis, Monte Carlo simulation
+- Multi-timeframe backtesting (daily, weekly, monthly)
+- Benchmark comparison (SPY/QQQ)
+- Risk management: Kelly criterion, position sizing, stop-loss manager, VaR calculator
+- Portfolio-level risk management
 
 ## [1.1.0] - 2026-03-16
 
 ### Added
-- **66 new pytest tests** across 8 new test files covering signal engine, backtester, asset selector, stock picker, CLI, registry, universe, and macro modules
-- Shared test fixtures in `tests/conftest.py` with synthetic price generators (bull, bear, crash, ranging, volatile)
-- Expanded CI pipeline: Python 3.9–3.12 matrix, lint job (ruff), build verification job
-- CONTRIBUTING.md rewritten with accurate project structure and workflow
-- Comprehensive README with architecture diagram (Mermaid), API reference, feature comparison table, and quick start guide
-- Cross-references to ClawGuard, AgentProbe, and repo2skill
-- MANIFEST.in for proper sdist packaging
-- `.npmignore`-equivalent exclusions via MANIFEST.in
-
-### Changed
-- CI workflow now tests Python 3.9+ (was 3.10+), adds lint and build jobs
-- pyproject.toml version bumped to 1.1.0
-- README restructured with architecture diagram, API docs, and comparison table
+- 66 new pytest tests across 8 test files
+- Python 3.9-3.12 CI matrix, lint, build verification
+- CONTRIBUTING.md, comprehensive README
 
 ## [1.0.0] - 2026-03
 
@@ -42,56 +109,54 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 ## [0.10.0] - 2025-03
 
 ### Added
-- PyPI package (`pip install finclaw-ai`)
-- GitHub Actions CI/CD workflow for PyPI publishing
-- Daily stock alert script — scans 50+ A-shares + HK, picks TOP 20
+- PyPI package, GitHub Actions CI/CD
+- Daily stock alert script
 
 ## [0.9.0] - 2025-03
 
 ### Added
 - Expanded stock universe to 164 stocks (US 61, CN 84, HK 25)
-- 9 cross-market sector linkages (optical, PCB, AI apps, commercial space)
-- Telegram bot with formatted output (scan/backtest/macro/strategies)
+- 9 cross-market sector linkages
+- Telegram bot
 
 ## [0.8.0] - 2025-02
 
 ### Added
-- MCP server with 4 tools (scan/backtest/macro/info) + 25 tests
-- 5-market coverage: US, China, Hong Kong, Japan, Korea (77+ stocks)
+- MCP server with 4 tools
+- 5-market coverage (77+ stocks)
 
 ### Changed
 - Rebranded WhaleTrader → FinClaw
-- License changed to AGPL-3.0 with commercial option
+- License changed to AGPL-3.0
 
 ## [0.7.0] - 2025-02
 
 ### Added
-- 6-layer deep macro analyzer (VIX, rates, DXY, oil, gold, copper, Kondratieff wave)
-- 102 exhaustive QA tests covering all strategy/market/ticker combos
+- Deep macro analyzer (VIX, rates, DXY, oil, gold, copper)
+- 102 exhaustive QA tests
 
 ## [0.6.0] - 2025-01
 
 ### Added
-- v10 unified engine — 100万→354万 (5Y, 29.1% annual)
-- LLM-enhanced stock picker with master strategy voting
+- v10 unified engine
+- LLM-enhanced stock picker
 
 ## [0.5.0] - 2025-01
 
 ### Added
-- Multi-market benchmark (38 stocks, 5 markets) — wins 25/38 vs AHF
-- Multi-language docs (中文, 日本語, 한국어, Français)
-- TDD test suite (34 regression tests)
+- Multi-market benchmark (38 stocks, 5 markets)
+- Multi-language docs
 
 ## [0.4.0] - 2024-12
 
 ### Added
-- v7 momentum-adaptive engine (+12.54% avg alpha)
-- Regime-based position scaling (7 regimes)
+- v7 momentum-adaptive engine
+- Regime-based position scaling
 
 ## [0.3.0] - 2024-12
 
 ### Added
-- 9 strategy templates (Druckenmiller, Soros, Buffett, etc.)
+- 9 strategy templates
 
 ## [0.2.0] - 2024-11
 

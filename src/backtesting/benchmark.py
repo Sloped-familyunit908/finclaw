@@ -124,21 +124,21 @@ class BenchmarkComparison:
         return report
 
 
-def _std(values):
+def _std(values: list[float]) -> float:
     if len(values) < 2:
         return 0.0
     m = sum(values) / len(values)
     return math.sqrt(sum((v - m) ** 2 for v in values) / (len(values) - 1))
 
 
-def _var(values):
+def _var(values: list[float]) -> float:
     if len(values) < 2:
         return 0.0
     m = sum(values) / len(values)
     return sum((v - m) ** 2 for v in values) / (len(values) - 1)
 
 
-def _cov(x, y):
+def _cov(x: list[float], y: list[float]) -> float:
     n = len(x)
     if n < 2:
         return 0.0

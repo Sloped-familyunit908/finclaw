@@ -4,46 +4,59 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "finclaw-ai"
-version = "1.9.0"
-description = "AI-Powered Financial Intelligence Engine - ML Integration, Alpha Models, 8 Strategies, 5 Markets."
+version = "2.0.0"
+description = "AI-Powered Financial Intelligence Engine - ML, Alpha Models, 8 Strategies, 5 Markets, Walk-Forward Backtesting."
 readme = "README.md"
 license = {text = "AGPL-3.0-only"}
 requires-python = ">=3.9"
 authors = [
-    {name = "NeuZhou", email = "justboy1987@gmail.com"}
+    {name = "Kang Zhou", email = "neuzhou@outlook.com"}
 ]
-keywords = ["ai", "trading", "quant", "finance", "agent", "investment", "backtesting", "strategy"]
+keywords = ["ai", "trading", "quant", "finance", "agent", "investment", "backtesting", "strategy", "portfolio", "risk-management"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Financial and Insurance Industry",
     "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
     "License :: OSI Approved :: GNU Affero General Public License v3",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Office/Business :: Financial :: Investment",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Typing :: Typed",
 ]
 dependencies = [
     "aiohttp>=3.8.0",
     "yfinance>=0.2.0",
+    "numpy>=1.21.0",
+    "pyyaml>=6.0",
 ]
 
 [project.urls]
 Homepage = "https://github.com/NeuZhou/finclaw"
 Repository = "https://github.com/NeuZhou/finclaw"
 Issues = "https://github.com/NeuZhou/finclaw/issues"
+Changelog = "https://github.com/NeuZhou/finclaw/blob/main/CHANGELOG.md"
 
 [project.scripts]
 finclaw = "finclaw:main"
 
 [project.optional-dependencies]
 dev = ["pytest>=7.0", "pytest-asyncio>=0.21", "ruff"]
+ml = ["scikit-learn>=1.0", "xgboost>=1.5"]
+all = ["finclaw-ai[dev,ml]"]
 
 [tool.setuptools.packages.find]
-include = ["src*", "agents*", "strategies*", "engine*"]
+include = ["src*", "agents*", "strategies*"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "strict"
+
+[tool.ruff]
+line-length = 120
+target-version = "py39"

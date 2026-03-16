@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-FinClaw CLI — AI-Powered Financial Intelligence Engine
+FinClaw CLI - AI-Powered Financial Intelligence Engine
 ======================================================
 Usage:
   finclaw scan --market us --style soros
@@ -17,7 +17,7 @@ from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from src.config import FinClawConfig
+from src.config import FinClawConfig, ConfigValidationError
 
 try:
     import yfinance as yf
@@ -80,6 +80,11 @@ STRATEGIES = {
 }
 
 
+class FinClawError(Exception):
+    """User-facing error with friendly message."""
+    pass
+
+
 def fetch_data(ticker, period="5y"):
     """Fetch price data via yfinance with cache."""
     try:
@@ -106,11 +111,15 @@ def fetch_data(ticker, period="5y"):
         if cache:
             cache.set(cache_key, data)
         return data
-    except Exception:
+    except ConnectionError:
+        print(f"  ERROR: Network error fetching {ticker}. Check your internet connection.")
+        return None
+    except Exception as e:
+        print(f"  ERROR: Failed to fetch data for {ticker}: {e}")
         return None
 
 
-def _parse_data_for_backtest(data):
+def _parse_data_for_backtest(data: list[dict]) -> list[dict]:
     """Convert cached data dicts to have datetime dates."""
     result = []
     for d in data:
@@ -255,7 +264,7 @@ async def cmd_scan(args, config):
         if not result:
             print("  No stocks matched criteria."); continue
 
-        print(f"\n  === {market.upper()} — {style.upper()} ===")
+        print(f"\n  === {market.upper()} - {style.upper()} ===")
         print(f"\n  {'Ticker':<12} {'Name':<18} {'Grade':>5} {'Alloc':>6} {'Return':>8} {'P&L':>12}")
         print("  " + "-" * 70)
 
@@ -365,7 +374,7 @@ async def cmd_signal(args, config):
         print(f"  Error computing signal: {e}")
 
 
-def _calc_vol(prices):
+def _calc_vol(prices: list[float]) -> float:
     if len(prices) < 2:
         return 0
     rets = [prices[i]/prices[i-1]-1 for i in range(1, len(prices))]
@@ -453,7 +462,7 @@ async def cmd_report(args, config):
         f"report_{data.get('ticker', 'unknown')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html"
     )
 
-    title = f"FinClaw Backtest — {data.get('ticker', 'Unknown')} ({data.get('strategy', '')})"
+    title = f"FinClaw Backtest - {data.get('ticker', 'Unknown')} ({data.get('strategy', '')})"
     html = generate_html_report(data, title=title, output_path=output)
 
     print(f"\n  Report generated: {output}")
@@ -549,7 +558,7 @@ async def cmd_cache(args, config):
 def cmd_info(args, config):
     """Show available strategies and markets."""
     UNIVERSES = _load_universes()
-    print("\n  FinClaw v1.4.0 — AI-Powered Financial Intelligence Engine\n")
+    print("\n  FinClaw v2.0.0 - AI-Powered Financial Intelligence Engine\n")
     print(f"  {'Strategy':<18} {'Risk':<15} {'Target':>12} {'Description'}")
     print("  " + "-" * 75)
     for name, s in STRATEGIES.items():
@@ -564,10 +573,14 @@ def cmd_info(args, config):
 
 
 def main():
-    config = FinClawConfig.load()
+    try:
+        config = FinClawConfig.load()
+    except ConfigValidationError as e:
+        print(f"\n  {e}")
+        sys.exit(1)
 
     parser = argparse.ArgumentParser(
-        description="FinClaw — AI-Powered Financial Intelligence Engine",
+        description="FinClaw - AI-Powered Financial Intelligence Engine",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("--config", "-C", help="Config file path")
@@ -634,40 +647,48 @@ def main():
     if args.config:
         config = FinClawConfig.load(args.config)
 
-    if args.command == "scan":
-        asyncio.run(cmd_scan(args, config))
-    elif args.command == "backtest":
-        asyncio.run(cmd_backtest(args, config))
-    elif args.command == "signal":
-        asyncio.run(cmd_signal(args, config))
-    elif args.command == "optimize":
-        asyncio.run(cmd_optimize(args, config))
-    elif args.command == "report":
-        asyncio.run(cmd_report(args, config))
-    elif args.command == "portfolio":
-        asyncio.run(cmd_portfolio(args, config))
-    elif args.command == "cache":
-        asyncio.run(cmd_cache(args, config))
-    elif args.command == "info":
-        cmd_info(args, config)
-    elif args.command == "test":
-        import subprocess
-        result = subprocess.run(
-            [sys.executable, "-m", "pytest", "tests/", "-v", "--tb=short"],
-            cwd=os.path.dirname(os.path.abspath(__file__)),
-        )
-        sys.exit(result.returncode)
-    else:
-        parser.print_help()
-        print("\n  Quick start:")
-        print("    finclaw info")
-        print("    finclaw scan --market us --style soros")
-        print("    finclaw backtest --ticker AAPL --strategy momentum")
-        print("    finclaw signal --ticker MSFT")
-        print("    finclaw optimize --strategy momentum --data AAPL")
-        print("    finclaw portfolio --tickers AAPL,MSFT,GOOGL --method risk_parity")
-        print("    finclaw report --input results.json --format html")
-        print("    finclaw cache --stats")
+    try:
+        if args.command == "scan":
+            asyncio.run(cmd_scan(args, config))
+        elif args.command == "backtest":
+            asyncio.run(cmd_backtest(args, config))
+        elif args.command == "signal":
+            asyncio.run(cmd_signal(args, config))
+        elif args.command == "optimize":
+            asyncio.run(cmd_optimize(args, config))
+        elif args.command == "report":
+            asyncio.run(cmd_report(args, config))
+        elif args.command == "portfolio":
+            asyncio.run(cmd_portfolio(args, config))
+        elif args.command == "cache":
+            asyncio.run(cmd_cache(args, config))
+        elif args.command == "info":
+            cmd_info(args, config)
+        elif args.command == "test":
+            import subprocess
+            result = subprocess.run(
+                [sys.executable, "-m", "pytest", "tests/", "-v", "--tb=short"],
+                cwd=os.path.dirname(os.path.abspath(__file__)),
+            )
+            sys.exit(result.returncode)
+        else:
+            parser.print_help()
+            print("\n  Quick start:")
+            print("    finclaw info")
+            print("    finclaw scan --market us --style soros")
+            print("    finclaw backtest --ticker AAPL --strategy momentum")
+            print("    finclaw signal --ticker MSFT")
+            print("    finclaw optimize --strategy momentum --data AAPL")
+            print("    finclaw portfolio --tickers AAPL,MSFT,GOOGL --method risk_parity")
+            print("    finclaw report --input results.json --format html")
+            print("    finclaw cache --stats")
+    except KeyboardInterrupt:
+        print("\n  Interrupted.")
+        sys.exit(130)
+    except Exception as e:
+        print(f"\n  ERROR: {e}")
+        print("  Run with --help for usage information.")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

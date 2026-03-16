@@ -80,7 +80,7 @@ class MeanReversionStrategy:
             return 100.0
         return 100 - 100 / (1 + avg_gain / avg_loss)
 
-    def _bollinger(self, prices: list[float]):
+    def _bollinger(self, prices: list[float]) -> tuple[float, float, float]:
         period = min(self.bb_period, len(prices))
         window = prices[-period:]
         mid = sum(window) / period
