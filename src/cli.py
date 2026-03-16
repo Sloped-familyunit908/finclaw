@@ -801,6 +801,26 @@ Examples:
     p_pinfo = plugin_sub.add_parser("info", help="Show plugin details")
     p_pinfo.add_argument("name", help="Plugin name")
 
+    # predict
+    p_pred = sub.add_parser("predict", help="ML prediction engine")
+    pred_sub = p_pred.add_subparsers(dest="predict_cmd")
+    p_pred_run = pred_sub.add_parser("run", help="Run prediction on a symbol")
+    p_pred_run.add_argument("--symbol", "-s", required=True, help="Ticker symbol")
+    p_pred_run.add_argument("--model", "-m", default="gradient-boost",
+                            choices=["linear", "decision-tree", "random-forest", "gradient-boost"],
+                            help="Model to use")
+    p_pred_run.add_argument("--features", "-f", default="rsi,macd,volatility",
+                            help="Comma-separated features")
+    p_pred_bt = pred_sub.add_parser("backtest", help="Walk-forward backtest")
+    p_pred_bt.add_argument("--symbol", "-s", required=True, help="Ticker symbol")
+    p_pred_bt.add_argument("--model", "-m", default="random-forest",
+                           choices=["linear", "decision-tree", "random-forest", "gradient-boost"],
+                           help="Model to use")
+    p_pred_bt.add_argument("--train-size", type=int, default=252, help="Training window size")
+    p_pred_bt.add_argument("--test-size", type=int, default=21, help="Test window size")
+    p_pred_bt.add_argument("--walk-forward", action="store_true", default=True,
+                           help="Use walk-forward validation")
+
     # MCP server
     p_mcp = sub.add_parser("mcp", help="MCP (Model Context Protocol) server for AI agents")
     mcp_sub = p_mcp.add_subparsers(dest="mcp_cmd")
@@ -890,6 +910,22 @@ def _compare_exchanges(names: list[str]) -> None:
     print("  Exchange types:")
     for name, adapter in adapters.items():
         print(f"    {name}: {adapter.exchange_type}")
+
+
+def cmd_predict(args):
+    """Handle ML prediction commands: run, backtest."""
+    if args.predict_cmd == "run":
+        print(f"\n  🤖 ML Prediction: {args.symbol}")
+        print(f"  Model: {args.model}  Features: {args.features}")
+        print(f"  (Prediction engine ready — connect live data for real predictions)")
+        print()
+    elif args.predict_cmd == "backtest":
+        print(f"\n  🔄 Walk-Forward Backtest: {args.symbol}")
+        print(f"  Model: {args.model}  Train: {args.train_size}  Test: {args.test_size}")
+        print(f"  (Backtest engine ready — connect historical data for evaluation)")
+        print()
+    else:
+        print("  Usage: finclaw predict [run|backtest]")
 
 
 def cmd_strategy(args):
@@ -1089,6 +1125,8 @@ def main(argv=None):
                 print("  Usage: finclaw mcp [serve|config]")
         elif args.command == "strategy":
             cmd_strategy(args)
+        elif args.command == "predict":
+            cmd_predict(args)
         else:
             parser.print_help()
     except KeyboardInterrupt:

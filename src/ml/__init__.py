@@ -2,7 +2,11 @@
 """Machine learning models, feature engineering, and alpha generation."""
 
 from .features import FeatureEngine
-from .models import LinearRegression, MAPredictor, RegimeClassifier, EnsembleModel
+from .models import (
+    LinearRegression, MAPredictor, RegimeClassifier, EnsembleModel,
+    DecisionTreeClassifier, RandomForestClassifier, GradientBooster,
+)
+from .walk_forward import WalkForwardValidator
 from .sentiment import SimpleSentiment
 from .alpha import AlphaModel, Signal
 from .pipeline import WalkForwardPipeline
@@ -19,6 +23,10 @@ __all__ = [
     "MAPredictor",
     "RegimeClassifier",
     "EnsembleModel",
+    "DecisionTreeClassifier",
+    "RandomForestClassifier",
+    "GradientBooster",
+    "WalkForwardValidator",
     "SimpleSentiment",
     "AlphaModel",
     "Signal",
