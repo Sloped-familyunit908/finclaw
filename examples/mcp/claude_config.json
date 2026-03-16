@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "finclaw": {
+      "command": "finclaw",
+      "args": ["mcp", "serve"],
+      "env": {
+        "FINCLAW_DATA_DIR": "~/.finclaw"
+      }
+    }
+  }
+}
