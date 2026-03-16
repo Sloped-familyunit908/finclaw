@@ -912,6 +912,15 @@ Examples:
     p_as.add_argument("--symbols", "-s", required=True, help="Comma-separated symbols")
     p_as.add_argument("--interval", type=int, default=60, help="Check interval in seconds")
 
+    # ── Chart commands (viz) ───────────────────────────────────
+    p_chart = sub.add_parser("chart", help="Terminal charts for symbols")
+    p_chart.add_argument("symbol", help="Ticker symbol (e.g. AAPL, BTCUSDT)")
+    p_chart.add_argument("--type", "-t", default="line", choices=["candle", "line", "bar", "histogram"],
+                         help="Chart type")
+    p_chart.add_argument("--period", "-p", default="6mo", help="Data period (e.g. 30d, 6mo, 1y)")
+    p_chart.add_argument("--width", type=int, default=80, help="Chart width")
+    p_chart.add_argument("--height", type=int, default=20, help="Chart height")
+
     return parser
 
 
@@ -1366,6 +1375,75 @@ def cmd_alert(args):
         print("  Usage: finclaw alert {add|list|remove|history|start}")
 
 
+def cmd_chart(args):
+    """Handle chart commands using terminal visualization."""
+    from src.viz.charts import TerminalChart
+
+    period_map = {"30d": "1mo", "6mo": "6mo", "1y": "1y", "3mo": "3mo", "1mo": "1mo", "5y": "5y"}
+    period = period_map.get(args.period, args.period)
+    df = _fetch_data(args.symbol, period=period)
+    if df is None:
+        print(f"  Could not fetch data for {args.symbol}")
+        return
+
+    print(f"\n  📊 {args.symbol} — {args.type} chart ({args.period})\n")
+
+    if args.type == "candle":
+        data = [
+            {"open": row["Open"], "high": row["High"], "low": row["Low"], "close": row["Close"]}
+            for _, row in df.iterrows()
+        ]
+        print(TerminalChart.candlestick(data, width=args.width, height=args.height))
+    elif args.type == "line":
+        values = df["Close"].tolist()
+        print(TerminalChart.line(values, width=args.width, height=args.height, label=args.symbol))
+    elif args.type == "bar":
+        # Show last 20 daily returns
+        closes = df["Close"].tolist()
+        returns = [(closes[i] - closes[i-1]) / closes[i-1] * 100 for i in range(1, len(closes))]
+        recent = returns[-20:]
+        labels = [str(df.index[-(len(recent)-i)])[:10] for i in range(len(recent))]
+        print(TerminalChart.bar(labels, recent, width=args.width))
+    elif args.type == "histogram":
+        closes = df["Close"].tolist()
+        returns = [(closes[i] - closes[i-1]) / closes[i-1] * 100 for i in range(1, len(closes))]
+        print(TerminalChart.histogram(returns, width=args.width))
+    print()
+
+
+def cmd_portfolio_dashboard(args):
+    """Render portfolio dashboard."""
+    from src.viz.dashboard import PortfolioDashboard
+    import json, os
+
+    pf_file = getattr(args, "file", "portfolio.json")
+    if not os.path.exists(pf_file):
+        # Demo portfolio
+        portfolio = {
+            "total_value": 125430,
+            "total_cost": 120000,
+            "holdings": [
+                {"symbol": "AAPL", "weight": 0.45, "pnl_pct": 2.3},
+                {"symbol": "MSFT", "weight": 0.30, "pnl_pct": -0.5},
+                {"symbol": "GOOGL", "weight": 0.25, "pnl_pct": 1.1},
+            ],
+            "history": [120000, 121000, 119500, 122000, 124000, 123500, 125430],
+        }
+    else:
+        with open(pf_file) as f:
+            portfolio = json.load(f)
+
+    dash = PortfolioDashboard()
+    print(dash.render(portfolio))
+
+
+def cmd_backtest_visual(args):
+    """Render visual backtest report."""
+    from src.viz.report import BacktestVisualizer
+    print("\n  🎨 Visual Backtest Report")
+    print("  Run a backtest first, then use --visual to see charts.\n")
+
+
 def main(argv=None):
     """Main CLI entry point."""
     parser = build_parser()
@@ -1514,6 +1592,8 @@ def main(argv=None):
             cmd_predict(args)
         elif args.command == "alert":
             cmd_alert(args)
+        elif args.command == "chart":
+            cmd_chart(args)
         else:
             parser.print_help()
     except KeyboardInterrupt:
