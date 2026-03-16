@@ -1,5 +1,5 @@
 """
-FinClaw Webhook Notifier v3.5.0
+FinClaw Webhook Notifier v4.4.0
 Send notifications to Slack, Discord, and custom webhook endpoints.
 """
 
@@ -12,7 +12,37 @@ from typing import Any, Optional
 
 import requests
 
+from .base import NotificationChannel, NotificationLevel
+
 logger = logging.getLogger(__name__)
+
+
+class WebhookChannel(NotificationChannel):
+    """Generic webhook channel implementing NotificationChannel interface."""
+
+    def __init__(self, url: str, headers: dict | None = None, timeout: int = 10):
+        self._url = url
+        self._headers = {"Content-Type": "application/json", **(headers or {})}
+        self._timeout = timeout
+
+    @property
+    def name(self) -> str:
+        return "webhook"
+
+    def send(self, message: str, level: NotificationLevel = NotificationLevel.INFO, **kwargs) -> bool:
+        payload = {
+            "text": message,
+            "level": level.value,
+            "source": "finclaw",
+            "timestamp": datetime.utcnow().isoformat(),
+            **kwargs,
+        }
+        try:
+            resp = requests.post(self._url, json=payload, headers=self._headers, timeout=self._timeout)
+            return 200 <= resp.status_code < 300
+        except Exception as e:
+            logger.error("Webhook error: %s", e)
+            return False
 
 
 class WebhookNotifier:
