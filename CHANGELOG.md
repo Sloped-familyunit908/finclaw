@@ -3,6 +3,16 @@
 All notable changes to FinClaw are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.3.0] - 2026-03-16
+
+### Added
+- **Strategy Combiner** (`src/strategies/combiner.py`) — combine multiple strategies with configurable weights, confidence scoring, and regime detection. Includes adapters for all existing strategies.
+- **Strategy Optimizer** (`src/optimization/optimizer.py`) — grid search and random search over strategy parameters with walk-forward validation to prevent overfitting.
+- **Signal Dashboard** (`src/dashboard/signals.py`) — generate comprehensive signal reports with risk metrics, regime detection, and position suggestions.
+- **Backtest Report Generator** (`src/reports/backtest_report.py`) — full backtest reports with summary stats, monthly returns, equity curves, trade logs, rolling risk, and benchmark comparison (alpha/beta/IR).
+- **Portfolio Rebalancer** (`src/portfolio/rebalancer.py`) — calendar, threshold, and tax-aware rebalancing with turnover tracking and min-trade filtering.
+- 42 new tests in `tests/test_v130.py` covering all new modules.
+
 ## [1.1.0] - 2026-03-16
 
 ### Added

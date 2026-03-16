@@ -1,4 +1,4 @@
-"""FinClaw Enhanced Backtesting Engine v1.2.0"""
+"""FinClaw Enhanced Backtesting Engine v1.3.0"""
 from .walk_forward import WalkForwardAnalyzer
 from .monte_carlo import MonteCarloSimulator
 from .multi_timeframe import MultiTimeframeBacktester
