@@ -456,6 +456,86 @@ def cmd_report(args):
         print(f"  Unknown format: {fmt}")
 
 
+def cmd_tearsheet(args):
+    """Generate QuantStats-style tearsheet."""
+    import csv as csv_mod
+
+    returns_file = args.returns
+    if not os.path.exists(returns_file):
+        print(f"  File not found: {returns_file}")
+        return
+
+    # Load returns
+    if returns_file.endswith(".json"):
+        with open(returns_file) as f:
+            data = json.load(f)
+        returns = data if isinstance(data, list) else data.get("returns", [])
+    else:
+        returns = []
+        with open(returns_file) as f:
+            reader = csv_mod.reader(f)
+            for row in reader:
+                try:
+                    returns.append(float(row[-1]))
+                except (ValueError, IndexError):
+                    continue
+
+    if not returns:
+        print("  ERROR: No return data found")
+        return
+
+    # Benchmark
+    benchmark = None
+    if args.benchmark:
+        if os.path.exists(args.benchmark):
+            benchmark = []
+            with open(args.benchmark) as f:
+                reader = csv_mod.reader(f)
+                for row in reader:
+                    try:
+                        benchmark.append(float(row[-1]))
+                    except (ValueError, IndexError):
+                        continue
+        else:
+            # Treat as ticker, fetch prices and compute returns
+            df = _fetch_data(args.benchmark, period="5y")
+            if df is not None:
+                closes = df["Close"].tolist()
+                benchmark = [(closes[i] / closes[i - 1] - 1) for i in range(1, len(closes))]
+
+    from src.reporting.tearsheet import Tearsheet
+    output = args.output or f"tearsheet_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html"
+    result = Tearsheet.generate(returns, benchmark=benchmark, output_path=output)
+    print(f"  ✓ Tearsheet generated: {output} ({len(result):,} bytes)")
+
+
+def cmd_compare(args):
+    """Compare multiple strategies."""
+    from src.reporting.comparison import StrategyComparison
+
+    comp = StrategyComparison()
+    for filepath in args.strategies:
+        if not os.path.exists(filepath):
+            print(f"  File not found: {filepath}")
+            continue
+        with open(filepath) as f:
+            data = json.load(f)
+        name = data.get("name", os.path.splitext(os.path.basename(filepath))[0])
+        returns = data.get("returns", data.get("daily_returns", []))
+        if not returns:
+            print(f"  WARNING: No returns in {filepath}")
+            continue
+        comp.add_strategy(name, returns)
+
+    if not comp._strategies:
+        print("  ERROR: No valid strategies loaded")
+        return
+
+    output = args.output or f"comparison_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html"
+    result = comp.generate_report(output_path=output)
+    print(f"  ✓ Comparison report generated: {output} ({len(result):,} bytes)")
+
+
 def cmd_risk(args):
     """Analyze portfolio risk from JSON file."""
     from src.risk import VaRCalculator, PortfolioRiskManager
@@ -658,6 +738,17 @@ Examples:
     p.add_argument("--format", "-f", default="html", choices=["html", "json"])
     p.add_argument("--output", "-o", help="Output file path")
 
+    # tearsheet
+    p = sub.add_parser("tearsheet", help="Generate QuantStats-style tearsheet")
+    p.add_argument("--returns", "-r", required=True, help="CSV file with daily returns (or JSON)")
+    p.add_argument("--benchmark", "-b", default=None, help="Benchmark ticker (e.g. SPY) or CSV file")
+    p.add_argument("--output", "-o", help="Output HTML file path")
+
+    # compare
+    p = sub.add_parser("compare", help="Compare multiple strategies")
+    p.add_argument("--strategies", "-s", nargs="+", required=True, help="JSON files with strategy returns")
+    p.add_argument("--output", "-o", help="Output HTML file path")
+
     # risk
     p = sub.add_parser("risk", help="Portfolio risk analysis")
     p.add_argument("--portfolio", "-p", required=True, help="Portfolio JSON file")
@@ -737,6 +828,10 @@ def main(argv=None):
             cmd_paper_trade(args)
         elif args.command == "report":
             cmd_report(args)
+        elif args.command == "tearsheet":
+            cmd_tearsheet(args)
+        elif args.command == "compare":
+            cmd_compare(args)
         elif args.command == "risk":
             cmd_risk(args)
         elif args.command == "interactive":

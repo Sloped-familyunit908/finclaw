@@ -1,5 +1,5 @@
 """
-Tearsheet v4.7.0
+Tearsheet v4.9.0
 QuantStats-style tearsheet — standalone HTML with embedded SVG charts.
 """
 
@@ -375,7 +375,7 @@ class Tearsheet:
 <div class="sec"><h2>💀 Worst Drawdowns</h2>{wdt}</div>
 
 <div class="footer">
-  FinClaw v4.7.0 — AI-Powered Financial Intelligence Engine<br>
+  FinClaw v4.9.0 — AI-Powered Financial Intelligence Engine<br>
   <a href="https://github.com/kazhou2024/finclaw" style="color:#58a6ff">github.com/kazhou2024/finclaw</a>
 </div>
 </body></html>"""

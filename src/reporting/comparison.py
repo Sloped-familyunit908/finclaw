@@ -1,5 +1,5 @@
 """
-Strategy Comparison v4.7.0
+Strategy Comparison v4.9.0
 Compare multiple strategies side-by-side with overlaid equity curves.
 """
 
@@ -221,7 +221,7 @@ th{{background:#161b22;color:#58a6ff;font-weight:600}}
 {"<div class='best'>🏆 Best Overall: " + html.escape(best) + "</div>" if best else ""}
 
 <div class="footer">
-  FinClaw v4.7.0 — AI-Powered Financial Intelligence Engine<br>
+  FinClaw v4.9.0 — AI-Powered Financial Intelligence Engine<br>
   <a href="https://github.com/kazhou2024/finclaw" style="color:#58a6ff">github.com/kazhou2024/finclaw</a>
 </div>
 </body></html>"""

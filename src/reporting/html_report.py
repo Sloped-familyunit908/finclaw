@@ -1,5 +1,5 @@
 """
-HTML Report Generator v4.7.0
+HTML Report Generator v4.9.0
 Generate beautiful standalone HTML backtest reports with embedded SVG charts.
 No external dependencies — pure HTML/CSS/inline SVG.
 """
@@ -442,7 +442,7 @@ class BacktestReportGenerator:
 <div class="sec"><h2>📋 Trade Log</h2>{trade_tbl}</div>
 
 <div class="footer">
-  FinClaw v4.7.0 — AI-Powered Financial Intelligence Engine<br>
+  FinClaw v4.9.0 — AI-Powered Financial Intelligence Engine<br>
   <a href="https://github.com/kazhou2024/finclaw" style="color:#58a6ff">github.com/kazhou2024/finclaw</a>
 </div>
 </body></html>"""
