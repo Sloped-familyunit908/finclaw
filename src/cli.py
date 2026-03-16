@@ -828,6 +828,33 @@ Examples:
     p_mcp_cfg = mcp_sub.add_parser("config", help="Generate MCP client config")
     p_mcp_cfg.add_argument("--client", "-c", default="claude", help="Client: claude, cursor, openclaw, vscode, generic")
 
+    # watchlist
+    p_wl = sub.add_parser("watchlist", help="Manage watchlists")
+    wl_sub = p_wl.add_subparsers(dest="watchlist_cmd")
+    p_wlc = wl_sub.add_parser("create", help="Create a watchlist")
+    p_wlc.add_argument("name", help="Watchlist name")
+    p_wlc.add_argument("symbols", nargs="*", help="Initial symbols")
+    p_wlq = wl_sub.add_parser("quotes", help="Get quotes for a watchlist")
+    p_wlq.add_argument("name", help="Watchlist name")
+    p_wla = wl_sub.add_parser("add", help="Add symbol to watchlist")
+    p_wla.add_argument("name", help="Watchlist name")
+    p_wla.add_argument("symbol", help="Symbol to add")
+    p_wlr = wl_sub.add_parser("remove", help="Remove symbol from watchlist")
+    p_wlr.add_argument("name", help="Watchlist name")
+    p_wlr.add_argument("symbol", help="Symbol to remove")
+    p_wle = wl_sub.add_parser("export", help="Export watchlist")
+    p_wle.add_argument("name", help="Watchlist name")
+    p_wle.add_argument("--format", default="csv", choices=["csv", "json"])
+    wl_sub.add_parser("list", help="List all watchlists")
+
+    # scan
+    p_scan = sub.add_parser("scan", help="Real-time market scanner")
+    p_scan.add_argument("--rule", required=True, help='Rule expression, e.g. "rsi<30 AND volume>2x"')
+    p_scan.add_argument("--symbols", default="AAPL,MSFT,GOOGL,AMZN,TSLA", help="Comma-separated symbols")
+    p_scan.add_argument("--exchange", "-e", default="yahoo", help="Exchange name")
+    p_scan.add_argument("--interval", type=int, default=60, help="Scan interval in seconds")
+    p_scan.add_argument("--once", action="store_true", help="Run only once")
+
     # strategy library
     p_strat = sub.add_parser("strategy", help="Built-in strategy library")
     strat_sub = p_strat.add_subparsers(dest="strategy_cmd")
@@ -991,6 +1018,83 @@ def cmd_strategy(args):
         print("  Usage: finclaw strategy [list|info|backtest]")
 
 
+def cmd_watchlist(args):
+    """Manage watchlists."""
+    from src.screener.watchlist import WatchlistManager
+    wm = WatchlistManager()
+    cmd = args.watchlist_cmd
+
+    if cmd == "create":
+        wl = wm.create(args.name, args.symbols or [])
+        print(f"  ✓ Created watchlist '{wl.name}' with {len(wl.symbols)} symbols")
+    elif cmd == "quotes":
+        quotes = wm.get_quotes(args.name)
+        for q in quotes:
+            sym = q.get("symbol", "?")
+            last = q.get("last", "N/A")
+            print(f"  {sym}: {last}")
+    elif cmd == "add":
+        wm.add(args.name, args.symbol)
+        print(f"  ✓ Added {args.symbol.upper()} to '{args.name}'")
+    elif cmd == "remove":
+        wm.remove(args.name, args.symbol)
+        print(f"  ✓ Removed {args.symbol.upper()} from '{args.name}'")
+    elif cmd == "export":
+        output = wm.export(args.name, format=args.format)
+        print(output)
+    elif cmd == "list":
+        names = wm.list_all()
+        if names:
+            for n in names:
+                wl = wm.get(n)
+                count = len(wl.symbols) if wl else 0
+                print(f"  {n} ({count} symbols)")
+        else:
+            print("  No watchlists found.")
+    else:
+        print("  Usage: finclaw watchlist [create|quotes|add|remove|export|list]")
+
+
+def cmd_scan(args):
+    """Run market scanner."""
+    from src.screener.scanner import MarketScanner
+
+    scanner = MarketScanner()
+    symbols = [s.strip().upper() for s in args.symbols.split(",")]
+
+    # Parse rule expression like "rsi<30 AND volume>2x"
+    rule_str = args.rule
+    conditions = []
+    for part in rule_str.split(" AND "):
+        part = part.strip()
+        if "rsi<" in part.lower():
+            val = float(part.lower().split("rsi<")[1])
+            conditions.append(MarketScanner.rsi_below(val))
+        elif "rsi>" in part.lower():
+            val = float(part.lower().split("rsi>")[1])
+            conditions.append(MarketScanner.rsi_above(val))
+        elif "volume>" in part.lower():
+            val_str = part.lower().split("volume>")[1].replace("x", "")
+            conditions.append(MarketScanner.volume_above(float(val_str)))
+
+    if not conditions:
+        print("  No valid rules parsed. Example: --rule 'rsi<30 AND volume>2x'")
+        return
+
+    def combined(data):
+        return all(c(data) for c in conditions)
+
+    scanner.add_rule(args.rule, combined, action="alert")
+
+    print(f"  Scanning {len(symbols)} symbols with rule: {args.rule}")
+    results = scanner.scan_once(symbols)
+    if results:
+        for r in results:
+            print(f"  ⚡ {r.symbol}: RSI={r.data.get('rsi_14', '?'):.1f}, Vol={r.data.get('volume_ratio', '?'):.1f}x")
+    else:
+        print("  No matches found.")
+
+
 def main(argv=None):
     """Main CLI entry point."""
     parser = build_parser()
@@ -1123,6 +1227,10 @@ def main(argv=None):
                 MCPConfigGenerator.print_config(args.client)
             else:
                 print("  Usage: finclaw mcp [serve|config]")
+        elif args.command == "watchlist":
+            cmd_watchlist(args)
+        elif args.command == "scan":
+            cmd_scan(args)
         elif args.command == "strategy":
             cmd_strategy(args)
         elif args.command == "predict":
