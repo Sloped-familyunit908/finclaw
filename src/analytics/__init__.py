@@ -7,6 +7,8 @@ from .sensitivity import SensitivityAnalyzer, SensitivityResult
 from .drawdown import DrawdownAnalyzer, DrawdownPeriod
 from .trade_analyzer import TradeAnalyzer, Trade
 from .liquidity import LiquidityAnalyzer, LiquidityData
+from .tax_calculator import TaxCalculator, TaxLot
+from .benchmark import BenchmarkComparator
 
 __all__ = [
     "PerformanceMetrics", "RollingAnalysis", "RegimeAnalyzer",
@@ -15,4 +17,6 @@ __all__ = [
     "DrawdownAnalyzer", "DrawdownPeriod",
     "TradeAnalyzer", "Trade",
     "LiquidityAnalyzer", "LiquidityData",
+    "TaxCalculator", "TaxLot",
+    "BenchmarkComparator",
 ]
