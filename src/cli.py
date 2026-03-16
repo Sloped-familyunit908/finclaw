@@ -882,6 +882,36 @@ Examples:
     p_sb.add_argument("--end", default=None, help="End date")
     p_sb.add_argument("--capital", type=float, default=10000, help="Initial capital")
 
+    # ── Alert commands ──────────────────────────────────────────
+    p_alert = sub.add_parser("alert", help="Smart alert system")
+    alert_sub = p_alert.add_subparsers(dest="alert_cmd")
+
+    p_aa = alert_sub.add_parser("add", help="Add an alert rule")
+    p_aa.add_argument("--symbol", "-s", required=True, help="Ticker symbol")
+    p_aa.add_argument("--price-above", type=float, help="Alert when price above")
+    p_aa.add_argument("--price-below", type=float, help="Alert when price below")
+    p_aa.add_argument("--rsi-above", type=float, help="Alert when RSI above")
+    p_aa.add_argument("--rsi-below", type=float, help="Alert when RSI below")
+    p_aa.add_argument("--volume-spike", type=float, help="Alert on volume spike (multiplier)")
+    p_aa.add_argument("--macd-cross", action="store_true", help="Alert on MACD crossover")
+    p_aa.add_argument("--bb-breakout", action="store_true", help="Alert on Bollinger Band breakout")
+    p_aa.add_argument("--drawdown", type=float, help="Alert on drawdown (e.g. 0.10 for 10%%)")
+    p_aa.add_argument("--channel", default="console", help="Notification channel (console|webhook|file)")
+    p_aa.add_argument("--cooldown", type=int, default=3600, help="Cooldown in seconds")
+
+    alert_sub.add_parser("list", help="List active alert rules")
+
+    p_ah = alert_sub.add_parser("history", help="Show alert history")
+    p_ah.add_argument("--hours", type=int, default=24, help="Hours to look back")
+    p_ah.add_argument("--export", choices=["json", "csv"], help="Export format")
+
+    p_ar = alert_sub.add_parser("remove", help="Remove an alert rule")
+    p_ar.add_argument("rule_id", type=int, help="Rule ID to remove")
+
+    p_as = alert_sub.add_parser("start", help="Start alert engine")
+    p_as.add_argument("--symbols", "-s", required=True, help="Comma-separated symbols")
+    p_as.add_argument("--interval", type=int, default=60, help="Check interval in seconds")
+
     return parser
 
 
@@ -1200,6 +1230,142 @@ def cmd_scan(args):
         print("  No matches found.")
 
 
+def cmd_alert(args):
+    """Smart alert system commands."""
+    import json as _json
+    from pathlib import Path
+    from src.alerts.engine import (
+        AlertEngine, AlertRule, PriceAlert, TechnicalAlert, VolumeAlert, PortfolioAlert,
+        AlertCondition, AlertSeverity,
+    )
+    from src.alerts.channels import ConsoleChannel, FileChannel
+    from src.alerts.history import AlertHistory
+
+    config_dir = Path.home() / ".finclaw"
+    config_dir.mkdir(exist_ok=True)
+    rules_file = config_dir / "alert_rules.json"
+    history_path = config_dir / "alert_history.json"
+
+    subcmd = getattr(args, "alert_cmd", None)
+
+    if subcmd == "add":
+        # Load existing rules
+        rules = []
+        if rules_file.exists():
+            rules = _json.loads(rules_file.read_text())
+
+        rule_def = {"symbol": args.symbol, "cooldown": args.cooldown, "channel": args.channel}
+        if args.price_above is not None:
+            rule_def.update(condition="price_above", threshold=args.price_above, name=f"{args.symbol} price > {args.price_above}")
+        elif args.price_below is not None:
+            rule_def.update(condition="price_below", threshold=args.price_below, name=f"{args.symbol} price < {args.price_below}")
+        elif args.rsi_above is not None:
+            rule_def.update(condition="rsi_above", threshold=args.rsi_above, name=f"{args.symbol} RSI > {args.rsi_above}")
+        elif args.rsi_below is not None:
+            rule_def.update(condition="rsi_below", threshold=args.rsi_below, name=f"{args.symbol} RSI < {args.rsi_below}")
+        elif args.volume_spike is not None:
+            rule_def.update(condition="volume_spike", threshold=args.volume_spike, name=f"{args.symbol} vol spike > {args.volume_spike}x")
+        elif args.macd_cross:
+            rule_def.update(condition="macd_cross", threshold=0, name=f"{args.symbol} MACD cross")
+        elif args.bb_breakout:
+            rule_def.update(condition="bollinger_breakout", threshold=0, name=f"{args.symbol} BB breakout")
+        elif args.drawdown is not None:
+            rule_def.update(condition="drawdown", threshold=args.drawdown, name=f"{args.symbol} drawdown > {args.drawdown:.0%}")
+        else:
+            print("  ERROR: Specify at least one alert condition")
+            return
+
+        rules.append(rule_def)
+        rules_file.write_text(_json.dumps(rules, indent=2))
+        print(f"  ✅ Alert added: {rule_def['name']} (channel: {rule_def['channel']})")
+
+    elif subcmd == "list":
+        if not rules_file.exists():
+            print("  No alert rules configured.")
+            return
+        rules = _json.loads(rules_file.read_text())
+        if not rules:
+            print("  No alert rules configured.")
+            return
+        print(f"\n  📋 {len(rules)} alert rule(s):\n")
+        for i, r in enumerate(rules, 1):
+            print(f"  {i}. [{r.get('condition', '?')}] {r.get('name', '?')} (channel: {r.get('channel', 'console')})")
+
+    elif subcmd == "remove":
+        if not rules_file.exists():
+            print("  No rules to remove.")
+            return
+        rules = _json.loads(rules_file.read_text())
+        idx = args.rule_id - 1
+        if 0 <= idx < len(rules):
+            removed = rules.pop(idx)
+            rules_file.write_text(_json.dumps(rules, indent=2))
+            print(f"  ✅ Removed: {removed.get('name', '?')}")
+        else:
+            print(f"  ERROR: Invalid rule ID {args.rule_id}")
+
+    elif subcmd == "history":
+        hist = AlertHistory(persist_path=history_path)
+        recent = hist.get_recent(hours=args.hours)
+        if hasattr(args, "export") and args.export:
+            print(hist.export(format=args.export))
+        elif not recent:
+            print(f"  No alerts in the last {args.hours}h.")
+        else:
+            print(f"\n  📜 {len(recent)} alert(s) in last {args.hours}h:\n")
+            for a in recent:
+                ts = a.timestamp.strftime("%Y-%m-%d %H:%M")
+                icon = {"info": "ℹ️", "warning": "⚠️", "critical": "🚨"}.get(a.severity.value, "•")
+                print(f"  {ts} {icon} {a.message}")
+
+    elif subcmd == "start":
+        symbols = [s.strip() for s in args.symbols.split(",")]
+        engine = AlertEngine()
+        engine.add_channel(ConsoleChannel())
+
+        if rules_file.exists():
+            rules = _json.loads(rules_file.read_text())
+            for r in rules:
+                if r["symbol"] in symbols:
+                    rule = AlertRule(
+                        name=r["name"],
+                        condition=AlertCondition(r["condition"]),
+                        symbol=r["symbol"],
+                        threshold=r.get("threshold", 0),
+                        cooldown=r.get("cooldown", 3600),
+                    )
+                    engine.add_rule(rule)
+
+        if not engine.rules:
+            print("  No matching rules for given symbols. Add rules first.")
+            return
+
+        print(f"  🚀 Alert engine started for {', '.join(symbols)} ({len(engine.rules)} rules)")
+        print("  Press Ctrl+C to stop.\n")
+
+        import time
+        hist = AlertHistory(persist_path=history_path)
+        try:
+            while True:
+                for sym in symbols:
+                    df = _fetch_data(sym, period="3mo")
+                    if df is None:
+                        continue
+                    data = {
+                        "symbol": sym,
+                        "price": float(df["Close"].iloc[-1]),
+                        "close": df["Close"].tolist(),
+                        "volume": df["Volume"].tolist(),
+                    }
+                    triggered = engine.evaluate(data)
+                    hist.record_many(triggered)
+                time.sleep(args.interval)
+        except KeyboardInterrupt:
+            print("\n  ⏹ Alert engine stopped.")
+    else:
+        print("  Usage: finclaw alert {add|list|remove|history|start}")
+
+
 def main(argv=None):
     """Main CLI entry point."""
     parser = build_parser()
@@ -1346,6 +1512,8 @@ def main(argv=None):
             cmd_strategy(args)
         elif args.command == "predict":
             cmd_predict(args)
+        elif args.command == "alert":
+            cmd_alert(args)
         else:
             parser.print_help()
     except KeyboardInterrupt:
