@@ -690,6 +690,18 @@ Examples:
     # info
     sub.add_parser("info", help="Show system info")
 
+    # plugin
+    p_plugin = sub.add_parser("plugin", help="Plugin management")
+    plugin_sub = p_plugin.add_subparsers(dest="plugin_cmd")
+    plugin_sub.add_parser("list", help="List installed/loaded plugins")
+    p_pi = plugin_sub.add_parser("install", help="Install a plugin")
+    p_pi.add_argument("source", help="Path to plugin .py file")
+    p_pc = plugin_sub.add_parser("create", help="Create a new plugin from template")
+    p_pc.add_argument("--type", dest="plugin_type", default="strategy", choices=["strategy", "indicator", "exchange"], help="Plugin type")
+    p_pc.add_argument("--name", required=True, help="Plugin name")
+    p_pinfo = plugin_sub.add_parser("info", help="Show plugin details")
+    p_pinfo.add_argument("name", help="Plugin name")
+
     return parser
 
 
@@ -762,6 +774,41 @@ def main(argv=None):
             for c in candles[-args.limit:]:
                 ts = str(c['timestamp'])[:20]
                 print(f"  {ts:<20} {c['open']:>10.4f} {c['high']:>10.4f} {c['low']:>10.4f} {c['close']:>10.4f} {c['volume']:>12.0f}")
+        elif args.command == "plugin":
+            from src.plugins.plugin_manager import PluginManager
+            pm = PluginManager()
+            if args.plugin_cmd == "list":
+                available = pm.discover()
+                loaded = pm.load_all()
+                if not available and not loaded:
+                    print("  No plugins found.")
+                    print(f"  Plugin directory: {pm.plugin_dir}")
+                    print("  Use 'finclaw plugin create --type strategy --name my_strategy' to create one.")
+                else:
+                    print(f"  Plugins ({len(loaded)} loaded):")
+                    for p in loaded:
+                        status = "✓" if p.active else "✗"
+                        print(f"    {status} {p.name} v{p.version} [{p.plugin_type}] — {p.description}")
+            elif args.plugin_cmd == "install":
+                info = pm.install(args.source)
+                print(f"  Installed: {info.name} v{info.version} [{info.plugin_type}]")
+            elif args.plugin_cmd == "create":
+                path = pm.create(args.name, args.plugin_type)
+                print(f"  Created {args.plugin_type} plugin: {path}")
+            elif args.plugin_cmd == "info":
+                pm.load_all()
+                info = pm.get_plugin(args.name)
+                if info:
+                    print(f"  Name:        {info.name}")
+                    print(f"  Version:     {info.version}")
+                    print(f"  Type:        {info.plugin_type}")
+                    print(f"  Description: {info.description}")
+                    print(f"  Path:        {info.path}")
+                    print(f"  Active:      {info.active}")
+                else:
+                    print(f"  Plugin not found: {args.name}")
+            else:
+                print("  Usage: finclaw plugin [list|install|create|info]")
         else:
             parser.print_help()
     except KeyboardInterrupt:
