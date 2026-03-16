@@ -8,6 +8,10 @@ from .alpha import AlphaModel, Signal
 from .pipeline import WalkForwardPipeline
 from .ensemble import EnsembleModel as AdvancedEnsembleModel
 from .feature_store import FeatureStore
+from .feature_pipeline import FeaturePipeline
+from .model_selection import ModelSelector
+from .prediction_tracker import PredictionTracker
+from .data_splitter import FinancialDataSplitter
 
 __all__ = [
     "FeatureEngine",
@@ -21,4 +25,8 @@ __all__ = [
     "WalkForwardPipeline",
     "AdvancedEnsembleModel",
     "FeatureStore",
+    "FeaturePipeline",
+    "ModelSelector",
+    "PredictionTracker",
+    "FinancialDataSplitter",
 ]
