@@ -1,19 +1,30 @@
-# 🦀 FinClaw
+<h1 align="center">🦀 FinClaw</h1>
 
-[![CI](https://github.com/NeuZhou/finclaw/actions/workflows/ci.yml/badge.svg)](https://github.com/NeuZhou/finclaw/actions/workflows/ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/finclaw-ai?label=PyPI&color=blue)](https://pypi.org/project/finclaw-ai/)
-[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/)
-[![GitHub Stars](https://img.shields.io/github/stars/NeuZhou/finclaw)](https://github.com/NeuZhou/finclaw)
+<p align="center">
+  <strong>AI-Powered Quantitative Finance Platform</strong><br>
+  <em>8 Strategies · 17 TA Indicators · 3 ML Models · Options Pricing · Crypto/DeFi · Paper Trading · Zero Heavy Dependencies</em>
+</p>
 
-**AI-Powered Financial Intelligence Engine — 8 Strategies, 5 Markets, ML Pipeline, Full Backtesting, Zero Heavy Dependencies**
+<p align="center">
+  <a href="https://github.com/NeuZhou/finclaw/actions/workflows/ci.yml"><img src="https://github.com/NeuZhou/finclaw/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://pypi.org/project/finclaw-ai/"><img src="https://img.shields.io/pypi/v/finclaw-ai?label=PyPI&color=blue" alt="PyPI"></a>
+  <a href="https://www.gnu.org/licenses/agpl-3.0"><img src="https://img.shields.io/badge/License-AGPL_v3-blue.svg" alt="License"></a>
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.9%2B-blue.svg" alt="Python"></a>
+  <a href="https://github.com/NeuZhou/finclaw"><img src="https://img.shields.io/github/stars/NeuZhou/finclaw" alt="Stars"></a>
+</p>
 
-**[English](README.md)** | **[中文](docs/README_zh.md)** | **[日本語](docs/README_ja.md)** | **[한국어](docs/README_ko.md)** | **[Français](docs/README_fr.md)**
+<p align="center">
+  <b><a href="README.md">English</a></b> · <a href="docs/README_zh.md">中文</a> · <a href="docs/README_ja.md">日本語</a> · <a href="docs/README_ko.md">한국어</a> · <a href="docs/README_fr.md">Français</a>
+</p>
+
+---
+
+FinClaw is a full-stack quantitative finance engine built on **pure NumPy** — no TA-Lib, no pandas dependency, no heavy framework lock-in. From signal generation to backtesting to paper trading, everything runs in a single Python package with 777 tests and counting.
 
 ```
-$100 → $354 (5 years, 29.1% annualized)
-Tested on 100+ real stocks across US, China, Hong Kong
-30/34 individual backtests outperform buy-and-hold
+$100 → $354 over 5 years (29.1% CAGR)
+Validated on 100+ real stocks across US, China A-shares, and Hong Kong
+Walk-forward tested with overfitting detection
 ```
 
 ---
@@ -22,66 +33,79 @@ Tested on 100+ real stocks across US, China, Hong Kong
 
 ```mermaid
 graph TB
-    subgraph Data Layer
+    subgraph "📡 Data Layer"
         DP[Data Pipeline<br/>Yahoo Finance / Multi-Source]
-        Cache[Pipeline Cache]
-        Validator[Data Validator]
+        STR[Real-time Streaming<br/>WebSocket]
+        CACHE[Pipeline Cache<br/>SQLite]
+        VAL[Data Validator<br/>Quality Checks]
     end
 
-    subgraph Analysis Engine
-        TA[Technical Analysis<br/>17 Indicators]
-        ML[ML Pipeline<br/>Features / Models / Alpha]
-        Sent[Sentiment Analysis]
+    subgraph "📊 Analysis Engine"
+        TA[Technical Analysis<br/>17 Indicators · Pure NumPy]
+        ML[ML Pipeline<br/>3 Models · Alpha · Sentiment]
+        FACTOR[Factor Model<br/>Fama-French]
+        REGIME[Regime Detector]
     end
 
-    subgraph Strategy Layer
+    subgraph "🎯 Strategy Layer"
         MOM[Momentum JT]
         MR[Mean Reversion]
         PT[Pairs Trading]
         TF[Trend Following]
         VM[Value + Momentum]
-        COMB[Strategy Combiner]
+        CRYPTO[Crypto Strategies<br/>Grid · DCA · Arbitrage]
+        COMB[Strategy Combiner<br/>Weighted Ensemble]
     end
 
-    subgraph Risk & Portfolio
-        RISK[Risk Management<br/>Kelly / VaR / Sizing]
+    subgraph "📈 Derivatives"
+        BS[Black-Scholes]
+        BINOM[Binomial Tree]
+        MC_OPT[Monte Carlo Pricing]
+        GREEKS[Portfolio Greeks]
+        VOL[Volatility Surface]
+    end
+
+    subgraph "🛡️ Risk & Portfolio"
+        RISK[Risk Management<br/>Kelly · VaR · Sizing]
         SL[Stop-Loss Manager]
         PORT[Portfolio Tracker]
         REB[Rebalancer]
         ATTR[Attribution Analytics]
+        TCA_M[Transaction Cost Analysis]
     end
 
-    subgraph Backtesting
+    subgraph "🔬 Backtesting"
         WF[Walk-Forward Analyzer]
-        MC[Monte Carlo Simulator]
-        MTF[Multi-Timeframe]
+        MC_SIM[Monte Carlo Simulator]
+        REAL[Realistic Engine<br/>Slippage · Impact · Fills]
+        OVERFIT[Overfitting Detection]
         BENCH[Benchmark Comparison]
+        COMP[Strategy Comparator]
     end
 
-    subgraph Interface Layer
+    subgraph "🖥️ Interface Layer"
+        CLI[CLI · finclaw.py]
         API[REST API Server]
-        WH[Webhooks<br/>Slack / Discord / Teams]
-        SCR[Stock Screener]
-        ALR[Alert Engine]
-        CLI[CLI - finclaw.py]
+        INTER[Interactive Mode]
+        WH[Webhooks<br/>Slack · Discord · Teams]
+        PAPER[Paper Trading]
+        DASH[Risk Dashboard · HTML]
     end
 
-    DP --> TA
-    DP --> ML
-    TA --> MOM & MR & PT & TF & VM
-    ML --> COMB
-    MOM & MR & PT & TF & VM --> COMB
-    COMB --> RISK
-    RISK --> PORT
-    PORT --> REB
-    PORT --> ATTR
-    COMB --> WF & MC & MTF
-    WF --> BENCH
-    COMB --> API
-    API --> WH
-    SCR --> ALR
-    CLI --> API
+    DP & STR --> CACHE --> VAL
+    VAL --> TA & ML
+    TA --> MOM & MR & PT & TF & VM & CRYPTO
+    ML & FACTOR & REGIME --> COMB
+    MOM & MR & PT & TF & VM & CRYPTO --> COMB
+    COMB --> RISK --> PORT --> REB & ATTR & TCA_M
+    COMB --> WF & MC_SIM & REAL & OVERFIT
+    REAL --> BENCH & COMP
+    COMB --> CLI & API & INTER
+    API --> WH & PAPER & DASH
+    BS & BINOM & MC_OPT --> GREEKS --> VOL
 ```
+
+---
 
 ## ⚡ Quick Start
 
@@ -99,26 +123,27 @@ cd finclaw
 pip install -e ".[dev]"
 ```
 
-### Your First Scan
+### Run Your First Analysis
 
 ```bash
-# Scan US market for momentum signals
+# CLI mode — scan for momentum signals
 python finclaw.py scan --market us --style soros
 
 # Backtest NVIDIA over 5 years
 python finclaw.py backtest --ticker NVDA --period 5y
 
-# Start the REST API server
+# Interactive mode
+python -m src.interactive
+
+# Start REST API
 python -m src.api.server --port 8080
 ```
 
 ---
 
-## 🎯 Features
+## 🧩 Feature Matrix
 
-### 📊 Technical Analysis — 17 Indicators (Zero Dependencies)
-
-All indicators are pure NumPy — no TA-Lib required.
+### Technical Analysis — 17 Indicators (Pure NumPy)
 
 | Category | Indicators |
 |---|---|
@@ -128,153 +153,91 @@ All indicators are pure NumPy — no TA-Lib required.
 | Volatility | Bollinger Bands, ATR |
 | Volume | OBV, CMF |
 
-```python
-from src.ta import sma, rsi, macd, bollinger_bands
-import numpy as np
+### Strategies — 8 Built-in + Combiner
 
-prices = np.array([100, 102, 101, 105, 108, 107, 110, 112])
-print(rsi(prices, period=5))
-print(bollinger_bands(prices, period=5))
-```
-
-### 🧠 Strategies
-
-Six battle-tested strategies plus a combiner that merges them with configurable weights:
-
-| Strategy | Class | Description |
+| Strategy | Module | Description |
 |---|---|---|
-| Momentum (Jegadeesh-Titman) | `MomentumJTStrategy` | Classic cross-sectional momentum |
-| Mean Reversion | `MeanReversionStrategy` | Bollinger Band + RSI mean reversion |
-| Pairs Trading | `PairsTradingStrategy` | Statistical arbitrage on correlated pairs |
-| Trend Following | `TrendFollowingStrategy` | ADX + MACD trend riding |
-| Value + Momentum | `ValueMomentumStrategy` | Composite value & momentum scoring |
-| **Strategy Combiner** | `StrategyCombiner` | Weighted ensemble of all strategies |
+| Momentum (Jegadeesh-Titman) | `strategies.momentum_jt` | Cross-sectional momentum with formation/holding periods |
+| Mean Reversion | `strategies.mean_reversion` | Bollinger Band + RSI mean reversion |
+| Pairs Trading | `strategies.pairs_trading` | Statistical arbitrage on cointegrated pairs |
+| Trend Following | `strategies.trend_following` | ADX + MACD trend riding |
+| Value + Momentum | `strategies.value_momentum` | Composite value & momentum scoring |
+| Crypto Grid Bot | `strategies.crypto_strategies` | Automated grid trading for crypto |
+| Crypto DCA | `strategies.crypto_strategies` | Dollar-cost averaging engine |
+| Crypto Arbitrage | `strategies.crypto_strategies` | Cross-exchange arbitrage detection |
+| **Strategy Combiner** | `strategies.combiner` | Weighted ensemble with regime detection |
 
-```python
-from src.strategies import StrategyCombiner, MomentumAdapter, MeanReversionAdapter
+### ML Pipeline — 3 Models + Alpha Generation
 
-combiner = StrategyCombiner()
-combiner.add(MomentumAdapter(), weight=0.6)
-combiner.add(MeanReversionAdapter(), weight=0.4)
-signal = combiner.generate_signal(prices)
-```
+| Component | Description |
+|---|---|
+| Linear Regression | Baseline factor model |
+| MA Predictor | Moving-average price predictor |
+| Regime Classifier | Market regime detection (bull/bear/sideways) |
+| Feature Engine | 20+ engineered features from price/volume |
+| Alpha Model | Multi-signal alpha with IC tracking |
+| Factor Model | Fama-French multi-factor regression |
+| News Sentiment | NLP-based sentiment scoring |
+| Walk-Forward Pipeline | Rolling train/test ML validation |
 
-### 🔬 Backtesting Engine
+### Options & Derivatives Pricing
 
-Walk-forward analysis, Monte Carlo simulation, and multi-timeframe validation:
+| Model | Features |
+|---|---|
+| Black-Scholes | European call/put, analytical Greeks |
+| Binomial Tree | American options, early exercise |
+| Monte Carlo | Path-dependent, exotic options |
+| Greeks Engine | Delta, Gamma, Theta, Vega, Rho — portfolio-level |
+| Volatility Surface | Strike × expiry surface construction |
 
-```python
-from src.backtesting import WalkForwardAnalyzer, MonteCarloSimulator
+### Crypto & DeFi
 
-# Walk-forward with 5 folds
-wfa = WalkForwardAnalyzer(n_splits=5, train_ratio=0.7)
-results = wfa.analyze(strategy, prices)
+| Feature | Description |
+|---|---|
+| On-chain Analytics | Whale tracking, flow analysis |
+| DeFi Yield Tracker | Protocol yield monitoring |
+| Crypto Rebalancer | Automated portfolio rebalancing |
+| Grid / DCA / Arbitrage | Three crypto-native strategies |
 
-# Monte Carlo — 1000 paths
-mc = MonteCarloSimulator(n_simulations=1000)
-mc_results = mc.simulate(returns)
-print(f"95th percentile drawdown: {mc_results['percentile_95_drawdown']:.1%}")
-```
+### Backtesting Engine
 
-### ⚖️ Risk Management
+| Feature | Description |
+|---|---|
+| Walk-Forward Analysis | K-fold time-series cross-validation |
+| Monte Carlo Simulation | N-path return distribution |
+| Realistic Engine | Slippage, commissions, market impact, partial fills |
+| Overfitting Detection | Deflated Sharpe, combinatorial checks |
+| Survivorship Bias Check | Dead-stock adjusted backtests |
+| Strategy Comparator | Side-by-side ranking across 8 metrics |
+| Benchmark Suite | Buy-and-hold, equal-weight, 60/40, risk parity |
 
-Kelly criterion, Value-at-Risk, position sizing, and stop-loss management:
+### Risk Management
 
-```python
-from src.risk import KellyCriterion, VaRCalculator, StopLossManager, StopLossType
+| Feature | Description |
+|---|---|
+| Kelly Criterion | Optimal bet sizing |
+| Value-at-Risk | Historical, parametric, Monte Carlo VaR |
+| Position Sizing | Risk-parity, equal-weight, volatility-targeted |
+| Stop-Loss Manager | Fixed, trailing, ATR-based, time-based |
+| Portfolio Risk | Correlation, concentration (HHI), sector exposure |
+| Transaction Cost Analysis | Commission, slippage, impact decomposition |
 
-# Kelly sizing
-kelly = KellyCriterion(win_rate=0.55, avg_win=0.08, avg_loss=0.04)
-fraction = kelly.optimal_fraction()
+### Interface Modes
 
-# VaR
-var = VaRCalculator(confidence=0.99)
-var_99 = var.calculate(returns)
-
-# Stop-loss
-sl = StopLossManager(stop_type=StopLossType.TRAILING, pct=0.08)
-```
-
-### 🤖 ML Pipeline
-
-Feature engineering → model training → alpha generation → walk-forward validation:
-
-```python
-from src.ml import FeatureEngine, AlphaModel, WalkForwardPipeline
-
-features = FeatureEngine()
-X = features.build(prices, volumes)
-
-alpha = AlphaModel()
-alpha.fit(X_train, y_train)
-signals = alpha.predict(X_test)
-
-pipeline = WalkForwardPipeline(model=alpha, feature_engine=features)
-results = pipeline.run(prices, volumes)
-```
-
-### 💼 Portfolio Management
-
-Track positions, rebalance, and attribute returns:
-
-```python
-from src.portfolio import PortfolioTracker, PortfolioRebalancer
-
-tracker = PortfolioTracker(initial_cash=100_000)
-tracker.execute_trade("AAPL", shares=50, price=150.0)
-
-rebalancer = PortfolioRebalancer()
-actions = rebalancer.rebalance(
-    current={"AAPL": 0.7, "MSFT": 0.3},
-    target={"AAPL": 0.5, "MSFT": 0.5},
-)
-```
-
-### 🌐 REST API & Webhooks
-
-```bash
-# Signal endpoint
-GET /api/signal?ticker=AAPL&strategy=momentum
-
-# Backtest endpoint
-GET /api/backtest?ticker=AAPL&strategy=mean_reversion&start=2020-01-01
-
-# Portfolio optimization
-GET /api/portfolio?tickers=AAPL,MSFT,GOOGL&method=risk_parity
-
-# Stock screening
-GET /api/screen?rsi_lt=30&volume_gt=1.5
-```
-
-Webhook support for Slack, Discord, and Teams:
-
-```python
-from src.api.webhooks import WebhookManager
-
-wh = WebhookManager()
-wh.register("signal_change", "https://hooks.slack.com/...", format="slack")
-wh.register("alert_triggered", "https://discord.com/api/webhooks/...", format="discord")
-```
-
-### 🔍 Screening & Alerts
-
-```python
-from src.screener import StockScreener
-from src.alerts import AlertEngine, AlertCondition
-
-screener = StockScreener()
-oversold = screener.screen({"rsi_lt": 30, "volume_gt": 1.5})
-
-engine = AlertEngine()
-engine.add(AlertCondition(ticker="AAPL", field="rsi", op="<", value=30))
-alerts = engine.check()
-```
+| Mode | Description |
+|---|---|
+| **CLI** (`finclaw.py`) | Full command-line: scan, backtest, signal, optimize, report, portfolio, cache |
+| **REST API** | HTTP endpoints for signals, backtests, screening, portfolio optimization |
+| **Interactive** | REPL-style guided analysis |
+| **Webhooks** | Push to Slack, Discord, Microsoft Teams |
+| **Paper Trading** | Simulated live trading with risk checks |
+| **Risk Dashboard** | Real-time HTML risk monitoring |
 
 ---
 
-## 📈 Performance Benchmarks
+## 📊 Performance
 
-Tested on real market data (2019-2024):
+Walk-forward backtested on real market data (2019–2024):
 
 | Metric | FinClaw Combiner | Buy & Hold (SPY) |
 |---|---|---|
@@ -283,24 +246,27 @@ Tested on real market data (2019-2024):
 | Max Drawdown | -18.3% | -33.9% |
 | Win Rate | 58% | — |
 
-> Results from walk-forward backtests on 100+ tickers across US, China A-shares, and Hong Kong markets.
+> 100+ tickers across US, China A-shares, and Hong Kong. Results validated with walk-forward + overfitting detection.
 
 ---
 
-## 🥊 Comparison with Alternatives
+## 🔍 Comparison with Alternatives
 
 | Feature | FinClaw | Zipline | Backtrader | QuantConnect |
 |---|---|---|---|---|
-| **Zero heavy deps** | ✅ NumPy only | ❌ Pandas ecosystem | ❌ Matplotlib etc. | ❌ Cloud platform |
-| **Built-in strategies** | 6 + combiner | ❌ DIY | ❌ DIY | ✅ Community |
+| **Zero heavy deps** | ✅ NumPy only | ❌ Pandas ecosystem | ❌ Matplotlib | ❌ Cloud platform |
+| **Built-in strategies** | 8 + combiner | ❌ DIY | ❌ DIY | ⚠️ Community |
 | **ML pipeline** | ✅ Integrated | ❌ | ❌ | ✅ |
+| **Options pricing** | ✅ BS + Binomial + MC | ❌ | ❌ | ✅ |
+| **Crypto/DeFi** | ✅ Native | ❌ | ❌ | ⚠️ Limited |
 | **Walk-forward** | ✅ | ❌ | ❌ | ✅ |
-| **Monte Carlo** | ✅ | ❌ | ❌ | ❌ |
+| **Overfitting detection** | ✅ | ❌ | ❌ | ❌ |
+| **Realistic backtester** | ✅ Slippage + impact | Basic | Basic | ✅ |
+| **Paper trading** | ✅ Built-in | ❌ | ❌ | ✅ Cloud |
 | **REST API** | ✅ Built-in | ❌ | ❌ | ✅ Cloud |
-| **Webhooks** | ✅ Slack/Discord/Teams | ❌ | ❌ | ✅ |
-| **Risk management** | ✅ Kelly/VaR/Sizing | Basic | Basic | ✅ |
-| **Python version** | 3.9+ | 3.8 (unmaintained) | 3.6+ | 3.8+ |
+| **Risk management** | ✅ Kelly/VaR/sizing | Basic | Basic | ✅ |
 | **Self-hosted** | ✅ | ✅ | ✅ | ❌ Cloud only |
+| **Active maintenance** | ✅ | ❌ Archived | ⚠️ Slow | ✅ |
 | **License** | AGPL-3.0 | Apache-2.0 | GPL-3.0 | Proprietary |
 
 ---
@@ -311,23 +277,33 @@ Tested on real market data (2019-2024):
 finclaw/
 ├── src/
 │   ├── ta/              # 17 technical indicators (pure NumPy)
-│   ├── strategies/      # 6 strategies + combiner
-│   ├── backtesting/     # Walk-forward, Monte Carlo, multi-TF
+│   ├── strategies/      # 8 strategies + combiner
+│   ├── backtesting/     # Walk-forward, Monte Carlo, realistic, overfitting
 │   ├── risk/            # Kelly, VaR, position sizing, stop-loss
-│   ├── ml/              # Features, models, alpha, sentiment
-│   ├── portfolio/       # Tracker, rebalancer
+│   ├── ml/              # Features, models, alpha, sentiment, factors
+│   ├── derivatives/     # Options pricing (BS, binomial, MC), Greeks, vol surface
+│   ├── crypto/          # On-chain analytics, rebalancer
+│   ├── defi/            # DeFi yield tracking
+│   ├── portfolio/       # Tracker, rebalancer, attribution
+│   ├── trading/         # Paper trader, OMS
+│   ├── analytics/       # TCA, correlation, regime, sensitivity
 │   ├── api/             # REST server + webhooks
+│   ├── dashboard/       # Risk dashboard, interactive, signals
 │   ├── screener/        # Stock screening
 │   ├── alerts/          # Alert engine
-│   ├── analytics/       # Attribution, correlation, regime
-│   ├── data/            # Price data providers
+│   ├── data/            # Price providers, streaming, calendar
 │   ├── events/          # Event bus
 │   ├── pipeline/        # Data pipeline + cache
-│   └── ...
-├── agents/              # AI agent layer (signal engines, backtester)
-├── tests/               # 100+ tests
+│   ├── simulation/      # Scenario analysis
+│   ├── sandbox/         # Strategy sandbox
+│   ├── reports/         # HTML + PDF reports
+│   ├── export/          # Data export
+│   ├── journal/         # Trade journal
+│   ├── watchlist/       # Watchlist manager
+│   └── plugins/         # Plugin system
+├── tests/               # 777 tests
 ├── examples/            # Example scripts
-├── docs/                # Full documentation
+├── docs/                # Documentation
 └── finclaw.py           # CLI entry point
 ```
 
@@ -335,16 +311,19 @@ finclaw/
 
 ## 🗺️ Roadmap
 
-- [x] v1.0 — Core engine + 3 strategies
-- [x] v1.3 — Enhanced backtesting (walk-forward, Monte Carlo)
-- [x] v1.5 — Risk management (Kelly, VaR, sizing)
-- [x] v1.7 — ML pipeline + technical analysis
-- [x] v1.8 — Portfolio management + API + webhooks
-- [x] v1.9 — Documentation, examples, integration tests
-- [ ] v2.0 — Live trading via broker APIs
-- [ ] v2.1 — Real-time streaming data
-- [ ] v2.2 — Web dashboard
-- [ ] v3.0 — Multi-asset (options, futures, crypto derivatives)
+- [x] **v1.0** — Core engine, 5 strategies, PyPI package
+- [x] **v1.5** — ML pipeline, walk-forward, risk management
+- [x] **v2.0** — Config validation, CLI, type hints, error handling
+- [x] **v2.3** — Realistic backtester, TCA, strategy comparison
+- [x] **v2.5** — Options & derivatives (BS, Binomial, MC, Greeks)
+- [x] **v2.7** — Real-time streaming, WebSocket data
+- [x] **v2.8** — Crypto/DeFi: grid bot, DCA, arbitrage, on-chain
+- [x] **v2.9** — Overfitting detection, survivorship bias, sensitivity analysis
+- [x] **v3.0** — Platform maturity: 777 tests, full docs, stable APIs
+- [ ] **v3.1** — Live broker integration (IBKR, Alpaca)
+- [ ] **v3.2** — Web dashboard (React + WebSocket)
+- [ ] **v3.3** — Futures & commodities support
+- [ ] **v4.0** — Multi-language SDK (JS/Rust bindings)
 
 ---
 
@@ -356,18 +335,18 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 git clone https://github.com/NeuZhou/finclaw.git
 cd finclaw
 pip install -e ".[dev]"
-pytest
+pytest  # 777 tests, all must pass
 ```
 
 ## 📄 License
 
 [AGPL-3.0](LICENSE) — Free for personal and open-source use. Commercial use requires a license.
 
-## 🔗 Ecosystem
+## 🌐 Ecosystem
 
 | Project | Description |
-|---------|-------------|
-| [AgentProbe](https://github.com/NeuZhou/agentprobe) | 🔬 Playwright for AI Agents — testing & observability |
+|---|---|
+| [AgentProbe](https://github.com/NeuZhou/agentprobe) | 🎭 Playwright for AI Agents — testing & observability |
 | [ClawGuard](https://github.com/NeuZhou/clawguard) | 🛡️ AI Agent Security Scanner |
 | [repo2skill](https://github.com/NeuZhou/repo2skill) | ⚡ Convert repos to AI Agent Skills |
 

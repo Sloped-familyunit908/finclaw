@@ -3,6 +3,33 @@
 All notable changes to FinClaw are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.0.0] - 2026-03-16
+
+### 🎉 Major Milestone — Platform Maturity Release
+
+FinClaw v3.0 marks the transition from rapid feature development to a stable, production-ready quantitative finance platform.
+
+### Highlights
+- **777 tests** — comprehensive coverage across all 31 modules
+- **Complete README overhaul** — architecture diagram, full feature matrix, competitor comparison
+- **8 strategies** (6 equity + 3 crypto) with weighted ensemble combiner
+- **17 technical indicators** — all pure NumPy, zero TA-Lib dependency
+- **3 ML models** + alpha generation + Fama-French factor model
+- **Options pricing** — Black-Scholes, Binomial Tree, Monte Carlo + Greeks + Vol Surface
+- **Crypto/DeFi** — grid bot, DCA, arbitrage, on-chain analytics, yield tracking
+- **Paper trading** — async simulated trading with risk checks and slippage modeling
+- **Real-time streaming** — WebSocket market data with real-time TA
+- **Walk-forward optimization** with overfitting detection and survivorship bias checks
+- **Risk management** — VaR, Kelly criterion, position sizing, stop-loss, portfolio risk
+- **Full CLI** + REST API + Interactive mode + Webhooks (Slack/Discord/Teams)
+- **Realistic backtesting** — slippage, commissions, market impact, partial fills
+- **Transaction cost analysis** — decomposition by commission, slippage, impact, opportunity cost
+
+### Changed
+- Version bumped to 3.0.0
+- All `__init__.py` files reviewed and exports verified
+- README completely rewritten for v3.0
+
 ## [2.4.0] - 2026-03-16
 
 ### Added
