@@ -37,7 +37,7 @@ Repository = "https://github.com/NeuZhou/finclaw"
 Issues = "https://github.com/NeuZhou/finclaw/issues"
 
 [project.scripts]
-finclaw = "src.cli:main"
+finclaw = "src.cli.main:main"
 
 [project.optional-dependencies]
 full = ["aiohttp", "websockets"]

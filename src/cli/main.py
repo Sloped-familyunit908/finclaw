@@ -13,7 +13,7 @@ import sys
 from datetime import datetime
 
 # Ensure project root on path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from src.config_manager import ConfigManager
 

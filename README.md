@@ -9,7 +9,7 @@
   <a href="https://pypi.org/project/finclaw-ai/"><img src="https://img.shields.io/pypi/v/finclaw-ai?color=blue&label=PyPI" alt="PyPI"></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.9%2B-blue" alt="Python 3.9+"></a>
   <a href="https://github.com/NeuZhou/finclaw/actions/workflows/ci.yml"><img src="https://github.com/NeuZhou/finclaw/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://www.gnu.org/licenses/agpl-3.0"><img src="https://img.shields.io/badge/License-AGPL_v3-blue.svg" alt="License: AGPL v3"></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
   <a href="https://github.com/NeuZhou/finclaw/stargazers"><img src="https://img.shields.io/github/stars/NeuZhou/finclaw?style=social" alt="GitHub Stars"></a>
 </p>
 
@@ -41,14 +41,17 @@ pip install finclaw-ai
 ```
 
 ```python
-from finclaw import FinClaw
+from src import FinClaw          # or: from finclaw import FinClaw (after pip install)
 
 fc = FinClaw()
 quote = fc.quote("AAPL")
-print(f"AAPL: ${quote.price:.2f} ({quote.change_pct:+.1f}%)")
+print(f"AAPL: ${quote['price']:.2f} ({quote['change_pct']:+.1f}%)")
 ```
 
 That's it. No API keys needed for basic quotes.
+
+> **Screenshot placeholder:** _Add a terminal screenshot or GIF of `finclaw price --ticker AAPL` here._
+> ![Quick Start Demo](docs/assets/quickstart-demo.gif)
 
 ---
 
@@ -123,17 +126,17 @@ Feature engineering → model selection → prediction tracking. Three built-in 
 ### Get a Quote
 
 ```python
-from finclaw import FinClaw
+from src import FinClaw
 
 fc = FinClaw()
 quote = fc.quote("TSLA")
-print(f"Tesla: ${quote.price:.2f} | Vol: {quote.volume:,}")
+print(f"Tesla: ${quote['price']:.2f} | Vol: {quote['volume']:,}")
 ```
 
 ### Run a Backtest
 
 ```python
-from finclaw import FinClaw
+from src import FinClaw
 
 fc = FinClaw()
 result = fc.backtest(
@@ -151,7 +154,7 @@ result.export_html("nvda_report.html")
 ### Paper Trading (Live Simulation)
 
 ```python
-from finclaw import FinClaw
+from src import FinClaw
 
 fc = FinClaw()
 fc.paper_trade(
@@ -276,7 +279,7 @@ pytest
 
 ## 📄 License
 
-[AGPL-3.0](LICENSE) — Free for open source. Commercial use requires a license.
+[MIT](LICENSE)
 
 ---
 
