@@ -42,3 +42,4 @@ engine/target/
 *.log
 *.csv
 *.html
+cache.db

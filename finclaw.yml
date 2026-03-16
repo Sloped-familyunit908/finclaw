@@ -1,0 +1,27 @@
+# finclaw.yml — FinClaw Configuration
+# See src/config.py for all options
+
+default_strategy: momentum
+default_universe: us
+
+backtest:
+  start: "2020-01-01"
+  initial_capital: 100000
+  commission: 0.001
+  slippage: 0.0005
+  period: "5y"
+
+risk:
+  max_position_pct: 0.10
+  max_drawdown_pct: 0.20
+  stop_loss_pct: 0.05
+
+cache:
+  backend: sqlite
+  ttl_seconds: 3600
+  db_path: ".finclaw_cache/cache.db"
+
+report:
+  output_dir: reports
+  format: html
+  theme: dark
