@@ -1,7 +1,7 @@
 # FinClaw - AI-native quantitative finance platform
-"""FinClaw v5.14.0 — AI-native quantitative finance engine."""
+"""FinClaw - AI-native quantitative finance engine."""
 
-__version__ = "5.14.0"
+__version__ = "0.1.0"
 
 
 class FinClaw:
