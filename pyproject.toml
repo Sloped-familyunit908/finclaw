@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "finclaw-ai"
-version = "2.1.0"
-description = "AI-Powered Financial Intelligence Engine - ML, Alpha Models, 8 Strategies, 5 Markets, Walk-Forward Backtesting."
+version = "2.3.0"
+description = "AI-Powered Financial Intelligence Engine - Realistic Backtesting, TCA, Strategy Comparison, ML, 8 Strategies."
 readme = "README.md"
 license = {text = "AGPL-3.0-only"}
 requires-python = ">=3.9"

@@ -3,6 +3,21 @@
 All notable changes to FinClaw are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [2.3.0] - 2026-03-16
+
+### Added
+- **Realistic Backtest Engine** (`src/backtesting/realistic.py`) — Production-grade backtester with slippage models, commission models, market impact simulation, partial fills, market/limit/stop/stop-limit orders, and day-by-day portfolio tracking
+- **Benchmark Suite** (`src/backtesting/benchmarks.py`) — Buy-and-hold, equal-weight, 60/40 classic portfolio, risk parity benchmarks with pre-built registry and `run_all_benchmarks()` convenience function
+- **Strategy Comparator** (`src/backtesting/compare.py`) — Side-by-side comparison of multiple strategies with auto-ranking across 8 metrics (Return, CAGR, Sharpe, Sortino, MaxDD, Win Rate, PF, Calmar), correlation matrix, and formatted table output
+- **Transaction Cost Analysis** (`src/analytics/tca.py`) — Full TCA decomposition: commissions, slippage, market impact, opportunity cost with breakdowns by ticker, hour, side, and trade size bucket
+- **Enhanced HTML Reports** — Added TCA section and strategy comparison table to HTML backtest reports
+- **46 new tests** covering all new modules: RealisticBacktester, SlippageModel, CommissionModel, MarketImpactModel, OrderBook, Benchmarks, StrategyComparator, TCA, HTML reports, and integration tests
+
+### Changed
+- Bumped backtesting `__init__.py` to v2.3.0 with all new exports
+- Bumped analytics `__init__.py` to v2.3.0 with TCA exports
+- HTML report generator now renders TCA and comparison sections when data provided
+
 ## [2.0.0] - 2026-03-16
 
 ### Added

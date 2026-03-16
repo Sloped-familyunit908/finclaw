@@ -176,6 +176,48 @@ th { background: #161b22; color: #58a6ff; }
 """
 
 
+def _tca_section(tca_data: Optional[dict]) -> str:
+    """Render TCA section if data present."""
+    if not tca_data:
+        return ""
+    return f'''<div class="section">
+  <h2>💰 Transaction Cost Analysis</h2>
+  <div class="metrics-grid">
+    {_metric_card("Total Cost", f"{tca_data.get('total_cost_bps', 0):.1f} bps", "#ffc107")}
+    {_metric_card("Commission", f"${tca_data.get('commission_cost', 0):,.2f}", "#ffc107")}
+    {_metric_card("Slippage", f"${tca_data.get('slippage_cost', 0):,.2f}", "#ffc107")}
+    {_metric_card("Market Impact", f"${tca_data.get('market_impact', 0):,.2f}", "#ffc107")}
+    {_metric_card("Opportunity", f"${tca_data.get('opportunity_cost', 0):,.2f}", "#ffc107")}
+    {_metric_card("Cost/Return", f"{tca_data.get('cost_as_pct_of_gross_return', 0):.1%}", "#ff5252")}
+  </div>
+</div>'''
+
+
+def _comparison_section(comp_data: Optional[dict]) -> str:
+    """Render strategy comparison table if data present."""
+    if not comp_data or not comp_data.get("strategies"):
+        return ""
+    header = "<tr><th>Strategy</th><th>Return</th><th>CAGR</th><th>Sharpe</th><th>Sortino</th><th>MaxDD</th><th>Win%</th><th>PF</th></tr>"
+    rows = ""
+    for s in comp_data["strategies"]:
+        rows += f'''<tr>
+  <td><b>{html.escape(s.get("name", ""))}</b></td>
+  <td>{s.get("total_return", 0)*100:+.1f}%</td>
+  <td>{s.get("cagr", 0)*100:+.1f}%</td>
+  <td>{s.get("sharpe_ratio", 0):.2f}</td>
+  <td>{s.get("sortino_ratio", 0):.2f}</td>
+  <td>{s.get("max_drawdown", 0)*100:.1f}%</td>
+  <td>{s.get("win_rate", 0)*100:.0f}%</td>
+  <td>{s.get("profit_factor", 0):.2f}</td>
+</tr>'''
+    best = comp_data.get("best_overall", "")
+    return f'''<div class="section">
+  <h2>🏆 Strategy Comparison</h2>
+  <table><thead>{header}</thead><tbody>{rows}</tbody></table>
+  {"<p>🏆 Best Overall: <b>" + html.escape(best) + "</b></p>" if best else ""}
+</div>'''
+
+
 def generate_html_report(
     report_data: dict[str, Any],
     title: str = "FinClaw Backtest Report",
@@ -299,8 +341,11 @@ def generate_html_report(
     {trade_html}
   </div>
 
+  {_tca_section(report_data.get("tca"))}
+  {_comparison_section(report_data.get("comparison"))}
+
   <div class="footer">
-    FinClaw v1.4.0 — AI-Powered Financial Intelligence Engine<br>
+    FinClaw v2.3.0 — AI-Powered Financial Intelligence Engine<br>
     <a href="https://github.com/NeuZhou/finclaw" style="color:#58a6ff">github.com/NeuZhou/finclaw</a>
   </div>
 </body>
