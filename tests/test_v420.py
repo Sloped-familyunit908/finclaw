@@ -1,14 +1,14 @@
 """
 Tests for FinClaw v4.2.0 — Live Trading Engine, Risk Guard,
 Paper Trading, and Dashboard.
-40+ tests covering all new components.
+45 tests covering all new components.
 """
 
 import asyncio
 import math
 import time
 from datetime import datetime
-from unittest.mock import MagicMock, AsyncMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -21,11 +21,15 @@ from src.events.event_bus import EventBus
 
 
 # =====================================================================
-# Fixtures
+# Helpers
 # =====================================================================
 
+def run_async(coro):
+    """Run async coroutine synchronously."""
+    return asyncio.get_event_loop().run_until_complete(coro)
+
+
 class DummyStrategy:
-    """Strategy that returns configurable signals."""
     def __init__(self, signals=None):
         self._signals = signals or []
 
@@ -34,7 +38,6 @@ class DummyStrategy:
 
 
 class FakeExchange:
-    """Minimal ExchangeAdapter stub."""
     exchange_type = "crypto"
     name = "fake"
 
@@ -145,7 +148,8 @@ class TestRiskGuard:
         assert "Order value" in result.reason
 
     def test_reject_over_position_size(self, risk_guard):
-        order = Order(ticker="BTCUSDT", side="buy", order_type="market", quantity=10, limit_price=10_000)
+        # Existing position of $40k + new order of $15k = $55k > $50k limit
+        order = Order(ticker="BTCUSDT", side="buy", order_type="market", quantity=1, limit_price=15_000)
         portfolio = {"positions": {"BTCUSDT": {"quantity": 4, "avg_price": 10_000}}}
         result = risk_guard.check_order(order, portfolio)
         assert not result.approved
@@ -200,7 +204,6 @@ class TestRiskGuard:
         assert risk_guard.check_daily_limit()
         risk_guard._daily_date = "1999-01-01"
         risk_guard._daily_pnl = -99999
-        # Calling check_daily_limit should reset for today
         result = risk_guard.check_daily_limit()
         assert result  # Reset to 0 for today
 
@@ -242,80 +245,74 @@ class TestLiveTradingEngine:
         for key in ["is_running", "exchange", "tickers", "pnl", "positions", "open_orders", "total_trades"]:
             assert key in status
 
-    @pytest.mark.asyncio
-    async def test_on_tick_no_signals(self, live_engine):
-        results = await live_engine.on_tick({"BTCUSDT": {"last": 67000}})
+    def test_on_tick_no_signals(self, live_engine):
+        results = run_async(live_engine.on_tick({"BTCUSDT": {"last": 67000}}))
         assert results == []
 
-    @pytest.mark.asyncio
-    async def test_on_tick_with_signal(self, exchange):
+    def test_on_tick_with_signal(self, exchange):
         strategy = DummyStrategy([
             {"ticker": "BTCUSDT", "side": "buy", "quantity": 1, "price": 67000}
         ])
         engine = LiveTradingEngine(exchange=exchange, strategy=strategy, tickers=["BTCUSDT"])
-        results = await engine.on_tick({"BTCUSDT": {"last": 67000}})
+        results = run_async(engine.on_tick({"BTCUSDT": {"last": 67000}}))
         assert len(results) == 1
         assert results[0].status == "filled"
 
-    @pytest.mark.asyncio
-    async def test_on_tick_updates_position(self, exchange):
+    def test_on_tick_updates_position(self, exchange):
         strategy = DummyStrategy([
             {"ticker": "BTCUSDT", "side": "buy", "quantity": 2, "price": 50000}
         ])
         engine = LiveTradingEngine(exchange=exchange, strategy=strategy, tickers=["BTCUSDT"])
-        await engine.on_tick({"BTCUSDT": {"last": 50000}})
+        run_async(engine.on_tick({"BTCUSDT": {"last": 50000}}))
         assert "BTCUSDT" in engine._positions
         assert engine._positions["BTCUSDT"]["quantity"] == 2
 
-    @pytest.mark.asyncio
-    async def test_on_tick_sell_pnl(self, exchange):
+    def test_on_tick_sell_pnl(self, exchange):
         strategy = DummyStrategy([
             {"ticker": "BTCUSDT", "side": "buy", "quantity": 1, "price": 50000}
         ])
         engine = LiveTradingEngine(exchange=exchange, strategy=strategy, tickers=["BTCUSDT"])
-        await engine.on_tick({"BTCUSDT": {"last": 50000}})
+        run_async(engine.on_tick({"BTCUSDT": {"last": 50000}}))
 
         strategy._signals = [
             {"ticker": "BTCUSDT", "side": "sell", "quantity": 1, "price": 55000}
         ]
-        await engine.on_tick({"BTCUSDT": {"last": 55000}})
+        run_async(engine.on_tick({"BTCUSDT": {"last": 55000}}))
         assert engine._pnl == 5000
 
-    @pytest.mark.asyncio
-    async def test_on_tick_with_risk_reject(self, exchange):
+    def test_on_tick_with_risk_reject(self, exchange):
         strategy = DummyStrategy([
             {"ticker": "BTCUSDT", "side": "buy", "quantity": 1, "price": 100}
         ])
         risk = RiskGuard()
         risk.emergency_stop()
         engine = LiveTradingEngine(exchange=exchange, strategy=strategy, risk_manager=risk)
-        results = await engine.on_tick({"BTCUSDT": {"last": 100}})
+        results = run_async(engine.on_tick({"BTCUSDT": {"last": 100}}))
         assert results == []
 
-    @pytest.mark.asyncio
-    async def test_on_tick_with_risk_approve(self, exchange):
+    def test_on_tick_with_risk_approve(self, exchange):
         strategy = DummyStrategy([
             {"ticker": "BTCUSDT", "side": "buy", "quantity": 1, "price": 100}
         ])
         risk = RiskGuard()
         engine = LiveTradingEngine(exchange=exchange, strategy=strategy, risk_manager=risk)
-        results = await engine.on_tick({"BTCUSDT": {"last": 100}})
+        results = run_async(engine.on_tick({"BTCUSDT": {"last": 100}}))
         assert len(results) == 1
 
-    @pytest.mark.asyncio
-    async def test_start_stop(self, live_engine):
-        async def stop_after():
-            await asyncio.sleep(0.1)
-            await live_engine.stop()
+    def test_start_stop(self, live_engine):
+        async def _test():
+            async def stop_after():
+                await asyncio.sleep(0.1)
+                await live_engine.stop()
 
-        task = asyncio.create_task(stop_after())
-        # Run start with a short timeout
-        try:
-            await asyncio.wait_for(live_engine.start(), timeout=1.0)
-        except asyncio.TimeoutError:
-            pass
-        await task
-        assert not live_engine.is_running
+            task = asyncio.create_task(stop_after())
+            try:
+                await asyncio.wait_for(live_engine.start(), timeout=1.0)
+            except asyncio.TimeoutError:
+                pass
+            await task
+            assert not live_engine.is_running
+        run_async(_test())
 
     def test_signal_to_order_invalid(self, live_engine):
         assert live_engine._signal_to_order({}) is None
@@ -340,45 +337,41 @@ class TestPaperTradingEngine:
         assert paper_engine.virtual_positions == {}
         assert paper_engine.trade_history == []
 
-    @pytest.mark.asyncio
-    async def test_buy_updates_balance(self, exchange):
+    def test_buy_updates_balance(self, exchange):
         strategy = DummyStrategy([
             {"ticker": "BTCUSDT", "side": "buy", "quantity": 1, "price": 50000}
         ])
         engine = PaperTradingEngine(exchange=exchange, strategy=strategy, initial_capital=100_000, slippage_bps=0, commission_rate=0)
-        await engine.on_tick({"BTCUSDT": {"last": 50000}})
+        run_async(engine.on_tick({"BTCUSDT": {"last": 50000}}))
         assert engine.virtual_balance < 100_000
         assert "BTCUSDT" in engine.virtual_positions
 
-    @pytest.mark.asyncio
-    async def test_sell_updates_balance(self, exchange):
+    def test_sell_updates_balance(self, exchange):
         strategy = DummyStrategy([
             {"ticker": "BTCUSDT", "side": "buy", "quantity": 1, "price": 50000}
         ])
         engine = PaperTradingEngine(exchange=exchange, strategy=strategy, initial_capital=100_000, slippage_bps=0, commission_rate=0)
-        await engine.on_tick({"BTCUSDT": {"last": 50000}})
+        run_async(engine.on_tick({"BTCUSDT": {"last": 50000}}))
         bal_after_buy = engine.virtual_balance
 
         strategy._signals = [{"ticker": "BTCUSDT", "side": "sell", "quantity": 1, "price": 55000}]
-        await engine.on_tick({"BTCUSDT": {"last": 55000}})
+        run_async(engine.on_tick({"BTCUSDT": {"last": 55000}}))
         assert engine.virtual_balance > bal_after_buy
         assert "BTCUSDT" not in engine.virtual_positions
 
-    @pytest.mark.asyncio
-    async def test_trade_history_recorded(self, exchange):
+    def test_trade_history_recorded(self, exchange):
         strategy = DummyStrategy([
             {"ticker": "BTCUSDT", "side": "buy", "quantity": 1, "price": 100}
         ])
         engine = PaperTradingEngine(exchange=exchange, strategy=strategy, initial_capital=100_000)
-        await engine.on_tick({"BTCUSDT": {"last": 100}})
+        run_async(engine.on_tick({"BTCUSDT": {"last": 100}}))
         assert len(engine.trade_history) == 1
         assert engine.trade_history[0]["ticker"] == "BTCUSDT"
 
-    @pytest.mark.asyncio
-    async def test_equity_curve_tracked(self, exchange):
+    def test_equity_curve_tracked(self, exchange):
         strategy = DummyStrategy([])
         engine = PaperTradingEngine(exchange=exchange, strategy=strategy, initial_capital=100_000)
-        await engine.on_tick({"BTCUSDT": {"last": 100}})
+        run_async(engine.on_tick({"BTCUSDT": {"last": 100}}))
         assert len(engine._equity_curve) == 1
 
     def test_get_performance_initial(self, paper_engine):
@@ -393,23 +386,21 @@ class TestPaperTradingEngine:
         assert "virtual_balance" in status
         assert "equity" in status
 
-    @pytest.mark.asyncio
-    async def test_slippage_applied(self, exchange):
+    def test_slippage_applied(self, exchange):
         strategy = DummyStrategy([
             {"ticker": "BTCUSDT", "side": "buy", "quantity": 1, "price": 10000}
         ])
         engine = PaperTradingEngine(exchange=exchange, strategy=strategy, initial_capital=100_000, slippage_bps=100, commission_rate=0)
-        await engine.on_tick({"BTCUSDT": {"last": 10000}})
+        run_async(engine.on_tick({"BTCUSDT": {"last": 10000}}))
         # 100 bps = 1% slippage on buy → effective price 10100
         assert engine.virtual_balance == pytest.approx(100_000 - 10100, abs=1)
 
-    @pytest.mark.asyncio
-    async def test_commission_applied(self, exchange):
+    def test_commission_applied(self, exchange):
         strategy = DummyStrategy([
             {"ticker": "BTCUSDT", "side": "buy", "quantity": 1, "price": 10000}
         ])
         engine = PaperTradingEngine(exchange=exchange, strategy=strategy, initial_capital=100_000, slippage_bps=0, commission_rate=0.01)
-        await engine.on_tick({"BTCUSDT": {"last": 10000}})
+        run_async(engine.on_tick({"BTCUSDT": {"last": 10000}}))
         # commission = 10000 * 1 * 0.01 = 100
         assert engine.virtual_balance == pytest.approx(100_000 - 10000 - 100, abs=1)
 
@@ -462,8 +453,7 @@ class TestDashboard:
 # =====================================================================
 
 class TestIntegration:
-    @pytest.mark.asyncio
-    async def test_full_paper_trade_cycle(self, exchange):
+    def test_full_paper_trade_cycle(self, exchange):
         """Buy, hold, sell cycle with paper engine."""
         strategy = DummyStrategy([
             {"ticker": "BTCUSDT", "side": "buy", "quantity": 1, "price": 50000}
@@ -472,16 +462,15 @@ class TestIntegration:
             exchange=exchange, strategy=strategy,
             initial_capital=100_000, slippage_bps=0, commission_rate=0,
         )
-        await engine.on_tick({"BTCUSDT": {"last": 50000}})
+        run_async(engine.on_tick({"BTCUSDT": {"last": 50000}}))
         assert engine.virtual_balance == pytest.approx(50000, abs=1)
 
         strategy._signals = [{"ticker": "BTCUSDT", "side": "sell", "quantity": 1, "price": 60000}]
-        await engine.on_tick({"BTCUSDT": {"last": 60000}})
+        run_async(engine.on_tick({"BTCUSDT": {"last": 60000}}))
         assert engine.virtual_balance == pytest.approx(110000, abs=1)
         assert engine.get_performance()["total_trades"] == 2
 
-    @pytest.mark.asyncio
-    async def test_risk_integrated_with_engine(self, exchange):
+    def test_risk_integrated_with_engine(self, exchange):
         """Risk guard blocks oversized order in live engine."""
         config = RiskConfig(max_order_value=1000)
         risk = RiskGuard(config)
@@ -489,17 +478,16 @@ class TestIntegration:
             {"ticker": "BTCUSDT", "side": "buy", "quantity": 100, "price": 50000}
         ])
         engine = LiveTradingEngine(exchange=exchange, strategy=strategy, risk_manager=risk)
-        results = await engine.on_tick({"BTCUSDT": {"last": 50000}})
+        results = run_async(engine.on_tick({"BTCUSDT": {"last": 50000}}))
         assert results == []  # blocked by risk
 
-    @pytest.mark.asyncio
-    async def test_dashboard_after_trades(self, exchange):
+    def test_dashboard_after_trades(self, exchange):
         """Dashboard renders correctly after trades."""
         strategy = DummyStrategy([
             {"ticker": "BTCUSDT", "side": "buy", "quantity": 0.5, "price": 67000}
         ])
         engine = PaperTradingEngine(exchange=exchange, strategy=strategy, initial_capital=100_000)
-        await engine.on_tick({"BTCUSDT": {"last": 67000}})
+        run_async(engine.on_tick({"BTCUSDT": {"last": 67000}}))
 
         risk = RiskGuard()
         dash = TradingDashboard(engine, risk_guard=risk)
