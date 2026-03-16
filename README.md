@@ -363,6 +363,14 @@ pytest
 
 [AGPL-3.0](LICENSE) — Free for personal and open-source use. Commercial use requires a license.
 
+## 🔗 Ecosystem
+
+| Project | Description |
+|---------|-------------|
+| [AgentProbe](https://github.com/NeuZhou/agentprobe) | 🔬 Playwright for AI Agents — testing & observability |
+| [ClawGuard](https://github.com/NeuZhou/clawguard) | 🛡️ AI Agent Security Scanner |
+| [repo2skill](https://github.com/NeuZhou/repo2skill) | ⚡ Convert repos to AI Agent Skills |
+
 ## ⭐ Star History
 
 If FinClaw helps your research or trading, please ⭐ the repo!
