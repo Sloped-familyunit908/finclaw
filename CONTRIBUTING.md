@@ -1,113 +1,95 @@
-# Contributing to FinClaw 🐋
+# Contributing to FinClaw
 
-Thank you for your interest in contributing!
+Thank you for your interest in contributing! 🦀
 
 ## Getting Started
-
-### Prerequisites
-
-- Python 3.9+
-- pip
-
-### Setup
 
 ```bash
 git clone https://github.com/NeuZhou/finclaw.git
 cd finclaw
-pip install -r requirements.txt
-pip install pytest pytest-asyncio ruff
+pip install -e ".[dev]"
+pytest
 ```
-
-### Verify
-
-```bash
-python -m pytest tests/ -v
-```
-
-## How to Contribute
-
-### 🐛 Bug Reports
-
-Open an issue with:
-- Steps to reproduce
-- Expected vs actual behavior
-- Python version, OS
-
-### 🎯 Strategy Contributions
-
-Add a new trading strategy:
-
-1. Add selection logic to `finclaw.py` STRATEGIES dict
-2. Add tests in `tests/`
-3. Run benchmarks: `python benchmark_real.py`
-4. Submit PR with backtest results
-
-### 🧪 Tests
-
-We have 100+ tests. All PRs must pass:
-
-```bash
-python -m pytest tests/ -v --tb=short
-```
-
-Add tests for any new feature. Use `tests/conftest.py` fixtures for synthetic price data.
-
-### 🤖 Agent Plugins
-
-Create custom AI agent personalities in `agents/`:
-
-1. Add your agent profile to `agents/registry.py`
-2. Follow the `AgentProfile` dataclass pattern
-3. Add tests
-
-### 📊 Data Sources
-
-Add support for new market data providers:
-
-1. Implement in `agents/` or `src/data/`
-2. Add tests with mock data
-3. Document in README
-
-## Code Style
-
-- **Python**: Follow PEP 8, use type hints
-- **Lint**: `ruff check . --select E,F,W --ignore E501`
-- **Tests**: pytest, use fixtures from `conftest.py`
-- **Commits**: Conventional commits (`feat:`, `fix:`, `docs:`, `test:`, `ci:`)
-
-## Pull Request Process
-
-1. Fork the repo
-2. Create a feature branch: `git checkout -b feat/my-feature`
-3. Make changes, add tests
-4. Run `python -m pytest tests/ -v`
-5. Run `ruff check .`
-6. Commit with conventional message
-7. Push and open PR
 
 ## Project Structure
 
 ```
 finclaw/
-├── finclaw.py          # CLI entry point
-├── agents/             # Signal engines, backtester, stock picker
-├── strategies/         # Strategy definitions
-├── tests/              # 100+ pytest tests
-├── mcp_server.py       # MCP protocol server
-├── telegram_bot.py     # Telegram interface
-└── daily_alert.py      # Daily alerts
+├── src/                    # Core library
+│   ├── ta/                 # Technical analysis (17 indicators, pure NumPy)
+│   ├── strategies/         # 6 strategies + StrategyCombiner
+│   ├── backtesting/        # Walk-forward, Monte Carlo, multi-timeframe
+│   ├── risk/               # Kelly, VaR, position sizing, stop-loss
+│   ├── ml/                 # Feature engine, models, alpha, sentiment
+│   ├── portfolio/          # Tracker, rebalancer
+│   ├── api/                # REST server + webhooks
+│   ├── screener/           # Stock screening
+│   ├── alerts/             # Alert engine
+│   ├── analytics/          # Attribution, correlation, regime, rolling
+│   ├── data/               # Price data providers
+│   ├── events/             # Event bus (pub/sub)
+│   ├── pipeline/           # Data pipeline, cache, validation
+│   ├── optimization/       # Parameter optimization
+│   ├── simulation/         # Scenario simulation
+│   ├── exchange/           # Paper trading
+│   ├── export/             # Report export
+│   ├── plugins/            # Plugin manager
+│   ├── dashboard/          # Signal dashboard
+│   ├── reports/            # HTML/backtest reports
+│   └── config.py           # Configuration
+├── agents/                 # AI agent layer
+├── tests/                  # Test suite (100+ tests)
+├── examples/               # Example scripts
+├── docs/                   # Documentation
+├── finclaw.py              # CLI entry point
+├── main.py                 # Main runner
+└── pyproject.toml          # Build config
 ```
 
-## Code of Conduct
+## Development Workflow
 
-Be kind, be constructive, be collaborative.
+1. **Fork & branch** from `main`
+2. **Write tests** for new features (`tests/`)
+3. **Run tests**: `pytest`
+4. **Lint**: `ruff check src/ tests/`
+5. **Open a PR** with a clear description
+
+## Code Style
+
+- Python 3.9+ with type hints
+- No heavy dependencies — NumPy is the only required dep beyond stdlib
+- All indicators in `src/ta/` must be pure NumPy
+- Use `__all__` exports in `__init__.py`
+- Docstrings on all public functions
+
+## Testing
+
+```bash
+# Run all tests
+pytest
+
+# Run specific module
+pytest tests/test_round6.py -v
+
+# Run with coverage
+pytest --cov=src
+```
+
+## Adding a New Strategy
+
+1. Create `src/strategies/your_strategy.py`
+2. Implement `generate_signal(prices, **kwargs)` method
+3. Create an adapter class for `StrategyCombiner`
+4. Export in `src/strategies/__init__.py`
+5. Add tests in `tests/`
+
+## Adding a New Indicator
+
+1. Add function to `src/ta/__init__.py`
+2. Pure NumPy only — no TA-Lib or pandas
+3. Accept/return `NDArray[np.float64]`
+4. Add tests
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under [AGPL-3.0](LICENSE).
-
-## 🌐 Related Tools for Contributors
-
-- **[ClawGuard](https://github.com/NeuZhou/clawguard)** — Scan for security vulnerabilities in AI agent code
-- **[AgentProbe](https://github.com/NeuZhou/agentprobe)** — Test framework for AI agent tools
-- **[repo2skill](https://github.com/NeuZhou/repo2skill)** — Convert repos into AI agent skills
+By contributing, you agree that your contributions will be licensed under AGPL-3.0.
