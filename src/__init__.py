@@ -9,7 +9,7 @@ class FinClaw:
 
     Examples::
 
-        from src import FinClaw
+        from finclaw import FinClaw
 
         fc = FinClaw()
         quote = fc.quote("AAPL")

@@ -423,7 +423,7 @@ class TestSentimentCLI:
         parser = build_parser()
         for action in parser._actions:
             if isinstance(action, argparse._VersionAction):
-                assert "5.5.0" in action.version
+                assert "0.1.0" in action.version
                 return
         pytest.fail("No version action found")
 

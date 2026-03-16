@@ -10,12 +10,12 @@ include pyproject.toml
 recursive-include agents *.py
 recursive-include strategies *.py
 recursive-include src *.py
-recursive-include tests *.py
 
 # Exclude dev/scratch files
 prune _scratch
 prune dashboard
 prune docs
+prune tests
 prune .github
 exclude benchmark_*.py
 exclude daily_alert.py

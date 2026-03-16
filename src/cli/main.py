@@ -662,7 +662,7 @@ def build_parser() -> argparse.ArgumentParser:
     """Build the full CLI argument parser."""
     parser = argparse.ArgumentParser(
         prog="finclaw",
-        description="FinClaw v5.5.0 — AI-Powered Financial Intelligence Engine",
+        description="FinClaw v0.1.0 — AI-Powered Financial Intelligence Engine",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -680,7 +680,7 @@ Examples:
   finclaw interactive
 """,
     )
-    parser.add_argument("--version", action="version", version="finclaw 5.5.0")
+    parser.add_argument("--version", action="version", version="finclaw 0.1.0")
     sub = parser.add_subparsers(dest="command", help="Available commands")
 
     # backtest

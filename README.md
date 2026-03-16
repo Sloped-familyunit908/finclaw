@@ -31,14 +31,17 @@ FinClaw is a lightweight quantitative finance toolkit with built-in AI agent sup
 ## Quick Start
 
 ```bash
-# Install from source (PyPI coming soon)
+# Install from PyPI
+pip install finclaw
+
+# Or install from source
 git clone https://github.com/NeuZhou/finclaw.git
 cd finclaw
 pip install -e .
 ```
 
 ```python
-from src import FinClaw
+from finclaw import FinClaw
 
 fc = FinClaw()
 quote = fc.quote("AAPL")
@@ -111,7 +114,7 @@ Available MCP tools: `finclaw_scan`, `finclaw_backtest`, `finclaw_macro`, `fincl
 
 > These features are planned but **not yet implemented**:
 
-- [ ] PyPI package (`pip install finclaw`)
+- [x] PyPI package (`pip install finclaw`)
 - [ ] Docker deployment
 - [ ] More exchange adapters (Coinbase, Alpaca, Polygon, China A-shares)
 - [ ] REST API server
