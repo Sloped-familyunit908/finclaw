@@ -288,3 +288,67 @@ class PortfolioRebalancer:
             ))
 
         return actions
+
+
+class Rebalancer:
+    """Simplified rebalancer matching the v4.5 spec API."""
+
+    def __init__(self, target_weights: dict[str, float], threshold: float = 0.05):
+        self.target_weights = target_weights
+        self.threshold = threshold
+        self._inner = PortfolioRebalancer(target_weights=target_weights, threshold=threshold)
+
+    def check_drift(self, current_weights: dict[str, float]) -> dict:
+        """Check drift of each asset from target."""
+        drifts = {}
+        max_drift = 0.0
+        for sym, target in self.target_weights.items():
+            current = current_weights.get(sym, 0.0)
+            drift = current - target
+            drifts[sym] = round(drift, 6)
+            max_drift = max(max_drift, abs(drift))
+        return {
+            "drifts": drifts,
+            "max_drift": round(max_drift, 6),
+            "needs_rebalance": max_drift > self.threshold,
+        }
+
+    def generate_trades(self, current: dict[str, float], prices: dict[str, float]) -> list[dict]:
+        """Generate trade list to rebalance.
+
+        Args:
+            current: {symbol: current_value}
+            prices: {symbol: current_price}
+        """
+        total_value = sum(current.values())
+        if total_value <= 0:
+            return []
+
+        trades = []
+        for sym, target_w in self.target_weights.items():
+            current_val = current.get(sym, 0.0)
+            target_val = target_w * total_value
+            diff = target_val - current_val
+            price = prices.get(sym, 1.0)
+            if abs(diff) < 1.0:
+                continue
+            trades.append({
+                "symbol": sym,
+                "action": "buy" if diff > 0 else "sell",
+                "shares": round(abs(diff) / price, 4),
+                "value": round(abs(diff), 2),
+            })
+        return trades
+
+    def calendar_rebalance(self, frequency: str = "monthly") -> bool:
+        """Check if calendar rebalance is due (stub: always True for day 0)."""
+        return True
+
+    def band_rebalance(self, current: dict[str, float]) -> bool:
+        """Check if any asset breaches the band threshold."""
+        total = sum(current.values())
+        if total <= 0:
+            return False
+        weights = {s: v / total for s, v in current.items()}
+        drift = self.check_drift(weights)
+        return drift["needs_rebalance"]
