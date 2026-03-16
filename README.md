@@ -2,7 +2,7 @@
 
 <p align="center">
   <strong>AI-Powered Quantitative Finance Platform</strong><br>
-  <em>8 Strategies · 17 TA Indicators · 3 ML Models · Options Pricing · Crypto/DeFi · Paper Trading · Zero Heavy Dependencies</em>
+  <em>8 Strategies · 17 TA Indicators · 3 ML Models · Options Pricing · Crypto/DeFi · Paper Trading · Risk CLI · Zero Heavy Dependencies</em>
 </p>
 
 <p align="center">
@@ -19,7 +19,7 @@
 
 ---
 
-FinClaw is a full-stack quantitative finance engine built on **pure NumPy** — no TA-Lib, no pandas dependency, no heavy framework lock-in. From signal generation to backtesting to paper trading, everything runs in a single Python package with 777 tests and counting.
+FinClaw is a full-stack quantitative finance engine built on **pure NumPy** — no TA-Lib, no pandas dependency, no heavy framework lock-in. From signal generation to backtesting to paper trading, everything runs in a single Python package with 1,100+ tests and counting.
 
 ```
 $100 → $354 over 5 years (29.1% CAGR)
@@ -226,7 +226,7 @@ python -m src.api.server --port 8080
 
 | Mode | Description |
 |---|---|
-| **CLI** (`finclaw.py`) | Full command-line: scan, backtest, signal, optimize, report, portfolio, cache |
+| **CLI** (`finclaw.py`) | Full command-line: scan, backtest, signal, optimize, report, portfolio, risk, screen, cache |
 | **REST API** | HTTP endpoints for signals, backtests, screening, portfolio optimization |
 | **Interactive** | REPL-style guided analysis |
 | **Webhooks** | Push to Slack, Discord, Microsoft Teams |
@@ -301,7 +301,7 @@ finclaw/
 │   ├── journal/         # Trade journal
 │   ├── watchlist/       # Watchlist manager
 │   └── plugins/         # Plugin system
-├── tests/               # 777 tests
+├── tests/               # 1,100+ tests
 ├── examples/            # Example scripts
 ├── docs/                # Documentation
 └── finclaw.py           # CLI entry point
@@ -320,10 +320,11 @@ finclaw/
 - [x] **v2.8** — Crypto/DeFi: grid bot, DCA, arbitrage, on-chain
 - [x] **v2.9** — Overfitting detection, survivorship bias, sensitivity analysis
 - [x] **v3.0** — Platform maturity: 777 tests, full docs, stable APIs
-- [ ] **v3.1** — Live broker integration (IBKR, Alpaca)
-- [ ] **v3.2** — Web dashboard (React + WebSocket)
-- [ ] **v3.3** — Futures & commodities support
-- [ ] **v4.0** — Multi-language SDK (JS/Rust bindings)
+- [x] **v3.9** — 1,100+ tests, CLI risk/screen/report, portfolio risk analysis
+- [ ] **v4.0** — Live broker integration (IBKR, Alpaca)
+- [ ] **v4.1** — Web dashboard (React + WebSocket)
+- [ ] **v4.2** — Futures & commodities support
+- [ ] **v5.0** — Multi-language SDK (JS/Rust bindings)
 
 ---
 
@@ -335,7 +336,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 git clone https://github.com/NeuZhou/finclaw.git
 cd finclaw
 pip install -e ".[dev]"
-pytest  # 777 tests, all must pass
+pytest  # 1,100+ tests, all must pass
 ```
 
 ## 📄 License

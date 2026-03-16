@@ -1,5 +1,5 @@
 """
-FinClaw CLI v2.6.0 - Comprehensive argparse-based CLI
+FinClaw CLI v3.9.0 - Comprehensive argparse-based CLI
 =====================================================
 All commands work end-to-end with real data via yfinance.
 """
@@ -68,7 +68,12 @@ def cmd_backtest(args):
     from agents.backtester_v7 import BacktesterV7
 
     config = ConfigManager.load()
-    tickers = [t.strip() for t in args.tickers.split(",")]
+    # Support both --tickers and --ticker
+    tickers_str = args.tickers or args.ticker
+    if not tickers_str:
+        print("  ERROR: --tickers or --ticker is required")
+        return []
+    tickers = [t.strip() for t in tickers_str.split(",")]
     capital = config.get("backtest.initial_capital", 100000)
     strategy = args.strategy
     start = args.start
@@ -425,11 +430,16 @@ def cmd_report(args):
     """Generate report from backtest results."""
     from src.reports.html_report import generate_html_report
 
-    if not os.path.exists(args.input):
-        print(f"  File not found: {args.input}")
+    input_file = args.input or args.data
+    if not input_file:
+        print("  ERROR: --input or --data is required")
         return
 
-    with open(args.input) as f:
+    if not os.path.exists(input_file):
+        print(f"  File not found: {input_file}")
+        return
+
+    with open(input_file) as f:
         data = json.load(f)
 
     output = args.output or f"report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html"
@@ -444,6 +454,99 @@ def cmd_report(args):
         print(f"  ✓ JSON report saved: {output}")
     else:
         print(f"  Unknown format: {fmt}")
+
+
+def cmd_risk(args):
+    """Analyze portfolio risk from JSON file."""
+    from src.risk import VaRCalculator, PortfolioRiskManager
+    import numpy as np
+
+    filepath = args.portfolio
+    if not os.path.exists(filepath):
+        print(f"  File not found: {filepath}")
+        return
+
+    with open(filepath) as f:
+        portfolio = json.load(f)
+
+    holdings = portfolio.get("holdings", portfolio if isinstance(portfolio, list) else [])
+    tickers = [h.get("ticker", h.get("symbol", "???")) for h in holdings]
+    weights_raw = [h.get("weight", h.get("shares", 1)) for h in holdings]
+    total_w = sum(weights_raw)
+    weights = [w / total_w for w in weights_raw]
+
+    print(f"\n  ── Portfolio Risk Analysis ──")
+    print(f"  Holdings: {len(tickers)} | Tickers: {', '.join(tickers)}")
+
+    # Collect returns
+    all_returns = []
+    for ticker in tickers:
+        df = _fetch_data(ticker, period="1y")
+        if df is None or len(df) < 30:
+            all_returns.append(np.zeros(250))
+            continue
+        prices = np.array(df["Close"].tolist(), dtype=np.float64)
+        rets = np.diff(prices) / prices[:-1]
+        all_returns.append(rets)
+
+    # Align lengths
+    min_len = min(len(r) for r in all_returns)
+    all_returns = [r[-min_len:] for r in all_returns]
+
+    # Portfolio returns
+    weights_arr = np.array(weights)
+    returns_matrix = np.array(all_returns)
+    port_returns = returns_matrix.T @ weights_arr
+
+    # VaR
+    var_95 = np.percentile(port_returns, 5)
+    var_99 = np.percentile(port_returns, 1)
+    cvar_95 = port_returns[port_returns <= var_95].mean() if any(port_returns <= var_95) else var_95
+
+    # Volatility
+    ann_vol = np.std(port_returns) * np.sqrt(252)
+    ann_ret = np.mean(port_returns) * 252
+    sharpe = ann_ret / ann_vol if ann_vol > 0 else 0
+
+    # Max drawdown
+    cum = np.cumprod(1 + port_returns)
+    peak = np.maximum.accumulate(cum)
+    dd = (cum - peak) / peak
+    max_dd = np.min(dd)
+
+    # Correlation matrix
+    corr = np.corrcoef(returns_matrix)
+
+    print(f"\n  Annualized Return:  {ann_ret:+.2%}")
+    print(f"  Annualized Vol:     {ann_vol:.2%}")
+    print(f"  Sharpe Ratio:       {sharpe:.2f}")
+    print(f"  Max Drawdown:       {max_dd:.2%}")
+    print(f"  VaR (95%):          {var_95:.4f} ({var_95 * 100:.2f}%)")
+    print(f"  VaR (99%):          {var_99:.4f} ({var_99 * 100:.2f}%)")
+    print(f"  CVaR (95%):         {cvar_95:.4f} ({cvar_95 * 100:.2f}%)")
+
+    # Concentration (HHI)
+    hhi = sum(w ** 2 for w in weights)
+    print(f"\n  HHI (concentration): {hhi:.4f} ({'Concentrated' if hhi > 0.25 else 'Diversified'})")
+
+    # Correlation summary
+    avg_corr = (corr.sum() - len(tickers)) / (len(tickers) * (len(tickers) - 1)) if len(tickers) > 1 else 0
+    print(f"  Avg Correlation:     {avg_corr:.2f}")
+
+    output = args.output
+    if output:
+        result = {
+            "tickers": tickers, "weights": weights,
+            "annualized_return": float(ann_ret), "annualized_vol": float(ann_vol),
+            "sharpe": float(sharpe), "max_drawdown": float(max_dd),
+            "var_95": float(var_95), "var_99": float(var_99), "cvar_95": float(cvar_95),
+            "hhi": float(hhi), "avg_correlation": float(avg_corr),
+        }
+        with open(output, "w") as f:
+            json.dump(result, f, indent=2)
+        print(f"\n  ✓ Risk report saved to {output}")
+
+    return {"sharpe": sharpe, "max_dd": max_dd, "var_95": var_95}
 
 
 def cmd_interactive(args):
@@ -479,28 +582,32 @@ def build_parser() -> argparse.ArgumentParser:
     """Build the full CLI argument parser."""
     parser = argparse.ArgumentParser(
         prog="finclaw",
-        description="FinClaw v2.6.0 — AI-Powered Financial Intelligence Engine",
+        description="FinClaw v3.9.0 — AI-Powered Financial Intelligence Engine",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
   finclaw backtest --strategy momentum --tickers AAPL,MSFT --start 2023-01-01 --benchmark SPY
+  finclaw backtest --strategy momentum --ticker AAPL
   finclaw screen --criteria "rsi<30,pe<15,market_cap>1B" --universe sp500
   finclaw analyze --ticker AAPL --indicators rsi,macd,bollinger
+  finclaw risk --portfolio portfolio.json
   finclaw portfolio track --file portfolio.json
   finclaw price --ticker AAPL,MSFT,GOOGL
   finclaw options price --type call --S 150 --K 155 --T 0.5 --r 0.05 --sigma 0.25
   finclaw paper-trade --strategy trend --tickers AAPL,MSFT --capital 100000
   finclaw report --input backtest_result.json --format html --output report.html
+  finclaw report --data results.json
   finclaw interactive
 """,
     )
-    parser.add_argument("--version", action="version", version="finclaw 2.6.0")
+    parser.add_argument("--version", action="version", version="finclaw 3.9.0")
     sub = parser.add_subparsers(dest="command", help="Available commands")
 
     # backtest
     p = sub.add_parser("backtest", help="Run strategy backtest")
     p.add_argument("--strategy", "-s", default="momentum", help="Strategy name")
-    p.add_argument("--tickers", "-t", required=True, help="Comma-separated tickers")
+    p.add_argument("--tickers", "-t", default=None, help="Comma-separated tickers")
+    p.add_argument("--ticker", default=None, help="Single ticker (alias for --tickers)")
     p.add_argument("--start", default=None, help="Start date (YYYY-MM-DD)")
     p.add_argument("--end", default=None, help="End date (YYYY-MM-DD)")
     p.add_argument("--benchmark", "-b", default=None, help="Benchmark ticker")
@@ -546,9 +653,15 @@ Examples:
 
     # report
     p = sub.add_parser("report", help="Generate report from results")
-    p.add_argument("--input", "-i", required=True, help="Input JSON file")
+    p.add_argument("--input", "-i", default=None, help="Input JSON file")
+    p.add_argument("--data", "-d", default=None, help="Input JSON file (alias for --input)")
     p.add_argument("--format", "-f", default="html", choices=["html", "json"])
     p.add_argument("--output", "-o", help="Output file path")
+
+    # risk
+    p = sub.add_parser("risk", help="Portfolio risk analysis")
+    p.add_argument("--portfolio", "-p", required=True, help="Portfolio JSON file")
+    p.add_argument("--output", "-o", help="Save risk report to JSON")
 
     # interactive
     sub.add_parser("interactive", help="Launch interactive mode")
@@ -596,6 +709,8 @@ def main(argv=None):
             cmd_paper_trade(args)
         elif args.command == "report":
             cmd_report(args)
+        elif args.command == "risk":
+            cmd_risk(args)
         elif args.command == "interactive":
             cmd_interactive(args)
         elif args.command == "cache":
@@ -608,7 +723,7 @@ def main(argv=None):
                 stats = cache.stats()
                 print(f"  Entries: {stats['entries']} | Size: {stats['size_kb']:.1f} KB")
         elif args.command == "info":
-            print("  FinClaw v2.6.0 — AI-Powered Financial Intelligence Engine")
+            print("  FinClaw v3.9.0 — AI-Powered Financial Intelligence Engine")
             print("  Commands: backtest, screen, analyze, portfolio, price, options, paper-trade, report, interactive")
         else:
             parser.print_help()

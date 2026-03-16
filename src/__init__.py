@@ -1,4 +1,4 @@
 # FinClaw - AI-Powered Financial Intelligence Engine
-"""FinClaw v2.8.0"""
+"""FinClaw v3.9.0"""
 
-__version__ = "3.4.0"
+__version__ = "3.9.0"
