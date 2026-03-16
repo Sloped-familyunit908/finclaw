@@ -1,5 +1,5 @@
 """
-FinClaw CLI v3.9.0 - Comprehensive argparse-based CLI
+FinClaw CLI v4.0.0 - Comprehensive argparse-based CLI
 =====================================================
 All commands work end-to-end with real data via yfinance.
 """
@@ -671,6 +671,22 @@ Examples:
     p.add_argument("--stats", action="store_true")
     p.add_argument("--clear", action="store_true")
 
+    # exchanges
+    p_ex = sub.add_parser("exchanges", help="Exchange adapter commands")
+    p_ex.add_argument("exchanges_cmd", nargs="?", default="list", choices=["list"])
+
+    # quote (multi-exchange)
+    p_q = sub.add_parser("quote", help="Get quote from any exchange")
+    p_q.add_argument("symbol", help="Symbol (e.g. BTCUSDT, AAPL, 000001.SZ)")
+    p_q.add_argument("--exchange", "-e", default="yahoo", help="Exchange name")
+
+    # history (multi-exchange)
+    p_h = sub.add_parser("history", help="Get OHLCV history from any exchange")
+    p_h.add_argument("symbol", help="Symbol")
+    p_h.add_argument("--exchange", "-e", default="yahoo", help="Exchange name")
+    p_h.add_argument("--timeframe", "-t", default="1d", help="Timeframe (1m,5m,1h,1d,...)")
+    p_h.add_argument("--limit", "-l", type=int, default=20, help="Number of candles")
+
     # info
     sub.add_parser("info", help="Show system info")
 
@@ -723,8 +739,29 @@ def main(argv=None):
                 stats = cache.stats()
                 print(f"  Entries: {stats['entries']} | Size: {stats['size_kb']:.1f} KB")
         elif args.command == "info":
-            print("  FinClaw v3.9.0 — AI-Powered Financial Intelligence Engine")
-            print("  Commands: backtest, screen, analyze, portfolio, price, options, paper-trade, report, interactive")
+            print("  FinClaw v4.0.0 — AI-Powered Financial Intelligence Engine")
+            print("  Commands: backtest, screen, analyze, portfolio, price, options, paper-trade, report, interactive, exchanges, quote, history")
+        elif args.command == "exchanges":
+            from src.exchanges.registry import ExchangeRegistry
+            print("  Available exchanges:")
+            for etype in ("crypto", "stock_us", "stock_cn"):
+                names = ExchangeRegistry.list_by_type(etype)
+                if names:
+                    print(f"    [{etype}] {', '.join(names)}")
+        elif args.command == "quote":
+            from src.exchanges.registry import ExchangeRegistry
+            adapter = ExchangeRegistry.get(args.exchange)
+            ticker = adapter.get_ticker(args.symbol)
+            print(f"  {ticker['symbol']}  Last: {ticker['last']}  Bid: {ticker.get('bid', 'N/A')}  Ask: {ticker.get('ask', 'N/A')}  Vol: {ticker.get('volume', 'N/A')}")
+        elif args.command == "history":
+            from src.exchanges.registry import ExchangeRegistry
+            adapter = ExchangeRegistry.get(args.exchange)
+            candles = adapter.get_ohlcv(args.symbol, args.timeframe, args.limit)
+            print(f"  {args.symbol} ({args.exchange}) — {len(candles)} candles [{args.timeframe}]")
+            print(f"  {'Date/Time':<20} {'Open':>10} {'High':>10} {'Low':>10} {'Close':>10} {'Volume':>12}")
+            for c in candles[-args.limit:]:
+                ts = str(c['timestamp'])[:20]
+                print(f"  {ts:<20} {c['open']:>10.4f} {c['high']:>10.4f} {c['low']:>10.4f} {c['close']:>10.4f} {c['volume']:>12.0f}")
         else:
             parser.print_help()
     except KeyboardInterrupt:
