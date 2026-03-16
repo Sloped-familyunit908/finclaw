@@ -3,11 +3,31 @@
 All notable changes to FinClaw are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/).
 
-## [Unreleased]
+## [1.1.0] - 2026-03-16
+
+### Added
+- **66 new pytest tests** across 8 new test files covering signal engine, backtester, asset selector, stock picker, CLI, registry, universe, and macro modules
+- Shared test fixtures in `tests/conftest.py` with synthetic price generators (bull, bear, crash, ranging, volatile)
+- Expanded CI pipeline: Python 3.9–3.12 matrix, lint job (ruff), build verification job
+- CONTRIBUTING.md rewritten with accurate project structure and workflow
+- Comprehensive README with architecture diagram (Mermaid), API reference, feature comparison table, and quick start guide
+- Cross-references to ClawGuard, AgentProbe, and repo2skill
+- MANIFEST.in for proper sdist packaging
+- `.npmignore`-equivalent exclusions via MANIFEST.in
 
 ### Changed
-- Consolidated 12 old benchmark scripts into `_scratch/benchmarks/`
-- Expanded `.gitignore` with comprehensive Python, IDE, and OS patterns
+- CI workflow now tests Python 3.9+ (was 3.10+), adds lint and build jobs
+- pyproject.toml version bumped to 1.1.0
+- README restructured with architecture diagram, API docs, and comparison table
+
+## [1.0.0] - 2026-03
+
+### Added
+- Stable release with 8 master strategies
+- PyPI package (`pip install finclaw-ai`)
+- MCP server with 4 tools
+- Telegram bot interface
+- Daily alert scanner
 
 ## [0.10.0] - 2025-03
 
@@ -37,7 +57,6 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Added
 - 6-layer deep macro analyzer (VIX, rates, DXY, oil, gold, copper, Kondratieff wave)
-- Macro analysis integrated into CLI scan
 - 102 exhaustive QA tests covering all strategy/market/ticker combos
 
 ## [0.6.0] - 2025-01
@@ -45,42 +64,32 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 ### Added
 - v10 unified engine — 100万→354万 (5Y, 29.1% annual)
 - LLM-enhanced stock picker with master strategy voting
-- 5-year backtest across 80+ stocks (A-shares + US)
 
 ## [0.5.0] - 2025-01
 
 ### Added
 - Multi-market benchmark (38 stocks, 5 markets) — wins 25/38 vs AHF
-- Real data benchmark via yfinance — beats AHF 8/10
 - Multi-language docs (中文, 日本語, 한국어, Français)
 - TDD test suite (34 regression tests)
-
-### Changed
-- Bollinger Band confirmation factor (AHF-inspired) — +15.28% avg alpha
 
 ## [0.4.0] - 2024-12
 
 ### Added
 - v7 momentum-adaptive engine (+12.54% avg alpha)
 - Regime-based position scaling (7 regimes)
-- Hot-hand / cold-hand position sizing
 
 ## [0.3.0] - 2024-12
 
 ### Added
-- Statistical rigor overhaul
 - 9 strategy templates (Druckenmiller, Soros, Buffett, etc.)
-- Professional dashboard
 
 ## [0.2.0] - 2024-11
 
 ### Added
 - AI integration + backtesting engine
 - Agent memory system
-- Constitutional risk management
 
 ## [0.1.0] - 2024-11
 
 ### Added
 - Initial release as WhaleTrader
-- AI-powered quantitative trading engine core
