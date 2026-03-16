@@ -3,31 +3,24 @@ requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "finclaw-ai"
-version = "5.8.0"
-description = "AI-Powered Financial Intelligence Engine - Full CLI, Interactive Mode, Backtesting, Screening, Options Pricing, Paper Trading."
+name = "finclaw"
+version = "5.9.0"
+description = "AI-native quantitative finance platform with MCP server support"
 readme = "README.md"
-license = {text = "AGPL-3.0-only"}
+license = {text = "MIT"}
 requires-python = ">=3.9"
-authors = [
-    {name = "Kang Zhou", email = "neuzhou@outlook.com"}
-]
-keywords = ["ai", "trading", "quant", "finance", "agent", "investment", "backtesting", "strategy", "portfolio", "risk-management"]
+authors = [{name = "Kang Zhou", email = "neuzhou@outlook.com"}]
+keywords = ["quantitative-finance", "trading", "backtesting", "mcp", "ai-agent"]
 classifiers = [
-    "Development Status :: 5 - Production/Stable",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Financial and Insurance Industry",
-    "Intended Audience :: Developers",
-    "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: GNU Affero General Public License v3",
-    "Operating System :: OS Independent",
+    "Topic :: Office/Business :: Financial :: Investment",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
-    "Topic :: Office/Business :: Financial :: Investment",
-    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "License :: OSI Approved :: MIT License",
     "Typing :: Typed",
 ]
 dependencies = [
@@ -39,17 +32,17 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://github.com/NeuZhou/finclaw"
+Documentation = "https://github.com/NeuZhou/finclaw/tree/master/docs"
 Repository = "https://github.com/NeuZhou/finclaw"
 Issues = "https://github.com/NeuZhou/finclaw/issues"
-Changelog = "https://github.com/NeuZhou/finclaw/blob/main/CHANGELOG.md"
 
 [project.scripts]
-finclaw = "finclaw:main"
+finclaw = "src.cli:main"
 
 [project.optional-dependencies]
+full = ["aiohttp", "websockets"]
+ml = ["numpy", "scikit-learn"]
 dev = ["pytest>=7.0", "pytest-asyncio>=0.21", "ruff"]
-ml = ["scikit-learn>=1.0", "xgboost>=1.5"]
-all = ["finclaw-ai[dev,ml]"]
 
 [tool.setuptools.packages.find]
 include = ["src*", "agents*", "strategies*"]
