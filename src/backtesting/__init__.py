@@ -1,4 +1,4 @@
-"""FinClaw Enhanced Backtesting Engine v2.9.0"""
+"""FinClaw Enhanced Backtesting Engine v3.6.0"""
 from .walk_forward import WalkForwardAnalyzer
 from .walk_forward_v2 import WalkForwardOptimizer, WalkForwardResult, WindowResult
 from .monte_carlo import MonteCarloSimulator
@@ -16,6 +16,13 @@ from .benchmarks import (
 from .compare import StrategyComparator, ComparisonResult, StrategyMetrics
 from .overfit_check import OverfitDetector
 from .survivorship import SurvivorshipBiasChecker, SurvivorshipReport
+from .event_engine import (
+    EventDrivenBacktester, EventType, Event,
+    MarketEvent, SignalEvent, OrderEvent, FillEvent,
+    Portfolio, BacktestResult as EventBacktestResult,
+)
+from .slippage import SlippageModel as SlippageModelV2
+from .commission import CommissionModel as CommissionModelV2
 
 __all__ = [
     "WalkForwardAnalyzer",
@@ -30,4 +37,8 @@ __all__ = [
     "BenchmarkResult", "BENCHMARKS", "run_all_benchmarks",
     "StrategyComparator", "ComparisonResult", "StrategyMetrics",
     "OverfitDetector", "SurvivorshipBiasChecker", "SurvivorshipReport",
+    "EventDrivenBacktester", "EventType", "Event",
+    "MarketEvent", "SignalEvent", "OrderEvent", "FillEvent",
+    "Portfolio", "EventBacktestResult",
+    "SlippageModelV2", "CommissionModelV2",
 ]
