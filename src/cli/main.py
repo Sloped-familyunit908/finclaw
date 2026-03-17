@@ -1134,6 +1134,28 @@ Examples:
     p.add_argument("--portfolio", "-p", required=True, help="Portfolio JSON file")
     p.add_argument("--output", "-o", help="Save risk report to JSON")
 
+    # risk-report
+    p = sub.add_parser("risk-report", help="Comprehensive risk report from return series or portfolio")
+    p.add_argument("--returns", "-r", default=None, help="CSV/JSON file with daily returns")
+    p.add_argument("--portfolio", "-p", default=None, help="Portfolio JSON file")
+    p.add_argument("--ticker", "-t", default=None, help="Ticker symbol for quick analysis")
+    p.add_argument("--period", default="1y", help="Data period (for --ticker)")
+    p.add_argument("--output", "-o", help="Save report to JSON")
+
+    # position-size
+    p = sub.add_parser("position-size", help="Calculate position size for a trade")
+    p.add_argument("--capital", "-c", type=float, required=True, help="Total capital")
+    p.add_argument("--risk", "-r", type=float, default=2.0, help="Risk per trade (%%)")
+    p.add_argument("--entry", type=float, default=None, help="Entry price")
+    p.add_argument("--stop", type=float, default=None, help="Stop-loss price or %% distance")
+    p.add_argument("--atr", type=float, default=None, help="ATR value for volatility sizing")
+    p.add_argument("--method", "-m", default="fixed-fraction",
+                   choices=["fixed-fraction", "kelly", "volatility", "equal-weight"],
+                   help="Position sizing method")
+    p.add_argument("--win-rate", type=float, default=None, help="Win rate for Kelly (0-1)")
+    p.add_argument("--win-loss-ratio", type=float, default=None, help="Avg win / avg loss for Kelly")
+    p.add_argument("--n-positions", type=int, default=None, help="Number of positions for equal-weight")
+
     # serve
     p = sub.add_parser("serve", help="Start REST API server")
     p.add_argument("--host", default="0.0.0.0", help="Bind host")
@@ -2677,6 +2699,165 @@ def _show_movers(args, mode: str = "gainers"):
     print()
 
 
+def cmd_risk_report(args):
+    """Generate comprehensive risk report."""
+    import csv as csv_mod
+    from src.risk.risk_metrics import RiskMetrics
+
+    returns = None
+
+    if args.ticker:
+        df = _fetch_data(args.ticker, period=args.period)
+        if df is None or len(df) < 10:
+            print(f"  No data for {args.ticker}")
+            return
+        prices = df["Close"].tolist()
+        returns = [(prices[i] / prices[i - 1] - 1) for i in range(1, len(prices))]
+        label = f"{args.ticker} ({args.period})"
+    elif args.returns:
+        if not os.path.exists(args.returns):
+            print(f"  File not found: {args.returns}")
+            return
+        if args.returns.endswith(".json"):
+            with open(args.returns) as f:
+                data = json.load(f)
+            returns = data if isinstance(data, list) else data.get("returns", [])
+        else:
+            returns = []
+            with open(args.returns) as f:
+                reader = csv_mod.reader(f)
+                for row in reader:
+                    try:
+                        returns.append(float(row[-1]))
+                    except (ValueError, IndexError):
+                        continue
+        label = os.path.basename(args.returns)
+    elif args.portfolio:
+        if not os.path.exists(args.portfolio):
+            print(f"  File not found: {args.portfolio}")
+            return
+        with open(args.portfolio) as f:
+            portfolio = json.load(f)
+        holdings = portfolio.get("holdings", portfolio if isinstance(portfolio, list) else [])
+        tickers = [h.get("ticker", h.get("symbol", "???")) for h in holdings]
+        weights_raw = [h.get("weight", h.get("shares", 1)) for h in holdings]
+        total_w = sum(weights_raw)
+        weights = [w / total_w for w in weights_raw]
+
+        all_rets = []
+        for ticker in tickers:
+            df = _fetch_data(ticker, period="1y")
+            if df is None or len(df) < 30:
+                all_rets.append([0.0] * 250)
+                continue
+            prices = df["Close"].tolist()
+            all_rets.append([(prices[i] / prices[i - 1] - 1) for i in range(1, len(prices))])
+
+        min_len = min(len(r) for r in all_rets)
+        returns = []
+        for day in range(min_len):
+            ret = sum(w * all_rets[j][-(min_len - day)] for j, w in enumerate(weights))
+            returns.append(ret)
+        label = f"Portfolio ({', '.join(tickers)})"
+    else:
+        print("  Specify --ticker, --returns, or --portfolio")
+        return
+
+    if not returns or len(returns) < 10:
+        print("  Insufficient return data (need >= 10 periods)")
+        return
+
+    report = RiskMetrics.full_report(returns)
+
+    print(f"\n  ── Risk Report: {label} ──\n")
+    print(f"  Total Return:       {report.total_return:+.2%}")
+    print(f"  Annualized Return:  {report.annualized_return:+.2%}")
+    print(f"  Annualized Vol:     {report.annualized_volatility:.2%}")
+    print(f"  Sharpe Ratio:       {report.sharpe_ratio:.3f}")
+    print(f"  Sortino Ratio:      {report.sortino_ratio:.3f}")
+    print(f"  Calmar Ratio:       {report.calmar_ratio:.3f}")
+    print(f"  Max Drawdown:       {report.max_drawdown:.2%}")
+    print(f"  Max DD Duration:    {report.max_drawdown_duration} bars")
+    print(f"  VaR (95%):          {report.var_95:.4f} ({report.var_95 * 100:.2f}%)")
+    print(f"  CVaR (95%):         {report.cvar_95:.4f} ({report.cvar_95 * 100:.2f}%)")
+    print(f"  VaR (99%):          {report.var_99:.4f} ({report.var_99 * 100:.2f}%)")
+    print(f"  CVaR (99%):         {report.cvar_99:.4f} ({report.cvar_99 * 100:.2f}%)")
+    print(f"  Skewness:           {report.skewness:.3f}")
+    print(f"  Kurtosis:           {report.kurtosis:.3f}")
+
+    if args.output:
+        import dataclasses
+        with open(args.output, "w") as f:
+            json.dump(dataclasses.asdict(report), f, indent=2)
+        print(f"\n  ✓ Saved to {args.output}")
+    print()
+
+
+def cmd_position_size(args):
+    """Calculate position size."""
+    from src.risk.position_sizer import PositionSizer
+
+    capital = args.capital
+    risk_pct = args.risk / 100.0
+    method = args.method
+
+    print(f"\n  ── Position Size Calculator ──")
+    print(f"  Capital: ${capital:,.2f} | Risk: {args.risk}% | Method: {method}\n")
+
+    if method == "fixed-fraction":
+        entry = args.entry
+        stop = args.stop
+        if entry is None or stop is None:
+            print("  --entry and --stop required for fixed-fraction method")
+            return
+        shares = PositionSizer.percent_risk(capital, entry, stop, risk_pct)
+        risk_amount = capital * risk_pct
+        position_value = shares * entry
+        print(f"  Entry:          ${entry:.2f}")
+        print(f"  Stop:           ${stop:.2f}")
+        print(f"  Stop Distance:  ${abs(entry - stop):.2f} ({abs(entry - stop) / entry:.2%})")
+        print(f"  Risk Amount:    ${risk_amount:,.2f}")
+        print(f"  Shares:         {shares}")
+        print(f"  Position Value: ${position_value:,.2f} ({position_value / capital:.1%} of capital)")
+
+    elif method == "kelly":
+        wr = args.win_rate
+        wlr = args.win_loss_ratio
+        if wr is None or wlr is None:
+            print("  --win-rate and --win-loss-ratio required for kelly method")
+            return
+        fraction = PositionSizer.kelly(wr, wlr)
+        position_value = capital * fraction
+        print(f"  Win Rate:       {wr:.1%}")
+        print(f"  Win/Loss Ratio: {wlr:.2f}")
+        print(f"  Kelly Fraction: {fraction:.3f} (half-Kelly)")
+        print(f"  Position Size:  ${position_value:,.2f} ({fraction:.1%} of capital)")
+
+    elif method == "volatility":
+        entry = args.entry
+        atr = args.atr
+        if entry is None or atr is None:
+            print("  --entry and --atr required for volatility method")
+            return
+        shares = PositionSizer.volatility_based(capital, entry, atr, risk_pct)
+        position_value = shares * entry
+        print(f"  Entry:          ${entry:.2f}")
+        print(f"  ATR:            ${atr:.2f}")
+        print(f"  Risk Amount:    ${capital * risk_pct:,.2f}")
+        print(f"  Shares:         {shares}")
+        print(f"  Position Value: ${position_value:,.2f} ({position_value / capital:.1%} of capital)")
+
+    elif method == "equal-weight":
+        n = args.n_positions or 10
+        weight = PositionSizer.equal_weight(n)
+        position_value = capital * weight
+        print(f"  Positions:      {n}")
+        print(f"  Weight:         {weight:.2%}")
+        print(f"  Per Position:   ${position_value:,.2f}")
+
+    print()
+
+
 def main(argv=None):
     """Main CLI entry point."""
     # Fix encoding on Windows (cp936/GBK can't handle Unicode box-drawing chars)
@@ -2727,6 +2908,10 @@ def main(argv=None):
             cmd_export(args)
         elif args.command == "risk":
             cmd_risk(args)
+        elif args.command == "risk-report":
+            cmd_risk_report(args)
+        elif args.command == "position-size":
+            cmd_position_size(args)
         elif args.command == "serve":
             from src.api.server import FinClawAPI
             api = FinClawAPI(

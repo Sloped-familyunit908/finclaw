@@ -182,3 +182,22 @@ class PositionSizer:
         if n_positions <= 0:
             return 0.0
         return 1.0 / n_positions
+
+    @staticmethod
+    def risk_parity(volatilities: list[float]) -> list[float]:
+        """
+        Risk parity allocation — weight inversely proportional to volatility.
+
+        Each position contributes equal risk to the portfolio.
+
+        Args:
+            volatilities: List of annualized volatilities for each asset.
+
+        Returns:
+            List of weights (0-1) summing to 1.0.
+        """
+        if not volatilities or all(v <= 0 for v in volatilities):
+            return [0.0] * len(volatilities) if volatilities else []
+        inv_vols = [1.0 / max(v, 1e-10) for v in volatilities]
+        total = sum(inv_vols)
+        return [iv / total for iv in inv_vols]
