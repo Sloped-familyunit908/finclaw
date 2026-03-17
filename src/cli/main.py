@@ -80,6 +80,19 @@ def cmd_backtest(args):
     end = args.end
     benchmark = args.benchmark
 
+    # Support plugin: prefix for strategy plugins
+    plugin_strategy = None
+    if strategy and strategy.startswith("plugin:"):
+        plugin_name = strategy[len("plugin:"):]
+        from src.plugin_system.registry import StrategyRegistry
+        _registry = StrategyRegistry()
+        _registry.load_all()
+        plugin_strategy = _registry.get(plugin_name)
+        if not plugin_strategy:
+            print(f"  ERROR: Strategy plugin not found: {plugin_name}")
+            print(f"  Available: {', '.join(_registry.names())}")
+            return []
+
     all_results = []
 
     for ticker in tickers:
@@ -836,6 +849,18 @@ Examples:
     p_pc.add_argument("--name", required=True, help="Plugin name")
     p_pinfo = plugin_sub.add_parser("info", help="Show plugin details")
     p_pinfo.add_argument("name", help="Plugin name")
+
+    # plugins (new strategy plugin ecosystem)
+    p_plugins = sub.add_parser("plugins", help="Strategy plugin ecosystem")
+    plugins_sub = p_plugins.add_subparsers(dest="plugins_cmd")
+    plugins_sub.add_parser("list", help="List all strategy plugins (built-in + installed)")
+    p_plinfo = plugins_sub.add_parser("info", help="Show strategy plugin details")
+    p_plinfo.add_argument("name", help="Plugin name")
+
+    # init-strategy
+    p_init_strat = sub.add_parser("init-strategy", help="Generate strategy plugin scaffolding")
+    p_init_strat.add_argument("name", help="Strategy name (e.g. my_awesome_strategy)")
+    p_init_strat.add_argument("--output", "-o", default=".", help="Output directory")
 
     # predict
     p_pred = sub.add_parser("predict", help="ML prediction engine")
@@ -1964,6 +1989,134 @@ def main(argv=None):
                     print(f"  Plugin not found: {args.name}")
             else:
                 print("  Usage: finclaw plugin [list|install|create|info]")
+        elif args.command == "plugins":
+            from src.plugin_system.registry import StrategyRegistry
+            registry = StrategyRegistry()
+            registry.load_all()
+            if args.plugins_cmd == "list":
+                plugins = registry.list()
+                if not plugins:
+                    print("  No strategy plugins found.")
+                else:
+                    print(f"  Strategy Plugins ({len(plugins)}):")
+                    print(f"  {'Name':<25} {'Version':<10} {'Risk':<8} {'Markets':<30} Description")
+                    print(f"  {'-'*25} {'-'*10} {'-'*8} {'-'*30} {'-'*30}")
+                    for p in plugins:
+                        markets = ", ".join(p.markets)
+                        print(f"  {p.name:<25} {p.version:<10} {p.risk_level:<8} {markets:<30} {p.description}")
+            elif args.plugins_cmd == "info":
+                p = registry.get(args.name)
+                if p:
+                    print(f"  Name:        {p.name}")
+                    print(f"  Version:     {p.version}")
+                    print(f"  Author:      {p.author}")
+                    print(f"  Description: {p.description}")
+                    print(f"  Risk Level:  {p.risk_level}")
+                    print(f"  Markets:     {', '.join(p.markets)}")
+                    params = p.get_parameters()
+                    if params:
+                        print(f"  Parameters:  {params}")
+                    config = p.backtest_config()
+                    if config:
+                        print(f"  Backtest:    {config}")
+                    issues = p.validate()
+                    if issues:
+                        print(f"  ⚠ Issues:    {issues}")
+                else:
+                    print(f"  Plugin not found: {args.name}")
+                    print(f"  Available: {', '.join(registry.names())}")
+            else:
+                print("  Usage: finclaw plugins [list|info <name>]")
+        elif args.command == "init-strategy":
+            name = args.name
+            output = args.output
+            pkg_name = f"finclaw_strategy_{name}"
+            pkg_dir = os.path.join(output, f"finclaw-strategy-{name}")
+            os.makedirs(os.path.join(pkg_dir, pkg_name), exist_ok=True)
+            os.makedirs(os.path.join(pkg_dir, "tests"), exist_ok=True)
+
+            class_name = name.replace("_", " ").title().replace(" ", "")
+
+            # pyproject.toml
+            with open(os.path.join(pkg_dir, "pyproject.toml"), "w") as f:
+                f.write(f'''[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "finclaw-strategy-{name}"
+version = "0.1.0"
+description = "FinClaw strategy plugin: {name}"
+license = {{text = "MIT"}}
+requires-python = ">=3.9"
+dependencies = ["pandas>=1.3.0"]
+
+[project.entry-points."finclaw.strategies"]
+{name} = "{pkg_name}.strategy:{class_name}Strategy"
+''')
+
+            # __init__.py
+            with open(os.path.join(pkg_dir, pkg_name, "__init__.py"), "w") as f:
+                f.write(f'from {pkg_name}.strategy import {class_name}Strategy\n')
+
+            # strategy.py
+            with open(os.path.join(pkg_dir, pkg_name, "strategy.py"), "w") as f:
+                f.write(f'''"""
+{class_name} Strategy Plugin for FinClaw
+"""
+import pandas as pd
+from src.plugin_system.plugin_types import StrategyPlugin
+
+
+class {class_name}Strategy(StrategyPlugin):
+    name = "{name}"
+    version = "0.1.0"
+    description = "TODO: describe your strategy"
+    author = "Your Name"
+    risk_level = "medium"
+    markets = ["us_stock"]
+
+    def generate_signals(self, data: pd.DataFrame) -> pd.Series:
+        signals = pd.Series(0, index=data.index)
+        # TODO: implement your signal logic
+        # 1 = buy, -1 = sell, 0 = hold
+        return signals
+
+    def get_parameters(self) -> dict:
+        return {{}}
+''')
+
+            # README
+            with open(os.path.join(pkg_dir, "README.md"), "w") as f:
+                f.write(f'# finclaw-strategy-{name}\\n\\nFinClaw strategy plugin.\\n\\n```bash\\npip install -e .\\nfinclaw plugins list\\n```\\n')
+
+            # test
+            with open(os.path.join(pkg_dir, "tests", f"test_{name}.py"), "w") as f:
+                f.write(f'''import pandas as pd
+import numpy as np
+from {pkg_name}.strategy import {class_name}Strategy
+
+def test_signals():
+    df = pd.DataFrame({{"Close": np.random.randn(100).cumsum() + 100}},
+                       index=pd.date_range("2020-01-01", periods=100))
+    s = {class_name}Strategy()
+    signals = s.generate_signals(df)
+    assert len(signals) == 100
+''')
+
+            print(f"  OK Created strategy plugin scaffold: {pkg_dir}")
+            print(f"    {pkg_dir}/")
+            print(f"    +-- pyproject.toml")
+            print(f"    +-- README.md")
+            print(f"    +-- {pkg_name}/")
+            print(f"    |   +-- __init__.py")
+            print(f"    |   +-- strategy.py")
+            print(f"    +-- tests/")
+            print(f"        +-- test_{name}.py")
+            print(f"\n  Next steps:")
+            print(f"    cd {pkg_dir}")
+            print(f"    pip install -e .")
+            print(f"    finclaw plugins list")
         elif args.command == "mcp":
             if args.mcp_cmd == "serve":
                 from src.mcp.server import FinClawMCPServer

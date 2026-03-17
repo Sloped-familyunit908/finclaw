@@ -110,6 +110,89 @@ Available MCP tools: `finclaw_scan`, `finclaw_backtest`, `finclaw_macro`, `fincl
 
 ---
 
+## Strategy Plugin Ecosystem
+
+FinClaw features an open strategy plugin system — build, share, and reuse trading strategies across the community.
+
+**Compatible with Backtrader strategies and TA-Lib indicators.**
+
+### Built-in Strategies
+
+| Strategy | Description | Risk | Markets |
+|----------|-------------|------|---------|
+| `trend_following` | Dual MA crossover + ADX filter | Medium | Stocks, Crypto, Forex |
+| `mean_reversion` | RSI + Bollinger Bands | Medium | Stocks, Crypto |
+| `momentum_jt` | Jegadeesh-Titman momentum | Medium | Stocks |
+| `value_momentum` | Value + momentum factor | Low | Stocks |
+
+### Create Your Own Strategy (5 minutes)
+
+```bash
+# Generate scaffold
+finclaw init-strategy my_strategy
+
+# Edit your logic
+cd finclaw-strategy-my_strategy
+# ... edit strategy.py ...
+
+# Install & use
+pip install -e .
+finclaw plugins list
+finclaw backtest --strategy plugin:my_strategy --tickers AAPL
+```
+
+### Ecosystem Adapters
+
+- **Backtrader** — Wrap any `bt.Strategy` class (13K+ strategies from the community)
+- **TA-Lib** — 150+ technical indicators as signal generators (auto-fallback to pure Python)
+- **Pine Script** — Parse simple TradingView strategies (SMA, EMA, RSI, MACD, crossover)
+
+```python
+# Backtrader adapter
+from src.plugin_system.backtrader_adapter import adapt_backtrader
+plugin = adapt_backtrader(MyBTStrategy, name="my_bt")
+
+# TA-Lib signal generator
+from src.plugin_system.talib_adapter import talib_strategy
+rsi_strat = talib_strategy("rsi", period=14, overbought=70, oversold=30)
+
+# Pine Script
+from src.plugin_system.pine_parser import from_pine
+plugin = from_pine("""
+    fast = ta.sma(close, 10)
+    slow = ta.sma(close, 50)
+    if ta.crossover(fast, slow)
+        strategy.entry("Long", strategy.long)
+""", name="pine_cross")
+```
+
+### Strategy Registry
+
+```python
+from src.plugin_system import StrategyRegistry
+
+registry = StrategyRegistry()
+registry.load_all()
+
+# Filter strategies
+crypto_strats = registry.filter(market="crypto")
+safe_strats = registry.filter(risk_level="low")
+
+# Multi-strategy voting
+combined = registry.vote(["trend_following", "mean_reversion"], data, threshold=0.5)
+```
+
+### Plugin CLI
+
+```bash
+finclaw plugins list                          # List all strategy plugins
+finclaw plugins info trend_following          # Show plugin details
+finclaw init-strategy my_strategy             # Generate plugin scaffold
+finclaw backtest --strategy plugin:golden_cross --tickers AAPL
+```
+
+---
+
 ## Roadmap
 
 > These features are planned but **not yet implemented**:
