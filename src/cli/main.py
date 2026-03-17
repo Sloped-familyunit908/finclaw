@@ -1205,10 +1205,16 @@ Examples:
     p_wle.add_argument("--format", default="csv", choices=["csv", "json"])
     wl_sub.add_parser("list", help="List all watchlists")
 
-    # sentiment
+    # sentiment (enhanced with social buzz)
     p_sent = sub.add_parser("sentiment", help="Sentiment analysis for a symbol")
     p_sent.add_argument("symbol", help="Ticker symbol (e.g. AAPL, BTCUSDT)")
     p_sent.add_argument("--reddit", action="store_true", help="Include Reddit sentiment")
+    p_sent.add_argument("--buzz", action="store_true", help="Show full social buzz score")
+
+    # reddit-buzz
+    p_rb = sub.add_parser("reddit-buzz", help="Top buzzing tickers in a subreddit")
+    p_rb.add_argument("subreddit", help="Subreddit name (e.g. wallstreetbets, CryptoCurrency)")
+    p_rb.add_argument("--limit", "-l", type=int, default=50, help="Number of posts to scan")
 
     # news
     p_news = sub.add_parser("news", help="Get financial news for a symbol")
@@ -1680,6 +1686,20 @@ def cmd_sentiment(args):
     symbol = args.symbol.upper()
     print(f"\n  🧠 Sentiment Analysis: {symbol}\n")
 
+    # Social Buzz mode (--buzz flag)
+    if getattr(args, "buzz", False):
+        from src.sentiment.social_buzz import SocialBuzzAggregator
+        buzz = SocialBuzzAggregator()
+        result = buzz.get_buzz_score(symbol)
+        print(f"  Social Buzz Score: {result['overall_score']:+.4f} ({result['overall_label']})")
+        print(f"  Buzz Level:        {result['buzz_level']} ({result['total_data_points']} data points)")
+        for src_name, src_data in result["sources"].items():
+            score = src_data.get("score", src_data.get("overall_score", 0))
+            label = src_data.get("label", src_data.get("overall_label", "n/a"))
+            print(f"    {src_name:15s}: {score:+.4f} ({label})")
+        print()
+        return
+
     # News sentiment
     agg = NewsAggregator()
     news = agg.get_news(symbol, limit=20)
@@ -1760,6 +1780,26 @@ def cmd_trending(args):
             print(f"  ${t['symbol']:<6} {t['mentions']} mentions | {t['sentiment_score']:+.3f} ({t['sentiment_label']})")
     else:
         print("  No WSB data (Reddit may be unavailable)")
+    print()
+
+
+def cmd_reddit_buzz(args):
+    """Top buzzing tickers in a subreddit."""
+    from src.sentiment.reddit_sentiment import RedditSentiment
+
+    sub = args.subreddit
+    print(f"\n  🦍 Reddit Buzz: r/{sub}\n")
+
+    rs = RedditSentiment()
+    results = rs.subreddit_buzz(sub, limit=args.limit)
+
+    if not results:
+        print("  No tickers found (subreddit may be unavailable)")
+    else:
+        print(f"  {'Ticker':<8} {'Mentions':>8} {'Engagement':>10} {'Sentiment':>10} {'Label'}")
+        print(f"  {'─'*8} {'─'*8} {'─'*10} {'─'*10} {'─'*10}")
+        for t in results[:20]:
+            print(f"  ${t['ticker']:<7} {t['mentions']:>8} {t['total_engagement']:>10} {t['sentiment_score']:>+10.4f} {t['sentiment_label']}")
     print()
 
 
@@ -2695,6 +2735,8 @@ def test_signals():
             cmd_watchlist(args)
         elif args.command == "sentiment":
             cmd_sentiment(args)
+        elif args.command == "reddit-buzz":
+            cmd_reddit_buzz(args)
         elif args.command == "news":
             cmd_news(args)
         elif args.command == "trending":
