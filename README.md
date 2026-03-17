@@ -16,23 +16,61 @@
   <img src="https://raw.githubusercontent.com/NeuZhou/finclaw/master/docs/demo.gif" alt="FinClaw Demo" width="700">
 </p>
 
-```
-$ finclaw quote AAPL
-  AAPL  $252.82  +2.31 +0.92%
-  Bid: 252.82  Ask: 252.83  Vol: 30,091,880
+```bash
+$ finclaw quote BTC-USDT
+  ₿ BTC-USDT  $67,342.50  +1,285.30 +1.95%  ▲
+  ┌─────────────────────────────────────────────┐
+  │  Bid: 67,340.20   Ask: 67,344.80           │
+  │  24h Vol: 28,451 BTC ($1.92B)              │
+  │  24h High: 68,100.00   Low: 65,820.40     │
+  │  Funding: +0.0103%   Open Interest: $18.2B │
+  └─────────────────────────────────────────────┘
 
-$ finclaw analyze TSLA --indicators rsi,macd,bollinger
-  🔬 Technical Analysis: TSLA
-  Price: $175.21  |  52w High: $299.29  |  52w Low: $138.80
+$ finclaw backtest momentum --symbol NVDA --start 2023-01-01
+  🚀 Backtest Results: NVDA | momentum
+  ════════════════════════════════════════════════
+  Period        2023-01-01 → 2024-12-31 (504 days)
+  Total Return  +142.3% (+55.2%/yr)
+  Alpha         +18.7% vs SPY
+  Max Drawdown  -12.1%
+  Sharpe Ratio  1.85
+  Win Rate      63.8%  (30/47 trades)
+  Profit Factor 2.41
+  ────────────────────────────────────────────────
+  Equity Curve:
+  68k │                                    ╭───
+  54k │                         ╭──────────╯
+  41k │              ╭──────────╯
+  27k │    ╭─────────╯
+  14k │────╯
+      └───────────────────────────────────────→
 
-  RSI(14)        62.4  NEUTRAL     momentum balanced
-  MACD          +4.82  BULLISH     histogram expanding
-  Bollinger      72%B  NEUTRAL     upper half of band
+$ finclaw defi-tvl --top 10
+  📊 DeFi Total Value Locked — Top 10 Protocols
+  ═══════════════════════════════════════════════
+  #   Protocol        Chain       TVL          Δ 7d
+  ─── ─────────────── ─────────── ──────────── ──────
+  1   Lido            Ethereum    $33.2B       +2.1%
+  2   AAVE            Multi       $22.8B       +4.5%
+  3   EigenLayer      Ethereum    $15.1B       -1.2%
+  4   Maker           Ethereum    $8.7B        +0.8%
+  5   Uniswap         Multi       $6.2B        +3.3%
+  6   Rocket Pool     Ethereum    $4.9B        +1.7%
+  7   Pendle          Multi       $4.5B        +12.4%
+  8   Ethena          Ethereum    $3.8B        +8.9%
+  9   Morpho          Ethereum    $3.2B        +5.1%
+  10  Compound        Multi       $2.9B        -0.3%
+  ─── ─────────────── ─────────── ──────────── ──────
+       Total DeFi TVL             $180.5B      +2.8%
 
-$ finclaw backtest -t NVDA --start 2023-01-01
-  🚀 NVDA | momentum
-  Return: +142.3% (+55.2%/yr) | Alpha: +18.7%
-  MaxDD: -12.1% | Sharpe: 1.85 | Trades: 47
+$ finclaw sentiment TSLA
+  🧠 Sentiment Analysis: TSLA
+  ═══════════════════════════════
+  Overall Score   0.72 BULLISH  ██████████░░░░
+  News Sentiment  0.65          ████████░░░░░░
+  Social Buzz     0.81          ██████████░░░░
+  Insider Flow    0.58 NEUTRAL  ███████░░░░░░░
+  Sources: 142 articles, 2.4k social mentions (24h)
 ```
 
 ---
@@ -56,25 +94,49 @@ finclaw copilot           # AI financial assistant
 
 ## Feature Comparison
 
-| Feature | FinClaw | Backtrader | Zipline | Freqtrade |
-|---------|:-------:|:----------:|:-------:|:---------:|
-| Zero-config install | ✅ | ❌ | ❌ | ❌ |
-| CLI interface | ✅ | ❌ | ❌ | ✅ |
-| AI strategy generation | ✅ | ❌ | ❌ | ❌ |
+> **How does FinClaw stack up?** We compared against the most popular open-source quant tools.
+
+| Feature | FinClaw | Freqtrade | Jesse | Backtrader |
+|---------|:-------:|:---------:|:-----:|:----------:|
+| **Setup & UX** | | | | |
+| Zero-config install (`pip install`) | ✅ | ❌ Docker recommended | ❌ Docker required | ✅ |
+| Interactive CLI | ✅ Rich TUI | ✅ Basic | ❌ | ❌ Library only |
+| Terminal charts (candlestick) | ✅ | ❌ | ❌ | ❌ |
+| **AI & Agents** | | | | |
+| AI strategy generation (NL → code) | ✅ | ❌ | ❌ | ❌ |
 | Natural language copilot | ✅ | ❌ | ❌ | ❌ |
-| MCP server (AI agents) | ✅ | ❌ | ❌ | ❌ |
-| A2A protocol | ✅ | ❌ | ❌ | ❌ |
-| Paper trading | ✅ | ❌ | ✅ | ✅ |
-| Backtesting | ✅ | ✅ | ✅ | ✅ |
-| Multi-exchange (12+) | ✅ | ❌ | ❌ | ✅ |
-| Strategy plugins | ✅ | ✅ | ❌ | ✅ |
-| No heavy deps (pure NumPy) | ✅ | ❌ | ❌ | ❌ |
-| Crypto + Stocks + CN Stocks | ✅ | ✅ | ❌ | ✅* |
-| Terminal charts | ✅ | ❌ | ❌ | ❌ |
+| MCP server (Claude / Cursor / VS Code) | ✅ | ❌ | ❌ | ❌ |
+| A2A protocol (agent-to-agent) | ✅ | ❌ | ❌ | ❌ |
+| **Trading** | | | | |
+| Backtesting engine | ✅ | ✅ | ✅ | ✅ |
+| Paper trading | ✅ | ✅ Dry-run | ✅ | ❌ |
+| Live trading | 🔜 | ✅ | ✅ | ✅ via broker |
+| Multi-exchange (12+) | ✅ | ✅ ccxt | ✅ 5 exchanges | ❌ |
+| **Strategy** | | | | |
+| Built-in strategies | ✅ 20+ | ✅ Sample | ✅ Sample | ❌ |
+| Plugin system (pip-installable) | ✅ | ✅ | ❌ | ❌ |
 | YAML strategy DSL | ✅ | ❌ | ❌ | ❌ |
+| Backtrader compatibility | ✅ | ❌ | ❌ | ✅ Native |
+| **Data & Crypto** | | | | |
+| Stocks + Crypto + CN Stocks | ✅ All three | ❌ Crypto only | ❌ Crypto only | ✅ Via feeds |
 | BTC on-chain metrics | ✅ | ❌ | ❌ | ❌ |
-| Funding rate dashboard | ✅ | ❌ | ❌ | ✅ |
-| Lightning Network monitor | ✅ | ❌ | ❌ | ❌ |
+| DeFi TVL / protocol analytics | ✅ | ❌ | ❌ | ❌ |
+| Social sentiment analysis | ✅ | ❌ | ❌ | ❌ |
+| Funding rate dashboard | ✅ | ✅ | ❌ | ❌ |
+| Fear & Greed Index | ✅ | ❌ | ❌ | ❌ |
+| **Dependencies** | | | | |
+| Pure NumPy core (no heavy deps) | ✅ | ❌ TA-Lib, ccxt | ❌ TA-Lib, NumPy | ❌ matplotlib |
+
+<details>
+<summary>💡 <b>Key differentiators explained</b></summary>
+
+- **AI Strategy Generation**: Describe a strategy in plain English or Chinese → FinClaw generates production-ready Python code using any LLM (OpenAI, DeepSeek, Ollama local, etc.)
+- **MCP Integration**: First quant tool to support the Model Context Protocol — let AI agents like Claude or Cursor directly call financial tools
+- **A2A Protocol**: Agent-to-agent communication means FinClaw can collaborate with other AI agents autonomously
+- **Social Sentiment**: Real-time sentiment scoring from news and social feeds, integrated into signal generation
+- **DeFi Analytics**: DeFi Llama integration for TVL, protocol comparison, and yield data — none of the competitors offer this
+
+</details>
 
 ---
 
@@ -218,25 +280,126 @@ Full API documentation: [docs/API.md](docs/API.md)
 
 ## Architecture
 
+```mermaid
+graph TB
+    subgraph UI["🖥️ User Interfaces"]
+        CLI["CLI"]
+        MCP["MCP Server"]
+        A2A["A2A Protocol"]
+        TG["Telegram Bot"]
+        API["REST API"]
+        COP["Copilot Chat"]
+    end
+
+    subgraph AI["🧠 AI Strategy Engine"]
+        GEN["Strategy Generator<br/><i>natural language → code</i>"]
+        OPT["Strategy Optimizer"]
+        PINE["Pine Script / YAML DSL"]
+        LLM["LLM Hub<br/><i>OpenAI · Anthropic · DeepSeek<br/>Gemini · Ollama · Groq</i>"]
+    end
+
+    subgraph STRAT["📐 Strategy Layer"]
+        BUILT["20+ Built-in Strategies"]
+        PLUG["Plugin System<br/><i>pip-installable</i>"]
+        BT_COMPAT["Backtrader Compatible"]
+    end
+
+    subgraph ENGINE["⚙️ Execution Engine"]
+        BACK["Backtester"]
+        PAPER["Paper Trading"]
+        RISK["Risk Engine"]
+        SCREEN["Stock Screener"]
+    end
+
+    subgraph DATA["📡 Data Layer — 12+ Exchange Adapters"]
+        direction LR
+        subgraph STOCKS["Stocks"]
+            YAHOO["Yahoo Finance"]
+            ALPACA["Alpaca"]
+            POLY["Polygon"]
+            AV["Alpha Vantage"]
+        end
+        subgraph CN["CN Stocks"]
+            AK["AkShare"]
+            BAO["BaoStock"]
+            TU["Tushare"]
+        end
+        subgraph CRYPTO["Crypto"]
+            BIN["Binance <i>WS</i>"]
+            BYBIT["Bybit <i>WS</i>"]
+            OKX["OKX <i>WS</i>"]
+            CB["Coinbase"]
+            KRA["Kraken"]
+        end
+    end
+
+    subgraph ONCHAIN["⛓️ On-Chain & DeFi"]
+        BTC_M["BTC Metrics<br/><i>hashrate · MVRV · miner flow</i>"]
+        FUND["Funding Rates"]
+        LN["Lightning Network"]
+        DEFI["DeFi Llama TVL"]
+        FG["Fear & Greed Index"]
+        SENT["Social Sentiment"]
+    end
+
+    UI --> AI
+    UI --> STRAT
+    AI --> STRAT
+    STRAT --> ENGINE
+    ENGINE --> DATA
+    ENGINE --> ONCHAIN
+    DATA --> ENGINE
+    ONCHAIN --> ENGINE
+
+    style UI fill:#1a1a2e,stroke:#e94560,color:#fff
+    style AI fill:#16213e,stroke:#0f3460,color:#fff
+    style STRAT fill:#0f3460,stroke:#533483,color:#fff
+    style ENGINE fill:#533483,stroke:#e94560,color:#fff
+    style DATA fill:#1a1a2e,stroke:#0f3460,color:#fff
+    style ONCHAIN fill:#16213e,stroke:#e94560,color:#fff
 ```
-┌──────────────────────────────────────────────────┐
-│               User Interfaces                     │
-│  CLI  │  MCP Server  │  A2A  │  Copilot  │  API  │
-├──────────────────────────────────────────────────┤
-│           AI Strategy Engine                      │
-│  Generator │ Optimizer │ Copilot Chat │ Pine DSL  │
-├──────────────────────────────────────────────────┤
-│            Strategy Layer                         │
-│   Built-in (20+)  │  Plugins  │  YAML DSL        │
-├──────────────────────────────────────────────────┤
-│   Backtester  │  Paper Trading  │  Risk Engine    │
-├──────────────────────────────────────────────────┤
-│              Data Layer                           │
-│  Yahoo │ Binance WS │ 12+ Exchanges │  Cache      │
-├──────────────────────────────────────────────────┤
-│            Crypto Layer                           │
-│  BTC Metrics │ Funding Rates │ Lightning │ DeFi   │
-└──────────────────────────────────────────────────┘
+
+### 🔀 Data Flow
+
+```mermaid
+flowchart LR
+    subgraph Sources["Data Sources"]
+        EX["12+ Exchanges"]
+        CHAIN["On-Chain APIs"]
+        SOCIAL["Social Feeds"]
+        DEFI["DeFi Llama"]
+    end
+
+    CACHE["Smart Cache<br/>SQLite + Memory"]
+
+    subgraph Processing["Processing"]
+        NORM["Normalize<br/>OHLCV"]
+        IND["Indicators<br/>RSI · MACD · BB"]
+        SIGNAL["Signal<br/>Generator"]
+    end
+
+    subgraph Decision["Decision"]
+        STRAT["Strategy<br/>Engine"]
+        RISK["Risk<br/>Manager"]
+        AI["AI<br/>Copilot"]
+    end
+
+    subgraph Output["Actions"]
+        ALERT["📱 Alert"]
+        TRADE["💰 Trade"]
+        REPORT["📊 Report"]
+        AGENT["🤖 MCP/A2A"]
+    end
+
+    Sources --> CACHE --> NORM --> IND --> SIGNAL --> STRAT --> RISK --> Output
+    AI -.->|"optimize"| STRAT
+    SOCIAL --> SIGNAL
+    DEFI --> SIGNAL
+
+    style Sources fill:#0d1117,stroke:#58a6ff,color:#c9d1d9
+    style Processing fill:#0d1117,stroke:#3fb950,color:#c9d1d9
+    style Decision fill:#0d1117,stroke:#d29922,color:#c9d1d9
+    style Output fill:#0d1117,stroke:#f85149,color:#c9d1d9
 ```
 
 ---
