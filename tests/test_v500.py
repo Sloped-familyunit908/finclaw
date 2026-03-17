@@ -145,7 +145,7 @@ class TestStrategyMeta:
 
 class TestRegistry:
     def test_registry_has_10_strategies(self):
-        assert len(STRATEGY_REGISTRY) == 10
+        assert len(STRATEGY_REGISTRY) == 11
 
     def test_get_strategy_valid(self):
         cls = get_strategy("grid-trading")
@@ -157,7 +157,7 @@ class TestRegistry:
 
     def test_list_strategies_returns_meta(self):
         metas = list_strategies()
-        assert len(metas) == 10
+        assert len(metas) == 11
         assert all(isinstance(m, StrategyMeta) for m in metas)
 
     def test_all_strategies_have_meta(self):

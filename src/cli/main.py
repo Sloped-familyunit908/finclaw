@@ -1078,6 +1078,18 @@ Examples:
     p.add_argument("--auth", action="store_true", help="Enable API key auth")
     p.add_argument("--rate-limit", type=int, default=100, help="Max requests per minute")
 
+    # btc-metrics
+    sub.add_parser("btc-metrics", help="Show BTC on-chain metrics dashboard")
+
+    # funding-rates
+    p_fr = sub.add_parser("funding-rates", help="Multi-exchange funding rate comparison")
+    p_fr.add_argument("--symbols", default="BTCUSDT,ETHUSDT,SOLUSDT", help="Comma-separated symbols")
+    p_fr.add_argument("--min-spread", type=float, default=5.0, help="Min annualized spread %% for arbitrage")
+
+    # fear-greed
+    p_fng = sub.add_parser("fear-greed", help="Current Fear & Greed Index")
+    p_fng.add_argument("--history", type=int, default=1, help="Number of historical data points")
+
     # interactive
     sub.add_parser("interactive", help="Launch interactive mode")
 
@@ -2232,6 +2244,71 @@ def _cmd_copilot(args):
     copilot.run_interactive()
 
 
+def cmd_btc_metrics(args):
+    """Show BTC on-chain metrics dashboard."""
+    from src.crypto.btc_metrics import BTCMetricsClient
+    client = BTCMetricsClient()
+
+    print("\n  ⛓️  BTC On-Chain Metrics Dashboard\n")
+
+    metrics = client.get_onchain_metrics()
+    print(f"  Hashrate:       {metrics.hashrate:,.0f} TH/s")
+    print(f"  Difficulty:     {metrics.difficulty:,.0f}")
+    print(f"  Mempool:        {metrics.mempool_size:,} unconfirmed txs")
+    print(f"  Avg Block Time: {metrics.avg_block_time:.1f} min")
+    print(f"  Avg Tx Fee:     ${metrics.avg_tx_fee_usd:.2f}")
+
+    mvrv = client.get_mvrv_ratio()
+    print(f"\n  MVRV Ratio:     {mvrv.mvrv_ratio:.3f} ({mvrv.signal})")
+    print(f"  Market Cap:     ${mvrv.market_cap:,.0f}")
+    print(f"  Realized Cap:   ${mvrv.realized_cap:,.0f}")
+
+    miner = client.get_miner_outflow()
+    print(f"\n  Miner Outflow:  {miner.daily_outflow_btc:.0f} BTC/day ({miner.outflow_trend})")
+    print(f"  7d Avg:         {miner.avg_7d_outflow_btc:.0f} BTC/day")
+    print(f"  Signal:         {miner.signal}")
+
+    fg = client.get_fear_greed(limit=1)
+    if fg:
+        print(f"\n  Fear & Greed:   {fg[0].value}/100 ({fg[0].label})")
+    print()
+
+
+def cmd_funding_rates(args):
+    """Multi-exchange funding rate comparison."""
+    from src.crypto.funding_dashboard import FundingDashboardClient
+    symbols = [s.strip() for s in args.symbols.split(",")]
+    client = FundingDashboardClient()
+    dashboard = client.get_dashboard(symbols, min_spread=args.min_spread)
+
+    print("\n  💰 Funding Rate Dashboard\n")
+    print(f"  {'Exchange':<12} {'Symbol':<12} {'8h Rate':>12} {'Annualized':>12}")
+    print("  " + "─" * 50)
+    for r in sorted(dashboard.rates, key=lambda x: (x.symbol, x.exchange)):
+        print(f"  {r.exchange:<12} {r.symbol:<12} {r.rate:>+11.6f} {r.annualized:>+11.4f}%")
+
+    if dashboard.arbitrage_opportunities:
+        print(f"\n  🎯 Arbitrage Opportunities (spread > {args.min_spread}%):\n")
+        for arb in dashboard.arbitrage_opportunities:
+            print(f"  {arb.symbol}: Long {arb.long_exchange} ({arb.long_rate:+.4f}%) → Short {arb.short_exchange} ({arb.short_rate:+.4f}%) = {arb.spread:.4f}% spread")
+    print()
+
+
+def cmd_fear_greed(args):
+    """Show current Fear & Greed Index."""
+    from src.crypto.btc_metrics import BTCMetricsClient
+    client = BTCMetricsClient()
+    data = client.get_fear_greed(limit=args.history)
+
+    print("\n  😱 Fear & Greed Index\n")
+    for fg in data:
+        from datetime import datetime
+        ts = datetime.fromtimestamp(fg.timestamp).strftime("%Y-%m-%d") if fg.timestamp > 0 else "now"
+        bar = "█" * (fg.value // 5) + "░" * (20 - fg.value // 5)
+        print(f"  {ts}  [{bar}] {fg.value}/100 — {fg.label}")
+    print()
+
+
 def main(argv=None):
     """Main CLI entry point."""
     # Fix encoding on Windows (cp936/GBK can't handle Unicode box-drawing chars)
@@ -2291,6 +2368,12 @@ def main(argv=None):
             api.start()
         elif args.command == "interactive":
             cmd_interactive(args)
+        elif args.command == "btc-metrics":
+            cmd_btc_metrics(args)
+        elif args.command == "funding-rates":
+            cmd_funding_rates(args)
+        elif args.command == "fear-greed":
+            cmd_fear_greed(args)
         elif args.command == "cache":
             from src.data.cache import DataCache
             cache = DataCache()

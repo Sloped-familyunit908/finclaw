@@ -15,6 +15,7 @@ from .trend_following import TrendFollowingStrategy
 from .breakout import BreakoutStrategy
 from .mean_reversion_bb import MeanReversionBBStrategy
 from .multi_factor import MultiFactorStrategy
+from .btc_cycle import BTCCycleIndicator
 
 STRATEGY_REGISTRY: dict[str, type["Strategy"]] = {
     "grid-trading": GridTradingStrategy,
@@ -27,6 +28,7 @@ STRATEGY_REGISTRY: dict[str, type["Strategy"]] = {
     "breakout": BreakoutStrategy,
     "mean-reversion-bb": MeanReversionBBStrategy,
     "multi-factor": MultiFactorStrategy,
+    "btc-cycle": BTCCycleIndicator,
 }
 
 
@@ -48,5 +50,6 @@ __all__ = [
     "PairsTradingStrategy", "SectorRotationStrategy", "DividendHarvestStrategy",
     "TrendFollowingStrategy", "BreakoutStrategy", "MeanReversionBBStrategy",
     "MultiFactorStrategy",
+    "BTCCycleIndicator",
     "STRATEGY_REGISTRY", "get_strategy", "list_strategies",
 ]
