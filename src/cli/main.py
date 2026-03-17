@@ -522,12 +522,147 @@ def cmd_tearsheet(args):
     print(f"  ✓ Tearsheet generated: {output} ({len(result):,} bytes)")
 
 
+def cmd_export(args):
+    """Export OHLCV + technical indicators to CSV/JSON."""
+    import numpy as np
+    from src.ta import rsi as calc_rsi, macd as calc_macd, sma, ema
+
+    ticker = args.ticker.upper()
+    period = args.period
+    fmt = args.format
+    output = args.output or f"{ticker}_{period}.{fmt}"
+    indicators = [i.strip().lower() for i in args.indicators.split(",")]
+
+    df = _fetch_data(ticker, period=period)
+    if df is None or len(df) == 0:
+        print(f"  No data for {ticker}")
+        return
+
+    close = np.array(df["Close"].tolist(), dtype=np.float64)
+
+    records = []
+    for i, (idx, row) in enumerate(df.iterrows()):
+        rec = {
+            "date": str(idx)[:10],
+            "open": round(float(row["Open"]), 4),
+            "high": round(float(row["High"]), 4),
+            "low": round(float(row["Low"]), 4),
+            "close": round(float(row["Close"]), 4),
+            "volume": int(row["Volume"]),
+        }
+
+        # Add indicators
+        if "sma20" in indicators or "sma" in indicators:
+            s = sma(close, 20)
+            rec["sma20"] = round(float(s[i]), 4) if not np.isnan(s[i]) else ""
+        if "sma50" in indicators:
+            s = sma(close, 50)
+            rec["sma50"] = round(float(s[i]), 4) if not np.isnan(s[i]) else ""
+        if "ema20" in indicators or "ema" in indicators:
+            e = ema(close, 20)
+            rec["ema20"] = round(float(e[i]), 4) if not np.isnan(e[i]) else ""
+        if "rsi" in indicators:
+            r = calc_rsi(close, 14)
+            rec["rsi14"] = round(float(r[i]), 2) if not np.isnan(r[i]) else ""
+        if "macd" in indicators:
+            line, sig, hist = calc_macd(close)
+            rec["macd"] = round(float(line[i]), 4) if not np.isnan(line[i]) else ""
+            rec["macd_signal"] = round(float(sig[i]), 4) if not np.isnan(sig[i]) else ""
+            rec["macd_hist"] = round(float(hist[i]), 4) if not np.isnan(hist[i]) else ""
+
+        records.append(rec)
+
+    from src.export.exporter import DataExporter
+    exporter = DataExporter()
+
+    if fmt == "csv":
+        exporter.to_csv(records, output)
+    else:
+        exporter.to_json(records, output)
+
+    print(f"  ✓ Exported {len(records)} rows to {output}")
+    print(f"    Ticker: {ticker} | Period: {period} | Format: {fmt}")
+    print(f"    Indicators: {', '.join(indicators)}")
+    return output
+
+
 def cmd_compare(args):
-    """Compare multiple strategies."""
+    """Compare multiple strategies on the same data."""
+    from src.cli.colors import bold, bright_green, bright_red, yellow, cyan, green, red
+
+    strategies_arg = args.strategies
+    data_ticker = getattr(args, "data", None)
+    period = getattr(args, "period", "1y")
+
+    # If --data is provided, treat strategies as names and run backtests
+    if data_ticker:
+        # strategies can be comma-separated or space-separated
+        strategy_names = []
+        for s in strategies_arg:
+            strategy_names.extend(s.split(","))
+
+        df = _fetch_data(data_ticker, period=period)
+        if df is None or len(df) < 50:
+            print(f"  No sufficient data for {data_ticker}")
+            return
+
+        import numpy as np
+        from src.ta import rsi as calc_rsi, macd as calc_macd, sma, ema
+
+        close = np.array(df["Close"].tolist(), dtype=np.float64)
+        prices = df["Close"].tolist()
+
+        results = []
+        for name in strategy_names:
+            r = _run_strategy_compare(name, df, close, prices)
+            if r:
+                results.append(r)
+
+        if not results:
+            print("  No valid strategy results.")
+            return
+
+        # Find best for each metric
+        best_ret = max(results, key=lambda x: x["return"])
+        best_sharpe = max(results, key=lambda x: x["sharpe"])
+        best_dd = max(results, key=lambda x: x["max_dd"])  # least negative
+        best_wr = max(results, key=lambda x: x["win_rate"])
+
+        print(f"\n  ── Strategy Comparison: {data_ticker} ({period}) ──\n")
+        print(f"  {'Strategy':<20} {'Return':>10} {'Sharpe':>10} {'MaxDD':>10} {'WinRate':>10} {'Trades':>8}")
+        print("  " + "─" * 70)
+
+        for r in results:
+            ret_str = f"{r['return']:>+9.2f}%"
+            sharpe_str = f"{r['sharpe']:>9.2f}"
+            dd_str = f"{r['max_dd']:>+9.2f}%"
+            wr_str = f"{r['win_rate']:>8.1f}%"
+            trades_str = f"{r['trades']:>7}"
+
+            # Highlight best
+            if r is best_ret:
+                ret_str = bright_green(ret_str)
+            if r is best_sharpe:
+                sharpe_str = bright_green(sharpe_str)
+            if r is best_dd:
+                dd_str = bright_green(dd_str)
+            if r is best_wr:
+                wr_str = bright_green(wr_str)
+
+            print(f"  {r['name']:<20} {ret_str} {sharpe_str} {dd_str} {wr_str} {trades_str}")
+
+        print()
+        print(f"  🏆 Best Return:   {bright_green(best_ret['name'])}")
+        print(f"  🏆 Best Sharpe:   {bright_green(best_sharpe['name'])}")
+        print(f"  🏆 Least DrawDown: {bright_green(best_dd['name'])}")
+        print()
+        return results
+
+    # Original file-based comparison
     from src.reporting.comparison import StrategyComparison
 
     comp = StrategyComparison()
-    for filepath in args.strategies:
+    for filepath in strategies_arg:
         if not os.path.exists(filepath):
             print(f"  File not found: {filepath}")
             continue
@@ -547,6 +682,128 @@ def cmd_compare(args):
     output = args.output or f"comparison_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html"
     result = comp.generate_report(output_path=output)
     print(f"  ✓ Comparison report generated: {output} ({len(result):,} bytes)")
+
+
+def _run_strategy_compare(name: str, df, close, prices) -> dict | None:
+    """Run a named strategy and return metrics."""
+    import numpy as np
+    from src.ta import rsi as calc_rsi, macd as calc_macd, sma
+
+    n = len(prices)
+    if n < 50:
+        return None
+
+    signals = []  # list of (index, 'buy'|'sell')
+
+    if name == "momentum":
+        # Buy when 10-day return > 0, sell when < 0
+        for i in range(20, n):
+            ret10 = prices[i] / prices[i - 10] - 1
+            if ret10 > 0.02:
+                signals.append((i, "buy"))
+            elif ret10 < -0.02:
+                signals.append((i, "sell"))
+
+    elif name == "mean_reversion":
+        rsi = calc_rsi(close, 14)
+        for i in range(20, n):
+            if not np.isnan(rsi[i]):
+                if rsi[i] < 30:
+                    signals.append((i, "buy"))
+                elif rsi[i] > 70:
+                    signals.append((i, "sell"))
+
+    elif name == "trend_following":
+        sma20 = sma(close, 20)
+        sma50 = sma(close, 50)
+        for i in range(50, n):
+            if not np.isnan(sma20[i]) and not np.isnan(sma50[i]):
+                if sma20[i] > sma50[i]:
+                    signals.append((i, "buy"))
+                else:
+                    signals.append((i, "sell"))
+
+    elif name == "macd_cross":
+        macd_line, signal_line, hist = calc_macd(close)
+        for i in range(30, n):
+            if not np.isnan(hist[i]) and not np.isnan(hist[i - 1]):
+                if hist[i] > 0 and hist[i - 1] <= 0:
+                    signals.append((i, "buy"))
+                elif hist[i] < 0 and hist[i - 1] >= 0:
+                    signals.append((i, "sell"))
+
+    elif name == "buy_hold":
+        signals = [(20, "buy")]  # buy and hold
+
+    else:
+        print(f"  Unknown strategy: {name}. Available: momentum, mean_reversion, trend_following, macd_cross, buy_hold")
+        return None
+
+    # Simulate
+    holding = False
+    entry_price = 0
+    trades = 0
+    wins = 0
+    pnl_total = 0
+
+    for idx, action in signals:
+        if action == "buy" and not holding:
+            entry_price = prices[idx]
+            holding = True
+        elif action == "sell" and holding:
+            pnl = prices[idx] / entry_price - 1
+            pnl_total += pnl
+            trades += 1
+            if pnl > 0:
+                wins += 1
+            holding = False
+
+    # Close open position at end
+    if holding:
+        pnl = prices[-1] / entry_price - 1
+        pnl_total += pnl
+        trades += 1
+        if pnl > 0:
+            wins += 1
+
+    # Calculate equity curve for drawdown + sharpe
+    equity = [1.0]
+    pos = False
+    ep = 0
+    for i in range(1, n):
+        if pos:
+            equity.append(equity[-1] * (prices[i] / prices[i - 1]))
+        else:
+            equity.append(equity[-1])
+        # Check signals for this index
+        for idx, action in signals:
+            if idx == i:
+                if action == "buy" and not pos:
+                    pos = True
+                    ep = prices[i]
+                elif action == "sell" and pos:
+                    pos = False
+
+    equity = np.array(equity)
+    peak = np.maximum.accumulate(equity)
+    dd = (equity - peak) / peak
+    max_dd = float(np.min(dd)) * 100
+
+    # Daily returns for Sharpe
+    daily_ret = np.diff(equity) / equity[:-1]
+    sharpe = float(np.mean(daily_ret) / np.std(daily_ret) * np.sqrt(252)) if np.std(daily_ret) > 0 else 0
+
+    total_return = (equity[-1] / equity[0] - 1) * 100
+    win_rate = (wins / trades * 100) if trades > 0 else 0
+
+    return {
+        "name": name,
+        "return": total_return,
+        "sharpe": sharpe,
+        "max_dd": max_dd,
+        "win_rate": win_rate,
+        "trades": trades,
+    }
 
 
 def cmd_risk(args):
@@ -793,10 +1050,21 @@ Examples:
     p.add_argument("--benchmark", "-b", default=None, help="Benchmark ticker (e.g. SPY) or CSV file")
     p.add_argument("--output", "-o", help="Output HTML file path")
 
-    # compare
+    # compare (existing file-based)
     p = sub.add_parser("compare", help="Compare multiple strategies")
-    p.add_argument("--strategies", "-s", nargs="+", required=True, help="JSON files with strategy returns")
+    p.add_argument("--strategies", "-s", nargs="+", required=True,
+                   help="Strategy names (comma-sep) or JSON files with returns")
+    p.add_argument("--data", "-d", default=None, help="Ticker symbol for backtest comparison")
+    p.add_argument("--period", "-p", default="1y", help="Data period (e.g. 1y, 2y)")
     p.add_argument("--output", "-o", help="Output HTML file path")
+
+    # export
+    p_export = sub.add_parser("export", help="Export OHLCV + technical indicators to file")
+    p_export.add_argument("--ticker", "-t", required=True, help="Ticker symbol")
+    p_export.add_argument("--period", "-p", default="1y", help="Data period (e.g. 1y, 2y, 5y)")
+    p_export.add_argument("--format", "-f", default="csv", choices=["csv", "json"], help="Output format")
+    p_export.add_argument("--output", "-o", default=None, help="Output file path")
+    p_export.add_argument("--indicators", "-i", default="sma20,sma50,rsi,macd", help="Indicators to include")
 
     # risk
     p = sub.add_parser("risk", help="Portfolio risk analysis")
@@ -823,9 +1091,9 @@ Examples:
     p_ex.add_argument("exchanges_cmd", nargs="?", default="list", choices=["list", "compare"])
     p_ex.add_argument("exchange_names", nargs="*", help="Exchanges to compare")
 
-    # quote (multi-exchange)
+    # quote (multi-exchange, supports multiple symbols)
     p_q = sub.add_parser("quote", help="Get quote from any exchange")
-    p_q.add_argument("symbol", help="Symbol (e.g. BTCUSDT, AAPL, 000001.SZ)")
+    p_q.add_argument("symbol", nargs="+", help="Symbol(s) (e.g. AAPL TSLA MSFT)")
     p_q.add_argument("--exchange", "-e", default="yahoo", help="Exchange name")
 
     # history (multi-exchange)
@@ -2008,6 +2276,8 @@ def main(argv=None):
             cmd_tearsheet(args)
         elif args.command == "compare":
             cmd_compare(args)
+        elif args.command == "export":
+            cmd_export(args)
         elif args.command == "risk":
             cmd_risk(args)
         elif args.command == "serve":
@@ -2050,18 +2320,40 @@ def main(argv=None):
             from src.exchanges.registry import ExchangeRegistry
             from src.cli.colors import bold, bright_green, bright_red, gray, price_color, pct_color
             adapter = ExchangeRegistry.get(args.exchange)
-            ticker = adapter.get_ticker(args.symbol)
-            last = ticker['last']
-            bid = ticker.get('bid', 'N/A')
-            ask = ticker.get('ask', 'N/A')
-            vol = ticker.get('volume', 'N/A')
-            chg = ticker.get('change', 0) or 0
-            chg_pct = ticker.get('change_pct', 0) or 0
-            chg_str = price_color(chg, f"{chg:>+.2f}") if chg else ""
-            pct_str = pct_color(chg_pct / 100, f"{chg_pct:>+.2f}%") if chg_pct else ""
-            print(f"\n  {bold(ticker['symbol'])}  {bold(f'${last:.2f}' if isinstance(last, (int,float)) else str(last))}  {chg_str} {pct_str}")
-            print(f"  Bid: {bid}  Ask: {ask}  Vol: {vol:,.0f}" if isinstance(vol, (int,float)) else f"  Bid: {bid}  Ask: {ask}  Vol: {vol}")
-            print()
+            symbols = args.symbol  # now a list
+            if len(symbols) == 1:
+                # Single symbol — detailed view
+                ticker = adapter.get_ticker(symbols[0])
+                last = ticker['last']
+                bid = ticker.get('bid', 'N/A')
+                ask = ticker.get('ask', 'N/A')
+                vol = ticker.get('volume', 'N/A')
+                chg = ticker.get('change', 0) or 0
+                chg_pct = ticker.get('change_pct', 0) or 0
+                chg_str = price_color(chg, f"{chg:>+.2f}") if chg else ""
+                pct_str = pct_color(chg_pct / 100, f"{chg_pct:>+.2f}%") if chg_pct else ""
+                print(f"\n  {bold(ticker['symbol'])}  {bold(f'${last:.2f}' if isinstance(last, (int,float)) else str(last))}  {chg_str} {pct_str}")
+                print(f"  Bid: {bid}  Ask: {ask}  Vol: {vol:,.0f}" if isinstance(vol, (int,float)) else f"  Bid: {bid}  Ask: {ask}  Vol: {vol}")
+                print()
+            else:
+                # Multi-symbol — table view
+                print(f"\n  {bold('Symbol'):<18} {bold('Price'):>10} {bold('Change'):>10} {bold('%'):>10} {bold('Volume'):>14}")
+                print("  " + "─" * 62)
+                for sym in symbols:
+                    try:
+                        ticker = adapter.get_ticker(sym)
+                        last = ticker['last']
+                        chg = ticker.get('change', 0) or 0
+                        chg_pct = ticker.get('change_pct', 0) or 0
+                        vol = ticker.get('volume', 'N/A')
+                        price_str = f"${last:.2f}" if isinstance(last, (int, float)) else str(last)
+                        chg_str = price_color(chg, f"{chg:>+.2f}")
+                        pct_str = pct_color(chg_pct / 100, f"{chg_pct:>+.2f}%")
+                        vol_str = f"{vol:>14,.0f}" if isinstance(vol, (int, float)) else f"{vol:>14}"
+                        print(f"  {sym:<10} {price_str:>10} {chg_str:>10} {pct_str:>10} {vol_str}")
+                    except Exception as e:
+                        print(f"  {sym:<10} {'Error':>10} {str(e)[:30]}")
+                print()
         elif args.command == "history":
             from src.exchanges.registry import ExchangeRegistry
             adapter = ExchangeRegistry.get(args.exchange)
