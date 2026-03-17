@@ -5,7 +5,7 @@ Free tier: 5 API calls/min.
 
 import time
 
-from src.exchanges.base import ExchangeAdapter
+from src.exchanges.base import ExchangeAdapter, handle_network_errors
 from src.exchanges.http_client import HttpClient
 
 
@@ -34,6 +34,7 @@ class PolygonAdapter(ExchangeAdapter):
 
     # --- Market Data ---
 
+    @handle_network_errors
     def get_ohlcv(self, symbol: str, timeframe: str = "1d", limit: int = 100) -> list[dict]:
         multiplier_type = self.TIMEFRAME_MAP.get(timeframe, ("day", 1))
         timespan, multiplier = multiplier_type
@@ -52,6 +53,7 @@ class PolygonAdapter(ExchangeAdapter):
             for r in results
         ]
 
+    @handle_network_errors
     def get_ticker(self, symbol: str) -> dict:
         data = self.client.get(
             f"/v2/snapshot/locale/us/markets/stocks/tickers/{symbol.upper()}",
@@ -70,6 +72,7 @@ class PolygonAdapter(ExchangeAdapter):
             "timestamp": int(ticker.get("updated", 0)),
         }
 
+    @handle_network_errors
     def get_orderbook(self, symbol: str, depth: int = 20) -> dict:
         data = self.client.get(
             f"/v3/snapshot/locale/us/markets/stocks/tickers/{symbol.upper()}/book",
@@ -82,6 +85,7 @@ class PolygonAdapter(ExchangeAdapter):
             "asks": [[float(a["p"]), float(a.get("s", 0))] for a in asks[:depth]],
         }
 
+    @handle_network_errors
     def get_quotes(self, symbol: str, limit: int = 50) -> list[dict]:
         data = self.client.get(
             f"/v3/quotes/{symbol.upper()}",
@@ -96,13 +100,16 @@ class PolygonAdapter(ExchangeAdapter):
 
     # --- Reference Data ---
 
+    @handle_network_errors
     def get_ticker_details(self, symbol: str) -> dict:
         data = self.client.get(f"/v3/reference/tickers/{symbol.upper()}", self._params())
         return data.get("results", {})
 
+    @handle_network_errors
     def get_market_status(self) -> dict:
         return self.client.get("/v1/marketstatus/now", self._params())
 
+    @handle_network_errors
     def search_tickers(self, query: str, limit: int = 20) -> list[dict]:
         data = self.client.get(
             "/v3/reference/tickers",
@@ -112,14 +119,18 @@ class PolygonAdapter(ExchangeAdapter):
 
     # --- Not supported (read-only data provider) ---
 
+    @handle_network_errors
     def place_order(self, symbol: str, side: str, type: str, amount: float, price: float | None = None) -> dict:
         raise NotImplementedError("Polygon.io is a data provider — no trading support")
 
+    @handle_network_errors
     def cancel_order(self, order_id: str) -> bool:
         raise NotImplementedError("Polygon.io is a data provider — no trading support")
 
+    @handle_network_errors
     def get_balance(self) -> dict:
         return {}
 
+    @handle_network_errors
     def get_positions(self) -> list[dict]:
         return []

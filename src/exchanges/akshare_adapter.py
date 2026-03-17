@@ -4,7 +4,7 @@ Supports A股, 港股, 期货, 基金, and macro economic data.
 Uses AKShare's HTTP API endpoints.
 """
 
-from src.exchanges.base import ExchangeAdapter
+from src.exchanges.base import ExchangeAdapter, handle_network_errors
 from src.exchanges.http_client import HttpClient
 
 
@@ -43,6 +43,7 @@ class AKShareAdapter(ExchangeAdapter):
     def _sina_symbol(self, code: str, market: str) -> str:
         return f"{'sh' if market == 'SH' else 'sz'}{code}"
 
+    @handle_network_errors
     def get_ohlcv(self, symbol: str, timeframe: str = "1d", limit: int = 100) -> list[dict]:
         code, market = self._parse_symbol(symbol)
         secid = f"{self.MARKET_MAP.get(market, '0')}.{code}"
@@ -65,6 +66,7 @@ class AKShareAdapter(ExchangeAdapter):
                 })
         return candles[-limit:]
 
+    @handle_network_errors
     def get_ticker(self, symbol: str) -> dict:
         code, market = self._parse_symbol(symbol)
         sina_sym = self._sina_symbol(code, market)
@@ -84,6 +86,7 @@ class AKShareAdapter(ExchangeAdapter):
             "volume": float(parts[8]), "timestamp": f"{parts[30]} {parts[31]}" if len(parts) > 31 else "",
         }
 
+    @handle_network_errors
     def get_orderbook(self, symbol: str, depth: int = 20) -> dict:
         # Sina provides 5-level orderbook in the quote string
         code, market = self._parse_symbol(symbol)
@@ -103,14 +106,18 @@ class AKShareAdapter(ExchangeAdapter):
             asks.append([float(parts[21 + i * 2]), float(parts[20 + i * 2])])
         return {"bids": bids, "asks": asks}
 
+    @handle_network_errors
     def place_order(self, symbol: str, side: str, type: str, amount: float, price: float | None = None) -> dict:
         raise NotImplementedError("AKShare is a data-only adapter; trading not supported.")
 
+    @handle_network_errors
     def cancel_order(self, order_id: str) -> bool:
         raise NotImplementedError("AKShare is a data-only adapter; trading not supported.")
 
+    @handle_network_errors
     def get_balance(self) -> dict:
         raise NotImplementedError("AKShare is a data-only adapter; trading not supported.")
 
+    @handle_network_errors
     def get_positions(self) -> list[dict]:
         raise NotImplementedError("AKShare is a data-only adapter; trading not supported.")

@@ -8,7 +8,7 @@ import base64
 import datetime
 import urllib.parse
 
-from src.exchanges.base import ExchangeAdapter
+from src.exchanges.base import ExchangeAdapter, handle_network_errors
 from src.exchanges.http_client import HttpClient, timestamp_ms
 import hashlib
 import hmac
@@ -52,6 +52,7 @@ class OKXAdapter(ExchangeAdapter):
                 return symbol[:-len(quote)] + "-" + quote
         return symbol
 
+    @handle_network_errors
     def get_ohlcv(self, symbol: str, timeframe: str = "1d", limit: int = 100) -> list[dict]:
         bar = self.TIMEFRAME_MAP.get(timeframe, timeframe)
         data = self.client.get("/api/v5/market/candles", {"instId": self._inst_id(symbol), "bar": bar, "limit": str(limit)})
@@ -62,6 +63,7 @@ class OKXAdapter(ExchangeAdapter):
             for c in candles
         ]
 
+    @handle_network_errors
     def get_ticker(self, symbol: str) -> dict:
         data = self.client.get("/api/v5/market/ticker", {"instId": self._inst_id(symbol)})
         d = data["data"][0]
@@ -71,6 +73,7 @@ class OKXAdapter(ExchangeAdapter):
             "volume": float(d["vol24h"]), "timestamp": int(d["ts"]),
         }
 
+    @handle_network_errors
     def get_orderbook(self, symbol: str, depth: int = 20) -> dict:
         data = self.client.get("/api/v5/market/books", {"instId": self._inst_id(symbol), "sz": str(depth)})
         book = data["data"][0]
@@ -79,6 +82,7 @@ class OKXAdapter(ExchangeAdapter):
             "asks": [[float(a[0]), float(a[1])] for a in book["asks"]],
         }
 
+    @handle_network_errors
     def place_order(self, symbol: str, side: str, type: str, amount: float, price: float | None = None) -> dict:
         body = {"instId": self._inst_id(symbol), "tdMode": "cash", "side": side.lower(),
                 "ordType": "limit" if price else "market", "sz": str(amount)}
@@ -89,6 +93,7 @@ class OKXAdapter(ExchangeAdapter):
         headers = self._sign_headers("POST", "/api/v5/trade/order", body_str)
         return self.client.post("/api/v5/trade/order", body=body, headers=headers)
 
+    @handle_network_errors
     def cancel_order(self, order_id: str) -> bool:
         import json
         body = {"ordId": order_id}
@@ -97,6 +102,7 @@ class OKXAdapter(ExchangeAdapter):
         self.client.post("/api/v5/trade/cancel-order", body=body, headers=headers)
         return True
 
+    @handle_network_errors
     def get_balance(self) -> dict:
         headers = self._sign_headers("GET", "/api/v5/account/balance")
         data = self.client.get("/api/v5/account/balance", headers=headers)
@@ -105,6 +111,7 @@ class OKXAdapter(ExchangeAdapter):
             result[detail["ccy"]] = {"free": float(detail["availBal"]), "locked": float(detail["frozenBal"])}
         return result
 
+    @handle_network_errors
     def get_positions(self) -> list[dict]:
         headers = self._sign_headers("GET", "/api/v5/account/positions")
         data = self.client.get("/api/v5/account/positions", headers=headers)

@@ -10,7 +10,7 @@ import io
 import time
 import urllib.parse
 
-from src.exchanges.base import ExchangeAdapter
+from src.exchanges.base import ExchangeAdapter, handle_network_errors
 from src.exchanges.http_client import HttpClient
 
 
@@ -58,6 +58,7 @@ class BaostockAdapter(ExchangeAdapter):
 
     # --- Market Data ---
 
+    @handle_network_errors
     def get_ohlcv(self, symbol: str, timeframe: str = "1d", limit: int = 100) -> list[dict]:
         """Fetch K-line data from Baostock.
         Uses query_history_k_data_plus equivalent HTTP endpoint.
@@ -99,6 +100,7 @@ class BaostockAdapter(ExchangeAdapter):
                     continue
         return candles
 
+    @handle_network_errors
     def get_ticker(self, symbol: str) -> dict:
         """Get latest price info (from most recent daily candle)."""
         candles = self.get_ohlcv(symbol, "1d", limit=1)
@@ -111,6 +113,7 @@ class BaostockAdapter(ExchangeAdapter):
             }
         return {"symbol": symbol, "last": 0, "bid": 0, "ask": 0, "volume": 0, "timestamp": ""}
 
+    @handle_network_errors
     def get_orderbook(self, symbol: str, depth: int = 20) -> dict:
         """Baostock doesn't provide real-time orderbook."""
         return {"bids": [], "asks": []}
@@ -145,14 +148,18 @@ class BaostockAdapter(ExchangeAdapter):
 
     # --- Trading not supported (data only) ---
 
+    @handle_network_errors
     def place_order(self, symbol: str, side: str, type: str, amount: float, price: float | None = None) -> dict:
         raise NotImplementedError("Baostock is a data provider — no trading support")
 
+    @handle_network_errors
     def cancel_order(self, order_id: str) -> bool:
         raise NotImplementedError("Baostock is a data provider — no trading support")
 
+    @handle_network_errors
     def get_balance(self) -> dict:
         return {}
 
+    @handle_network_errors
     def get_positions(self) -> list[dict]:
         return []

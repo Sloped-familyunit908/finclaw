@@ -8,7 +8,7 @@ import json
 import time
 import urllib.parse
 
-from src.exchanges.base import ExchangeAdapter
+from src.exchanges.base import ExchangeAdapter, handle_network_errors
 from src.exchanges.http_client import HttpClient, hmac_sha256_sign, timestamp_ms
 
 
@@ -40,6 +40,7 @@ class BybitAdapter(ExchangeAdapter):
             "X-BAPI-RECV-WINDOW": recv_window,
         }
 
+    @handle_network_errors
     def get_ohlcv(self, symbol: str, timeframe: str = "1d", limit: int = 100) -> list[dict]:
         interval = self.TIMEFRAME_MAP.get(timeframe, timeframe)
         data = self.client.get("/v5/market/kline", {
@@ -51,6 +52,7 @@ class BybitAdapter(ExchangeAdapter):
             for k in data.get("result", {}).get("list", [])
         ]
 
+    @handle_network_errors
     def get_ticker(self, symbol: str) -> dict:
         data = self.client.get("/v5/market/tickers", {"category": "linear", "symbol": symbol})
         t = data["result"]["list"][0]
@@ -60,6 +62,7 @@ class BybitAdapter(ExchangeAdapter):
             "volume": float(t["volume24h"]), "timestamp": int(data.get("time", 0)),
         }
 
+    @handle_network_errors
     def get_orderbook(self, symbol: str, depth: int = 20) -> dict:
         data = self.client.get("/v5/market/orderbook", {"category": "linear", "symbol": symbol, "limit": depth})
         book = data["result"]
@@ -68,6 +71,7 @@ class BybitAdapter(ExchangeAdapter):
             "asks": [[float(a[0]), float(a[1])] for a in book["a"]],
         }
 
+    @handle_network_errors
     def place_order(self, symbol: str, side: str, type: str, amount: float, price: float | None = None) -> dict:
         body = {"category": "linear", "symbol": symbol, "side": side.capitalize(),
                 "orderType": type.capitalize(), "qty": str(amount)}
@@ -77,6 +81,7 @@ class BybitAdapter(ExchangeAdapter):
         headers = self._sign_headers(body_str)
         return self.client.post("/v5/order/create", body=body, headers=headers)
 
+    @handle_network_errors
     def cancel_order(self, order_id: str) -> bool:
         body = {"category": "linear", "orderId": order_id}
         body_str = json.dumps(body)
@@ -84,6 +89,7 @@ class BybitAdapter(ExchangeAdapter):
         self.client.post("/v5/order/cancel", body=body, headers=headers)
         return True
 
+    @handle_network_errors
     def get_balance(self) -> dict:
         params = urllib.parse.urlencode({"accountType": "UNIFIED"})
         headers = self._sign_headers(params)
@@ -93,6 +99,7 @@ class BybitAdapter(ExchangeAdapter):
             result[coin["coin"]] = {"free": float(coin["availableToWithdraw"]), "locked": float(coin["locked"])}
         return result
 
+    @handle_network_errors
     def get_positions(self) -> list[dict]:
         params = urllib.parse.urlencode({"category": "linear"})
         headers = self._sign_headers(params)

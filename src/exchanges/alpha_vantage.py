@@ -3,7 +3,7 @@ Alpha Vantage adapter — free tier: 25 requests/day.
 Historical OHLCV (daily/weekly/monthly) and real-time quotes.
 """
 
-from src.exchanges.base import ExchangeAdapter
+from src.exchanges.base import ExchangeAdapter, handle_network_errors
 from src.exchanges.http_client import HttpClient
 
 
@@ -21,6 +21,7 @@ class AlphaVantageAdapter(ExchangeAdapter):
         params["apikey"] = self.api_key
         return self.client.get("/query", params)
 
+    @handle_network_errors
     def get_ohlcv(self, symbol: str, timeframe: str = "1d", limit: int = 100) -> list[dict]:
         func_map = {"1d": "TIME_SERIES_DAILY", "1w": "TIME_SERIES_WEEKLY", "1M": "TIME_SERIES_MONTHLY"}
         function = func_map.get(timeframe, "TIME_SERIES_DAILY")
@@ -47,6 +48,7 @@ class AlphaVantageAdapter(ExchangeAdapter):
             })
         return candles[-limit:]
 
+    @handle_network_errors
     def get_ticker(self, symbol: str) -> dict:
         data = self._query(function="GLOBAL_QUOTE", symbol=symbol)
         q = data.get("Global Quote", {})
@@ -59,17 +61,22 @@ class AlphaVantageAdapter(ExchangeAdapter):
             "timestamp": q.get("07. latest trading day", ""),
         }
 
+    @handle_network_errors
     def get_orderbook(self, symbol: str, depth: int = 20) -> dict:
         return {"bids": [], "asks": []}
 
+    @handle_network_errors
     def place_order(self, symbol: str, side: str, type: str, amount: float, price: float | None = None) -> dict:
         raise NotImplementedError("Alpha Vantage is a data-only adapter; trading not supported.")
 
+    @handle_network_errors
     def cancel_order(self, order_id: str) -> bool:
         raise NotImplementedError("Alpha Vantage is a data-only adapter; trading not supported.")
 
+    @handle_network_errors
     def get_balance(self) -> dict:
         raise NotImplementedError("Alpha Vantage is a data-only adapter; trading not supported.")
 
+    @handle_network_errors
     def get_positions(self) -> list[dict]:
         raise NotImplementedError("Alpha Vantage is a data-only adapter; trading not supported.")

@@ -3,7 +3,7 @@ Tushare adapter for A股 (China A-shares).
 Requires a Tushare Pro token (free registration).
 """
 
-from src.exchanges.base import ExchangeAdapter
+from src.exchanges.base import ExchangeAdapter, handle_network_errors
 from src.exchanges.http_client import HttpClient
 
 
@@ -27,6 +27,7 @@ class TushareAdapter(ExchangeAdapter):
         items = result.get("items", [])
         return [dict(zip(columns, row)) for row in items]
 
+    @handle_network_errors
     def get_ohlcv(self, symbol: str, timeframe: str = "1d", limit: int = 100) -> list[dict]:
         # Tushare uses ts_code format: 000001.SZ
         rows = self._api("daily", {"ts_code": symbol, "limit": limit},
@@ -37,6 +38,7 @@ class TushareAdapter(ExchangeAdapter):
             for r in reversed(rows)  # Tushare returns newest first
         ]
 
+    @handle_network_errors
     def get_ticker(self, symbol: str) -> dict:
         rows = self._api("daily", {"ts_code": symbol, "limit": 1},
                          fields="ts_code,trade_date,close,vol")
@@ -49,17 +51,22 @@ class TushareAdapter(ExchangeAdapter):
             "volume": float(r["vol"]), "timestamp": r["trade_date"],
         }
 
+    @handle_network_errors
     def get_orderbook(self, symbol: str, depth: int = 20) -> dict:
         return {"bids": [], "asks": []}
 
+    @handle_network_errors
     def place_order(self, symbol: str, side: str, type: str, amount: float, price: float | None = None) -> dict:
         raise NotImplementedError("Tushare is a data-only adapter; trading not supported.")
 
+    @handle_network_errors
     def cancel_order(self, order_id: str) -> bool:
         raise NotImplementedError("Tushare is a data-only adapter; trading not supported.")
 
+    @handle_network_errors
     def get_balance(self) -> dict:
         raise NotImplementedError("Tushare is a data-only adapter; trading not supported.")
 
+    @handle_network_errors
     def get_positions(self) -> list[dict]:
         raise NotImplementedError("Tushare is a data-only adapter; trading not supported.")

@@ -8,7 +8,7 @@ Paper trading mode built-in.
 import json
 import time
 
-from src.exchanges.base import ExchangeAdapter
+from src.exchanges.base import ExchangeAdapter, handle_network_errors
 from src.exchanges.http_client import HttpClient
 
 
@@ -40,6 +40,7 @@ class AlpacaAdapter(ExchangeAdapter):
 
     # --- Market Data ---
 
+    @handle_network_errors
     def get_ohlcv(self, symbol: str, timeframe: str = "1d", limit: int = 100) -> list[dict]:
         tf = self.TIMEFRAME_MAP.get(timeframe, "1Day")
         data = self.data_client.get(f"/v2/stocks/{symbol.upper()}/bars", {
@@ -52,6 +53,7 @@ class AlpacaAdapter(ExchangeAdapter):
             for b in bars
         ]
 
+    @handle_network_errors
     def get_ticker(self, symbol: str) -> dict:
         d = self.data_client.get(f"/v2/stocks/{symbol.upper()}/snapshot")
         latest = d.get("latestTrade", {})
@@ -66,6 +68,7 @@ class AlpacaAdapter(ExchangeAdapter):
             "timestamp": latest.get("t", ""),
         }
 
+    @handle_network_errors
     def get_quotes(self, symbol: str, limit: int = 50) -> list[dict]:
         data = self.data_client.get(f"/v2/stocks/{symbol.upper()}/quotes", {"limit": limit})
         return [
@@ -75,6 +78,7 @@ class AlpacaAdapter(ExchangeAdapter):
             for q in data.get("quotes", [])
         ]
 
+    @handle_network_errors
     def get_trades_history(self, symbol: str, limit: int = 50) -> list[dict]:
         data = self.data_client.get(f"/v2/stocks/{symbol.upper()}/trades", {"limit": limit})
         return [
@@ -83,6 +87,7 @@ class AlpacaAdapter(ExchangeAdapter):
             for t in data.get("trades", [])
         ]
 
+    @handle_network_errors
     def get_orderbook(self, symbol: str, depth: int = 20) -> dict:
         # Alpaca doesn't have a traditional orderbook endpoint — use latest quote
         d = self.data_client.get(f"/v2/stocks/{symbol.upper()}/snapshot")
@@ -94,6 +99,7 @@ class AlpacaAdapter(ExchangeAdapter):
 
     # --- Trading ---
 
+    @handle_network_errors
     def place_order(self, symbol: str, side: str, type: str, amount: float, price: float | None = None) -> dict:
         body: dict = {
             "symbol": symbol.upper(),
@@ -106,10 +112,12 @@ class AlpacaAdapter(ExchangeAdapter):
             body["limit_price"] = str(price)
         return self.trade_client.post("/v2/orders", body=body)
 
+    @handle_network_errors
     def cancel_order(self, order_id: str) -> bool:
         self.trade_client.delete(f"/v2/orders/{order_id}")
         return True
 
+    @handle_network_errors
     def get_balance(self) -> dict:
         acct = self.trade_client.get("/v2/account")
         return {
@@ -125,6 +133,7 @@ class AlpacaAdapter(ExchangeAdapter):
             },
         }
 
+    @handle_network_errors
     def get_positions(self) -> list[dict]:
         data = self.trade_client.get("/v2/positions")
         return [
@@ -136,6 +145,7 @@ class AlpacaAdapter(ExchangeAdapter):
             for p in data
         ]
 
+    @handle_network_errors
     def get_orders(self, status: str = "open", limit: int = 50) -> list[dict]:
         data = self.trade_client.get("/v2/orders", {"status": status, "limit": limit})
         return [
@@ -145,5 +155,6 @@ class AlpacaAdapter(ExchangeAdapter):
             for o in data
         ]
 
+    @handle_network_errors
     def get_account(self) -> dict:
         return self.trade_client.get("/v2/account")

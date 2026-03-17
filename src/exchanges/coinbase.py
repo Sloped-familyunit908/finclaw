@@ -10,7 +10,7 @@ import json
 import time
 import urllib.parse
 
-from src.exchanges.base import ExchangeAdapter
+from src.exchanges.base import ExchangeAdapter, handle_network_errors
 from src.exchanges.http_client import HttpClient, ExchangeAPIError
 
 
@@ -50,6 +50,7 @@ class CoinbaseAdapter(ExchangeAdapter):
 
     # --- Public ---
 
+    @handle_network_errors
     def get_ohlcv(self, symbol: str, timeframe: str = "1d", limit: int = 100) -> list[dict]:
         product_id = self._to_product_id(symbol)
         granularity = self.TIMEFRAME_MAP.get(timeframe, "ONE_DAY")
@@ -67,6 +68,7 @@ class CoinbaseAdapter(ExchangeAdapter):
             for c in candles
         ]
 
+    @handle_network_errors
     def get_ticker(self, symbol: str) -> dict:
         product_id = self._to_product_id(symbol)
         d = self.client.get(f"/api/v3/brokerage/market/products/{product_id}")
@@ -79,6 +81,7 @@ class CoinbaseAdapter(ExchangeAdapter):
             "timestamp": int(time.time() * 1000),
         }
 
+    @handle_network_errors
     def get_orderbook(self, symbol: str, depth: int = 20) -> dict:
         product_id = self._to_product_id(symbol)
         d = self.client.get(
@@ -91,6 +94,7 @@ class CoinbaseAdapter(ExchangeAdapter):
             "asks": [[float(a["price"]), float(a["size"])] for a in pricebook.get("asks", [])],
         }
 
+    @handle_network_errors
     def get_trades(self, symbol: str, limit: int = 50) -> list[dict]:
         product_id = self._to_product_id(symbol)
         d = self.client.get(
@@ -105,6 +109,7 @@ class CoinbaseAdapter(ExchangeAdapter):
 
     # --- Private ---
 
+    @handle_network_errors
     def get_balance(self) -> dict:
         path = "/api/v3/brokerage/accounts"
         data = self.client.get(path, headers=self._auth_headers("GET", path))
@@ -119,6 +124,7 @@ class CoinbaseAdapter(ExchangeAdapter):
                 result[currency] = {"free": free, "locked": locked}
         return result
 
+    @handle_network_errors
     def place_order(self, symbol: str, side: str, type: str, amount: float, price: float | None = None) -> dict:
         path = "/api/v3/brokerage/orders"
         product_id = self._to_product_id(symbol)
@@ -137,6 +143,7 @@ class CoinbaseAdapter(ExchangeAdapter):
         body_str = json.dumps(body)
         return self.client.post(path, body=body, headers=self._auth_headers("POST", path, body_str))
 
+    @handle_network_errors
     def cancel_order(self, order_id: str) -> bool:
         path = "/api/v3/brokerage/orders/batch_cancel"
         body = {"order_ids": [order_id]}
@@ -144,6 +151,7 @@ class CoinbaseAdapter(ExchangeAdapter):
         self.client.post(path, body=body, headers=self._auth_headers("POST", path, body_str))
         return True
 
+    @handle_network_errors
     def get_fills(self, symbol: str | None = None, limit: int = 50) -> list[dict]:
         path = "/api/v3/brokerage/orders/historical/fills"
         params: dict = {"limit": limit}
@@ -151,6 +159,7 @@ class CoinbaseAdapter(ExchangeAdapter):
             params["product_id"] = self._to_product_id(symbol)
         return self.client.get(path, params=params, headers=self._auth_headers("GET", path))
 
+    @handle_network_errors
     def get_positions(self) -> list[dict]:
         return []  # Coinbase spot — no positions concept
 

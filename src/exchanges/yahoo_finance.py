@@ -6,7 +6,7 @@ Uses Yahoo Finance v8 API endpoints directly (no yfinance dependency).
 import time
 import urllib.parse
 
-from src.exchanges.base import ExchangeAdapter
+from src.exchanges.base import ExchangeAdapter, handle_network_errors
 from src.exchanges.http_client import HttpClient
 
 
@@ -32,6 +32,7 @@ class YahooFinanceAdapter(ExchangeAdapter):
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         })
 
+    @handle_network_errors
     def get_ohlcv(self, symbol: str, timeframe: str = "1d", limit: int = 100) -> list[dict]:
         interval = self.TIMEFRAME_MAP.get(timeframe, "1d")
         range_ = self.RANGE_MAP.get(timeframe, "1y")
@@ -55,6 +56,7 @@ class YahooFinanceAdapter(ExchangeAdapter):
             })
         return candles[-limit:]
 
+    @handle_network_errors
     def get_ticker(self, symbol: str) -> dict:
         data = self.client.get(f"/v8/finance/chart/{symbol}", {"interval": "1d", "range": "1d"})
         result = data["chart"]["result"][0]
@@ -68,18 +70,23 @@ class YahooFinanceAdapter(ExchangeAdapter):
             "timestamp": int(meta.get("regularMarketTime", 0)) * 1000,
         }
 
+    @handle_network_errors
     def get_orderbook(self, symbol: str, depth: int = 20) -> dict:
         # Yahoo Finance doesn't provide orderbook data
         return {"bids": [], "asks": []}
 
+    @handle_network_errors
     def place_order(self, symbol: str, side: str, type: str, amount: float, price: float | None = None) -> dict:
         raise NotImplementedError("Yahoo Finance is a data-only adapter; trading not supported.")
 
+    @handle_network_errors
     def cancel_order(self, order_id: str) -> bool:
         raise NotImplementedError("Yahoo Finance is a data-only adapter; trading not supported.")
 
+    @handle_network_errors
     def get_balance(self) -> dict:
         raise NotImplementedError("Yahoo Finance is a data-only adapter; trading not supported.")
 
+    @handle_network_errors
     def get_positions(self) -> list[dict]:
         raise NotImplementedError("Yahoo Finance is a data-only adapter; trading not supported.")

@@ -6,7 +6,7 @@ Private: account, order, positionRisk (HMAC-SHA256 signed)
 
 import urllib.parse
 
-from src.exchanges.base import ExchangeAdapter
+from src.exchanges.base import ExchangeAdapter, handle_network_errors
 from src.exchanges.http_client import HttpClient, hmac_sha256_sign, timestamp_ms
 
 
@@ -41,6 +41,7 @@ class BinanceAdapter(ExchangeAdapter):
 
     # --- Public ---
 
+    @handle_network_errors
     def get_ohlcv(self, symbol: str, timeframe: str = "1d", limit: int = 100) -> list[dict]:
         path = "/fapi/v1/klines" if self.futures else "/api/v3/klines"
         interval = self.TIMEFRAME_MAP.get(timeframe, timeframe)
@@ -51,6 +52,7 @@ class BinanceAdapter(ExchangeAdapter):
             for k in data
         ]
 
+    @handle_network_errors
     def get_ticker(self, symbol: str) -> dict:
         path = "/fapi/v1/ticker/24hr" if self.futures else "/api/v3/ticker/24hr"
         d = self.client.get(path, {"symbol": symbol})
@@ -60,6 +62,7 @@ class BinanceAdapter(ExchangeAdapter):
             "volume": float(d["volume"]), "timestamp": d.get("closeTime", 0),
         }
 
+    @handle_network_errors
     def get_orderbook(self, symbol: str, depth: int = 20) -> dict:
         path = "/fapi/v1/depth" if self.futures else "/api/v3/depth"
         d = self.client.get(path, {"symbol": symbol, "limit": depth})
@@ -70,6 +73,7 @@ class BinanceAdapter(ExchangeAdapter):
 
     # --- Private (requires API key + secret) ---
 
+    @handle_network_errors
     def place_order(self, symbol: str, side: str, type: str, amount: float, price: float | None = None) -> dict:
         path = "/fapi/v1/order" if self.futures else "/api/v3/order"
         params = {"symbol": symbol, "side": side.upper(), "type": type.upper(), "quantity": amount}
@@ -78,12 +82,14 @@ class BinanceAdapter(ExchangeAdapter):
             params["timeInForce"] = "GTC"
         return self.client.post(path, params=self._sign(params))
 
+    @handle_network_errors
     def cancel_order(self, order_id: str) -> bool:
         path = "/fapi/v1/order" if self.futures else "/api/v3/order"
         params = {"orderId": order_id}
         self.client.delete(path, params=self._sign(params))
         return True
 
+    @handle_network_errors
     def get_balance(self) -> dict:
         if self.futures:
             data = self.client.get("/fapi/v2/balance", self._sign({}))
@@ -91,6 +97,7 @@ class BinanceAdapter(ExchangeAdapter):
         data = self.client.get("/api/v3/account", self._sign({}))
         return {b["asset"]: {"free": float(b["free"]), "locked": float(b["locked"])} for b in data.get("balances", []) if float(b["free"]) + float(b["locked"]) > 0}
 
+    @handle_network_errors
     def get_positions(self) -> list[dict]:
         if not self.futures:
             return []

@@ -10,7 +10,7 @@ import hmac
 import time
 import urllib.parse
 
-from src.exchanges.base import ExchangeAdapter
+from src.exchanges.base import ExchangeAdapter, handle_network_errors
 from src.exchanges.http_client import HttpClient
 
 
@@ -58,6 +58,7 @@ class KrakenAdapter(ExchangeAdapter):
 
     # --- Public ---
 
+    @handle_network_errors
     def get_ohlcv(self, symbol: str, timeframe: str = "1d", limit: int = 100) -> list[dict]:
         interval = self.TIMEFRAME_MAP.get(timeframe, 1440)
         data = self.client.get("/0/public/OHLC", {"pair": symbol, "interval": interval})
@@ -77,6 +78,7 @@ class KrakenAdapter(ExchangeAdapter):
             break
         return candles
 
+    @handle_network_errors
     def get_ticker(self, symbol: str) -> dict:
         data = self.client.get("/0/public/Ticker", {"pair": symbol})
         result = self._check_result(data)
@@ -91,6 +93,7 @@ class KrakenAdapter(ExchangeAdapter):
             }
         return {}
 
+    @handle_network_errors
     def get_orderbook(self, symbol: str, depth: int = 20) -> dict:
         data = self.client.get("/0/public/Depth", {"pair": symbol, "count": depth})
         result = self._check_result(data)
@@ -101,6 +104,7 @@ class KrakenAdapter(ExchangeAdapter):
             }
         return {"bids": [], "asks": []}
 
+    @handle_network_errors
     def get_trades(self, symbol: str, limit: int = 50) -> list[dict]:
         data = self.client.get("/0/public/Trades", {"pair": symbol, "count": limit})
         result = self._check_result(data)
@@ -119,6 +123,7 @@ class KrakenAdapter(ExchangeAdapter):
 
     # --- Private ---
 
+    @handle_network_errors
     def get_balance(self) -> dict:
         path = "/0/private/Balance"
         data = {"nonce": ""}
@@ -135,6 +140,7 @@ class KrakenAdapter(ExchangeAdapter):
             if float(bal) > 0
         }
 
+    @handle_network_errors
     def place_order(self, symbol: str, side: str, type: str, amount: float, price: float | None = None) -> dict:
         path = "/0/private/AddOrder"
         data = {
@@ -151,6 +157,7 @@ class KrakenAdapter(ExchangeAdapter):
         )
         return result
 
+    @handle_network_errors
     def cancel_order(self, order_id: str) -> bool:
         path = "/0/private/CancelOrder"
         data = {"txid": order_id}
@@ -160,6 +167,7 @@ class KrakenAdapter(ExchangeAdapter):
         )
         return True
 
+    @handle_network_errors
     def get_positions(self) -> list[dict]:
         path = "/0/private/OpenPositions"
         data = {}
