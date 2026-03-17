@@ -980,6 +980,35 @@ Examples:
     p_track = port_sub.add_parser("track", help="Track portfolio from file")
     p_track.add_argument("--file", "-f", required=True, help="Portfolio JSON file")
 
+    p_padd = port_sub.add_parser("add", help="Add a holding")
+    p_padd.add_argument("symbol", help="Ticker symbol (e.g. BTC, AAPL)")
+    p_padd.add_argument("quantity", type=float, help="Quantity to add")
+    p_padd.add_argument("--price", type=float, default=0.0, help="Buy price per unit")
+    p_padd.add_argument("--portfolio", default="main", help="Portfolio name")
+
+    p_prm = port_sub.add_parser("remove", help="Remove a holding")
+    p_prm.add_argument("symbol", help="Ticker symbol")
+    p_prm.add_argument("quantity", type=float, help="Quantity to remove")
+    p_prm.add_argument("--portfolio", default="main", help="Portfolio name")
+
+    p_pshow = port_sub.add_parser("show", help="Show portfolio with P&L")
+    p_pshow.add_argument("--portfolio", default="main", help="Portfolio name")
+
+    p_phist = port_sub.add_parser("history", help="Portfolio value history")
+    p_phist.add_argument("--portfolio", default="main", help="Portfolio name")
+
+    p_palert = port_sub.add_parser("alert", help="Set price alert")
+    p_palert.add_argument("symbol", help="Ticker symbol")
+    p_palert.add_argument("--above", type=float, default=None, help="Alert when price above")
+    p_palert.add_argument("--below", type=float, default=None, help="Alert when price below")
+    p_palert.add_argument("--portfolio", default="main", help="Portfolio name")
+
+    p_pexp = port_sub.add_parser("export", help="Export portfolio to CSV")
+    p_pexp.add_argument("--format", default="csv", choices=["csv"], help="Export format")
+    p_pexp.add_argument("--what", default="holdings", choices=["holdings", "history"])
+    p_pexp.add_argument("--output", "-o", default=None, help="Output file")
+    p_pexp.add_argument("--portfolio", default="main", help="Portfolio name")
+
     # price
     p = sub.add_parser("price", help="Get current prices")
     p.add_argument("--ticker", "-t", required=True, help="Comma-separated tickers")
@@ -2413,6 +2442,78 @@ def cmd_fear_greed(args):
     print()
 
 
+def _handle_portfolio_tracker(args):
+    """Handle portfolio tracker subcommands (add/remove/show/history/alert/export)."""
+    from src.portfolio.tracker import PortfolioTracker
+
+    pf_name = getattr(args, "portfolio", "main")
+    tracker = PortfolioTracker(portfolio_name=pf_name)
+    cmd = args.portfolio_cmd
+
+    if cmd == "add":
+        h = tracker.add(args.symbol, args.quantity, buy_price=args.price)
+        print(f"  ✅ Added {args.quantity} {args.symbol.upper()} @${args.price:.2f}")
+        print(f"     Now holding: {h.quantity} {h.symbol} (avg ${h.avg_cost:.2f})")
+
+    elif cmd == "remove":
+        h = tracker.remove(args.symbol, args.quantity)
+        if h:
+            print(f"  ✅ Removed {args.quantity} {args.symbol.upper()}")
+            print(f"     Remaining: {h.quantity} {h.symbol}")
+        else:
+            print(f"  ✅ Removed all {args.symbol.upper()}")
+
+    elif cmd == "show":
+        status = tracker.show()
+        tracker.snapshot()  # auto-snapshot on show
+        print(f"\n  📊 Portfolio: {status['portfolio']}\n")
+        if not status["holdings"]:
+            print("  No holdings. Use 'finclaw portfolio add' to start.")
+            return
+        print(f"  {'Symbol':<10} {'Qty':>8} {'AvgCost':>10} {'Price':>10} {'Value':>12} {'P&L':>10} {'%':>8}")
+        print("  " + "─" * 72)
+        for r in status["holdings"]:
+            print(f"  {r['symbol']:<10} {r['quantity']:>8.2f} {r['avg_cost']:>10.2f} {r['price']:>10.2f} "
+                  f"{r['value']:>12,.2f} {r['pnl']:>+10,.2f} {r['pnl_pct']:>+7.1%}")
+        print("  " + "─" * 72)
+        print(f"  {'TOTAL':<10} {'':>8} {'':>10} {'':>10} "
+              f"{status['total_value']:>12,.2f} {status['total_pnl']:>+10,.2f} {status['total_pnl_pct']:>+7.1%}")
+
+        # Show allocation
+        alloc = tracker.allocation()
+        if alloc:
+            print(f"\n  📈 Allocation:")
+            for a in alloc:
+                bar = "█" * int(a["pct"] / 2.5)
+                print(f"    {a['symbol']:<8} {bar} {a['pct']:.1f}%")
+
+    elif cmd == "history":
+        history = tracker.get_history()
+        if not history:
+            print("  No history yet. Use 'finclaw portfolio show' to record snapshots.")
+            return
+        print(f"\n  📅 Portfolio History ({pf_name})\n")
+        print(f"  {'Date':<12} {'Value':>14} {'Cost':>14} {'P&L':>12} {'Holdings':>8}")
+        print("  " + "─" * 62)
+        for s in history:
+            pnl = s["total_value"] - s["total_cost"]
+            print(f"  {s['date']:<12} {s['total_value']:>14,.2f} {s['total_cost']:>14,.2f} {pnl:>+12,.2f} {s['holdings_count']:>8}")
+
+    elif cmd == "alert":
+        alert = tracker.add_alert(args.symbol, above=args.above, below=args.below)
+        cond = f"above ${alert.threshold:,.2f}" if alert.condition == "above" else f"below ${alert.threshold:,.2f}"
+        print(f"  🔔 Alert set: {alert.symbol} {cond}")
+
+    elif cmd == "export":
+        what = getattr(args, "what", "holdings")
+        output = getattr(args, "output", None)
+        if output:
+            tracker.export_to_file(output, what=what)
+            print(f"  ✅ Exported {what} to {output}")
+        else:
+            print(tracker.export_csv(what=what))
+
+
 def main(argv=None):
     """Main CLI entry point."""
     # Fix encoding on Windows (cp936/GBK can't handle Unicode box-drawing chars)
@@ -2438,8 +2539,10 @@ def main(argv=None):
         elif args.command == "portfolio":
             if args.portfolio_cmd == "track":
                 cmd_portfolio_track(args)
+            elif args.portfolio_cmd in ("add", "remove", "show", "history", "alert", "export"):
+                _handle_portfolio_tracker(args)
             else:
-                print("  Usage: finclaw portfolio track --file portfolio.json")
+                print("  Usage: finclaw portfolio {add|remove|show|history|alert|export|track}")
         elif args.command == "price":
             cmd_price(args)
         elif args.command == "options":

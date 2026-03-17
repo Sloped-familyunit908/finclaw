@@ -1,171 +1,344 @@
-"""Portfolio Tracker - track positions, cash, and performance over time."""
+"""
+FinClaw Portfolio Tracker
+=========================
+Local portfolio tracker with JSON persistence, P&L tracking,
+allocation analysis, history snapshots, price alerts, and CSV export.
 
-from __future__ import annotations
+Storage: ~/.finclaw/portfolio.json (default)
+Supports multiple named portfolios via --portfolio flag.
+"""
 
 import csv
-import math
-from dataclasses import dataclass, field
-from datetime import date
-from typing import Any, Callable
+import io
+import json
+import os
+import time
+from dataclasses import dataclass, field, asdict
+from datetime import datetime, date
+from pathlib import Path
+from typing import Optional
 
 
 @dataclass
-class Position:
-    """A single holding."""
-    ticker: str
-    shares: float
-    avg_cost: float
-    entry_date: date
+class Holding:
+    symbol: str
+    quantity: float
+    avg_cost: float  # weighted average buy price
+    added_at: str = ""  # ISO timestamp
+
+    def __post_init__(self):
+        if not self.added_at:
+            self.added_at = datetime.now().isoformat()
 
 
 @dataclass
-class Snapshot:
-    """Daily portfolio snapshot."""
-    date: date
-    positions: dict[str, Position]
-    cash: float
+class Alert:
+    symbol: str
+    condition: str  # "above" or "below"
+    threshold: float
+    created_at: str = ""
+    triggered: bool = False
+
+    def __post_init__(self):
+        if not self.created_at:
+            self.created_at = datetime.now().isoformat()
+
+
+@dataclass
+class HistorySnapshot:
+    date: str  # YYYY-MM-DD
     total_value: float
+    total_cost: float
+    holdings_count: int
+
+
+@dataclass
+class PortfolioData:
+    name: str = "main"
+    holdings: list = field(default_factory=list)
+    alerts: list = field(default_factory=list)
+    history: list = field(default_factory=list)
+
+    def to_dict(self) -> dict:
+        return {
+            "name": self.name,
+            "holdings": [asdict(h) if isinstance(h, Holding) else h for h in self.holdings],
+            "alerts": [asdict(a) if isinstance(a, Alert) else a for a in self.alerts],
+            "history": [asdict(s) if isinstance(s, HistorySnapshot) else s for s in self.history],
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "PortfolioData":
+        pf = cls(name=data.get("name", "main"))
+        pf.holdings = [Holding(**h) if isinstance(h, dict) else h for h in data.get("holdings", [])]
+        pf.alerts = [Alert(**a) if isinstance(a, dict) else a for a in data.get("alerts", [])]
+        pf.history = [HistorySnapshot(**s) if isinstance(s, dict) else s for s in data.get("history", [])]
+        return pf
 
 
 class PortfolioTracker:
-    """Track a portfolio over time with buy/sell/snapshot/performance."""
+    """Manage a local portfolio stored as JSON."""
 
-    def __init__(self, initial_capital: float = 100_000.0):
-        self.initial_capital = initial_capital
-        self.cash = initial_capital
-        self.positions: dict[str, Position] = {}
-        self.history: list[Snapshot] = []
-        self.transactions: list[dict[str, Any]] = []
+    def __init__(self, storage_path: Optional[str] = None, portfolio_name: str = "main",
+                 price_fetcher=None):
+        """
+        Args:
+            storage_path: Path to the portfolio JSON file. Default: ~/.finclaw/portfolio.json
+            portfolio_name: Name of the portfolio within the file.
+            price_fetcher: Callable(symbol) -> float. Injected for testing.
+        """
+        if storage_path is None:
+            storage_path = os.path.join(Path.home(), ".finclaw", "portfolio.json")
+        self.storage_path = storage_path
+        self.portfolio_name = portfolio_name
+        self._price_fetcher = price_fetcher or self._default_price_fetcher
+        self._data: Optional[PortfolioData] = None
 
-    # ------------------------------------------------------------------
-    # Position management (original API)
-    # ------------------------------------------------------------------
+    # ── persistence ─────────────────────────────────────────────
+    def _ensure_dir(self):
+        os.makedirs(os.path.dirname(self.storage_path), exist_ok=True)
 
-    def buy(self, ticker: str, shares: float, price: float, dt: date) -> None:
-        """Buy *shares* of *ticker* at *price* on *dt*."""
-        cost = shares * price
-        if cost > self.cash:
-            raise ValueError(f"Insufficient cash: need {cost:.2f}, have {self.cash:.2f}")
-        self.cash -= cost
-        if ticker in self.positions:
-            pos = self.positions[ticker]
-            total_shares = pos.shares + shares
-            pos.avg_cost = (pos.avg_cost * pos.shares + price * shares) / total_shares
-            pos.shares = total_shares
+    def _load_all(self) -> dict:
+        """Load the entire JSON file (may contain multiple portfolios)."""
+        if not os.path.exists(self.storage_path):
+            return {}
+        with open(self.storage_path, "r") as f:
+            return json.load(f)
+
+    def _save_all(self, all_data: dict):
+        self._ensure_dir()
+        with open(self.storage_path, "w") as f:
+            json.dump(all_data, f, indent=2, default=str)
+
+    def load(self) -> PortfolioData:
+        all_data = self._load_all()
+        raw = all_data.get(self.portfolio_name, {"name": self.portfolio_name})
+        self._data = PortfolioData.from_dict(raw)
+        return self._data
+
+    def save(self):
+        if self._data is None:
+            return
+        all_data = self._load_all()
+        all_data[self.portfolio_name] = self._data.to_dict()
+        self._save_all(all_data)
+
+    @property
+    def data(self) -> PortfolioData:
+        if self._data is None:
+            self.load()
+        return self._data
+
+    # ── price fetching ──────────────────────────────────────────
+    @staticmethod
+    def _default_price_fetcher(symbol: str) -> Optional[float]:
+        """Fetch latest price via yfinance (best-effort)."""
+        try:
+            import yfinance as yf
+            import logging
+            import warnings
+            logging.getLogger("yfinance").setLevel(logging.CRITICAL)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                t = yf.Ticker(symbol)
+                hist = t.history(period="5d")
+            if hist is not None and not hist.empty:
+                return float(hist["Close"].iloc[-1])
+        except Exception:
+            pass
+        return None
+
+    def get_price(self, symbol: str) -> Optional[float]:
+        return self._price_fetcher(symbol)
+
+    # ── add / remove ────────────────────────────────────────────
+    def add(self, symbol: str, quantity: float, buy_price: float = 0.0) -> Holding:
+        """Add a holding. If symbol exists, update weighted avg cost."""
+        symbol = symbol.upper()
+        if quantity <= 0:
+            raise ValueError("Quantity must be positive")
+        if buy_price < 0:
+            raise ValueError("Buy price cannot be negative")
+
+        existing = self._find_holding(symbol)
+        if existing:
+            total_cost = existing.avg_cost * existing.quantity + buy_price * quantity
+            existing.quantity += quantity
+            existing.avg_cost = total_cost / existing.quantity if existing.quantity > 0 else 0
         else:
-            self.positions[ticker] = Position(ticker=ticker, shares=shares, avg_cost=price, entry_date=dt)
-        self.transactions.append({"type": "buy", "ticker": ticker, "shares": shares, "price": price, "date": dt})
+            h = Holding(symbol=symbol, quantity=quantity, avg_cost=buy_price)
+            self.data.holdings.append(h)
+            existing = h
 
-    def sell(self, ticker: str, shares: float, price: float, dt: date) -> None:
-        """Sell *shares* of *ticker* at *price* on *dt*."""
-        if ticker not in self.positions or self.positions[ticker].shares < shares:
-            raise ValueError(f"Insufficient shares for {ticker}")
-        pos = self.positions[ticker]
-        self.cash += shares * price
-        pos.shares -= shares
-        if pos.shares <= 0:
-            del self.positions[ticker]
-        self.transactions.append({"type": "sell", "ticker": ticker, "shares": shares, "price": price, "date": dt})
+        self.save()
+        return existing
 
-    # ------------------------------------------------------------------
-    # Simplified API (from spec)
-    # ------------------------------------------------------------------
+    def remove(self, symbol: str, quantity: float) -> Optional[Holding]:
+        """Remove quantity from a holding. Removes entirely if quantity >= held."""
+        symbol = symbol.upper()
+        if quantity <= 0:
+            raise ValueError("Quantity must be positive")
 
-    def add_position(self, ticker: str, shares: float, price: float) -> None:
-        """Add or increase a position (no cash accounting)."""
-        if ticker in self.positions:
-            pos = self.positions[ticker]
-            total = pos.shares + shares
-            pos.avg_cost = (pos.avg_cost * pos.shares + price * shares) / total if total > 0 else price
-            pos.shares = total
-        else:
-            self.positions[ticker] = Position(ticker=ticker, shares=shares, avg_cost=price, entry_date=date.today())
+        existing = self._find_holding(symbol)
+        if existing is None:
+            raise ValueError(f"No holding found for {symbol}")
 
-    def update_prices(self, prices: dict[str, float]) -> None:
-        """Update current market prices and record a snapshot."""
-        self.snapshot(date.today(), prices)
+        existing.quantity -= quantity
+        if existing.quantity <= 1e-12:
+            self.data.holdings = [h for h in self.data.holdings if h.symbol != symbol]
+            existing = None
 
-    def summary(self) -> dict[str, Any]:
-        """Return portfolio summary using latest snapshot if available."""
-        if not self.positions:
-            return {"total_value": self.cash, "pnl": 0.0, "allocation": {}, "daily_change": 0.0}
+        self.save()
+        return existing
 
-        # Use last snapshot for valuation, or fall back to avg_cost
-        if self.history:
-            total = self.history[-1].total_value
-        else:
-            total = self.cash + sum(p.shares * p.avg_cost for p in self.positions.values())
+    def _find_holding(self, symbol: str) -> Optional[Holding]:
+        for h in self.data.holdings:
+            if h.symbol == symbol:
+                return h
+        return None
 
-        cost_basis = sum(p.shares * p.avg_cost for p in self.positions.values())
-        equity = total - self.cash
-        pnl = equity - cost_basis
+    # ── show / P&L ──────────────────────────────────────────────
+    def show(self) -> dict:
+        """Return current portfolio status with P&L per holding and total."""
+        rows = []
+        total_value = 0.0
+        total_cost = 0.0
 
-        allocation: dict[str, float] = {}
-        for t, p in self.positions.items():
-            val = p.shares * p.avg_cost  # Approximate if no snapshot
-            allocation[t] = val / total if total > 0 else 0.0
+        for h in self.data.holdings:
+            price = self.get_price(h.symbol)
+            if price is None:
+                price = h.avg_cost  # fallback
 
-        daily_change = 0.0
-        if len(self.history) >= 2:
-            prev = self.history[-2].total_value
-            daily_change = (total / prev - 1.0) if prev > 0 else 0.0
+            value = h.quantity * price
+            cost = h.quantity * h.avg_cost
+            pnl = value - cost
+            pnl_pct = (pnl / cost) if cost > 0 else 0.0
+
+            rows.append({
+                "symbol": h.symbol,
+                "quantity": h.quantity,
+                "avg_cost": h.avg_cost,
+                "price": price,
+                "value": value,
+                "cost": cost,
+                "pnl": pnl,
+                "pnl_pct": pnl_pct,
+            })
+            total_value += value
+            total_cost += cost
+
+        total_pnl = total_value - total_cost
+        total_pnl_pct = (total_pnl / total_cost) if total_cost > 0 else 0.0
 
         return {
-            "total_value": round(total, 2),
-            "pnl": round(pnl, 2),
-            "allocation": allocation,
-            "daily_change": round(daily_change, 6),
+            "portfolio": self.portfolio_name,
+            "holdings": rows,
+            "total_value": total_value,
+            "total_cost": total_cost,
+            "total_pnl": total_pnl,
+            "total_pnl_pct": total_pnl_pct,
         }
 
-    def export_csv(self, path: str) -> None:
-        """Export transaction history to CSV."""
-        with open(path, "w", newline="") as f:
-            writer = csv.DictWriter(f, fieldnames=["type", "ticker", "shares", "price", "date"])
-            writer.writeheader()
-            for t in self.transactions:
-                writer.writerow(t)
+    # ── allocation ──────────────────────────────────────────────
+    def allocation(self) -> list[dict]:
+        """Return % allocation by asset."""
+        status = self.show()
+        total = status["total_value"]
+        if total <= 0:
+            return []
+        return [
+            {"symbol": r["symbol"], "value": r["value"],
+             "pct": r["value"] / total * 100}
+            for r in status["holdings"]
+        ]
 
-    # ------------------------------------------------------------------
-    # Snapshot & performance (original)
-    # ------------------------------------------------------------------
+    # ── history snapshots ───────────────────────────────────────
+    def snapshot(self):
+        """Take a daily value snapshot and append to history."""
+        status = self.show()
+        today = date.today().isoformat()
 
-    def snapshot(self, dt: date, prices: dict[str, float]) -> Snapshot:
-        """Record a daily snapshot given current *prices*."""
-        equity = sum(pos.shares * prices.get(pos.ticker, pos.avg_cost) for pos in self.positions.values())
-        total = self.cash + equity
-        snap = Snapshot(
-            date=dt,
-            positions={t: Position(p.ticker, p.shares, p.avg_cost, p.entry_date) for t, p in self.positions.items()},
-            cash=self.cash,
-            total_value=total,
+        # Replace today's snapshot if exists
+        self.data.history = [s for s in self.data.history if s.date != today]
+        snap = HistorySnapshot(
+            date=today,
+            total_value=status["total_value"],
+            total_cost=status["total_cost"],
+            holdings_count=len(status["holdings"]),
         )
-        self.history.append(snap)
+        self.data.history.append(snap)
+        self.save()
         return snap
 
-    def get_performance(self) -> dict[str, Any]:
-        """Return summary performance metrics from snapshot history."""
-        if not self.history:
-            return {"error": "no snapshots"}
-        values = [s.total_value for s in self.history]
-        total_return = (values[-1] / self.initial_capital) - 1.0
-        peak = values[0]
-        max_dd = 0.0
-        for v in values:
-            if v > peak:
-                peak = v
-            dd = (peak - v) / peak
-            if dd > max_dd:
-                max_dd = dd
-        daily_returns = [(values[i] / values[i - 1]) - 1.0 for i in range(1, len(values))]
-        avg_daily = sum(daily_returns) / len(daily_returns) if daily_returns else 0.0
-        std_daily = (sum((r - avg_daily) ** 2 for r in daily_returns) / max(len(daily_returns) - 1, 1)) ** 0.5 if daily_returns else 0.0
-        sharpe = (avg_daily / std_daily * math.sqrt(252)) if std_daily > 0 else 0.0
-        return {
-            "total_return": total_return,
-            "max_drawdown": max_dd,
-            "sharpe_ratio": sharpe,
-            "num_snapshots": len(self.history),
-            "start_date": self.history[0].date,
-            "end_date": self.history[-1].date,
-            "final_value": values[-1],
-        }
+    def get_history(self) -> list[dict]:
+        return [asdict(s) if isinstance(s, HistorySnapshot) else s for s in self.data.history]
+
+    # ── alerts ──────────────────────────────────────────────────
+    def add_alert(self, symbol: str, above: Optional[float] = None,
+                  below: Optional[float] = None) -> Alert:
+        symbol = symbol.upper()
+        if above is not None:
+            alert = Alert(symbol=symbol, condition="above", threshold=above)
+        elif below is not None:
+            alert = Alert(symbol=symbol, condition="below", threshold=below)
+        else:
+            raise ValueError("Specify --above or --below threshold")
+        self.data.alerts.append(alert)
+        self.save()
+        return alert
+
+    def check_alerts(self) -> list[dict]:
+        """Check all alerts against current prices. Return triggered ones."""
+        triggered = []
+        for alert in self.data.alerts:
+            if alert.triggered:
+                continue
+            price = self.get_price(alert.symbol)
+            if price is None:
+                continue
+            fire = False
+            if alert.condition == "above" and price >= alert.threshold:
+                fire = True
+            elif alert.condition == "below" and price <= alert.threshold:
+                fire = True
+            if fire:
+                alert.triggered = True
+                triggered.append({
+                    "symbol": alert.symbol,
+                    "condition": alert.condition,
+                    "threshold": alert.threshold,
+                    "price": price,
+                })
+        if triggered:
+            self.save()
+        return triggered
+
+    def list_alerts(self) -> list[dict]:
+        return [asdict(a) if isinstance(a, Alert) else a for a in self.data.alerts]
+
+    # ── export ──────────────────────────────────────────────────
+    def export_csv(self, what: str = "holdings") -> str:
+        """Export holdings or history as CSV string."""
+        output = io.StringIO()
+        if what == "holdings":
+            status = self.show()
+            writer = csv.DictWriter(output, fieldnames=[
+                "symbol", "quantity", "avg_cost", "price", "value", "cost", "pnl", "pnl_pct",
+            ])
+            writer.writeheader()
+            for row in status["holdings"]:
+                writer.writerow({k: round(v, 4) if isinstance(v, float) else v for k, v in row.items()})
+        elif what == "history":
+            history = self.get_history()
+            if history:
+                writer = csv.DictWriter(output, fieldnames=list(history[0].keys()))
+                writer.writeheader()
+                for row in history:
+                    writer.writerow(row)
+        return output.getvalue()
+
+    def export_to_file(self, filepath: str, what: str = "holdings"):
+        """Write CSV export to a file."""
+        content = self.export_csv(what)
+        with open(filepath, "w", newline="") as f:
+            f.write(content)
