@@ -147,82 +147,105 @@ def cmd_screen(args):
     from src.screener.stock_screener import StockScreener, StockData
     import numpy as np
 
-    criteria_str = args.criteria
-    universe = args.universe
-
-    # Parse criteria like "rsi<30,pe<15,market_cap>1B"
+    # Build filters from both --criteria string and individual flags
     filters = {}
-    for crit in criteria_str.split(","):
-        crit = crit.strip()
-        for op in ["<=", ">=", "<", ">"]:
-            if op in crit:
-                key, val = crit.split(op, 1)
-                key = key.strip()
-                val = val.strip()
-                # Parse value with suffix
-                multiplier = 1
-                if val.upper().endswith("B"):
-                    multiplier = 1e9
-                    val = val[:-1]
-                elif val.upper().endswith("M"):
-                    multiplier = 1e6
-                    val = val[:-1]
-                elif val.upper().endswith("K"):
-                    multiplier = 1e3
-                    val = val[:-1]
-                filters[key] = (op, float(val) * multiplier)
-                break
 
-    # Load universe tickers
-    tickers = _get_universe_tickers(universe)
-    print(f"\n  Screening {len(tickers)} stocks with criteria: {criteria_str}")
+    # Parse --criteria string like "rsi<30,pe<15,market_cap>1B"
+    criteria_str = args.criteria or ""
+    if criteria_str:
+        for crit in criteria_str.split(","):
+            crit = crit.strip()
+            for op in ["<=", ">=", "<", ">"]:
+                if op in crit:
+                    key, val = crit.split(op, 1)
+                    key = key.strip()
+                    val = val.strip()
+                    multiplier = 1
+                    if val.upper().endswith("B"):
+                        multiplier = 1e9; val = val[:-1]
+                    elif val.upper().endswith("M"):
+                        multiplier = 1e6; val = val[:-1]
+                    elif val.upper().endswith("K"):
+                        multiplier = 1e3; val = val[:-1]
+                    op_key = {"<": "lt", ">": "gt", "<=": "lte", ">=": "gte"}[op]
+                    filters.setdefault(key, {})[op_key] = float(val) * multiplier
+                    break
 
-    results = []
-    for ticker in tickers[:50]:  # Limit to avoid rate limits
+    # Apply individual flags
+    min_vol = getattr(args, "min_volume", None)
+    if min_vol is not None:
+        filters.setdefault("volume", {})["gte"] = min_vol
+    max_vol = getattr(args, "max_volume", None)
+    if max_vol is not None:
+        filters.setdefault("volume", {})["lte"] = max_vol
+    min_price = getattr(args, "min_price", None)
+    if min_price is not None:
+        filters.setdefault("price", {})["gte"] = min_price
+    max_price = getattr(args, "max_price", None)
+    if max_price is not None:
+        filters.setdefault("price", {})["lte"] = max_price
+    change_above = getattr(args, "change_above", None)
+    if change_above is not None:
+        filters.setdefault("change_pct", {})["gte"] = change_above
+    change_below = getattr(args, "change_below", None)
+    if change_below is not None:
+        filters.setdefault("change_pct", {})["lte"] = change_below
+    rsi_above = getattr(args, "rsi_above", None)
+    if rsi_above is not None:
+        filters.setdefault("rsi_14", {})["gte"] = rsi_above
+    rsi_below = getattr(args, "rsi_below", None)
+    if rsi_below is not None:
+        filters.setdefault("rsi_14", {})["lte"] = rsi_below
+    min_mcap = getattr(args, "min_mcap", None)
+    if min_mcap is not None:
+        filters.setdefault("market_cap", {})["gte"] = min_mcap
+    max_mcap = getattr(args, "max_mcap", None)
+    if max_mcap is not None:
+        filters.setdefault("market_cap", {})["lte"] = max_mcap
+
+    if not filters:
+        print("  No screening criteria specified. Use --criteria or individual flags.")
+        print("  Example: finclaw screen --min-volume 1000000 --change-above 5")
+        return []
+
+    universe_name = args.universe
+    tickers = _get_universe_tickers(universe_name)
+    limit = getattr(args, "limit", 20)
+    print(f"\n  Screening {len(tickers)} stocks with {len(filters)} filter(s)")
+
+    # Build StockData universe
+    screener = StockScreener()
+    stock_universe = []
+    for ticker in tickers:
         try:
-            df = _fetch_data(ticker, period="1y")
+            df = _fetch_data(ticker, period="3mo")
             if df is None or len(df) < 30:
                 continue
-
             close = np.array(df["Close"].tolist(), dtype=np.float64)
-            from src.ta import rsi as calc_rsi
-            rsi_val = calc_rsi(close, 14)[-1]
-
-            # Get PE and market cap from yfinance
-            import yfinance as yf
-            info = yf.Ticker(ticker).info
-            pe = info.get("trailingPE")
-            mcap = info.get("marketCap")
-
-            # Check filters
-            passed = True
-            values = {"rsi": rsi_val, "pe": pe, "market_cap": mcap}
-            for key, (op, threshold) in filters.items():
-                val = values.get(key)
-                if val is None:
-                    passed = False
-                    break
-                if op == "<" and not (val < threshold):
-                    passed = False
-                elif op == ">" and not (val > threshold):
-                    passed = False
-                elif op == "<=" and not (val <= threshold):
-                    passed = False
-                elif op == ">=" and not (val >= threshold):
-                    passed = False
-
-            if passed:
-                results.append({
-                    "ticker": ticker,
-                    "rsi": round(rsi_val, 1) if not math.isnan(rsi_val) else None,
-                    "pe": round(pe, 1) if pe else None,
-                    "market_cap": mcap,
-                })
-                print(f"  ✓ {ticker}: RSI={rsi_val:.1f}, PE={pe}, MCap={mcap:,.0f}" if mcap else f"  ✓ {ticker}")
+            volume = np.array(df["Volume"].tolist(), dtype=np.float64) if "Volume" in df.columns else None
+            stock_universe.append(StockData(ticker=ticker, close=close, volume=volume))
         except Exception:
             continue
 
-    print(f"\n  Found {len(results)} stocks matching criteria.")
+    results = screener.screen(stock_universe, filters, limit=limit)
+
+    if results:
+        print(f"\n  Found {len(results)} matches:\n")
+        for r in results:
+            parts = [f"  {r['ticker']:<10}"]
+            if "price" in r:
+                parts.append(f"Price={r['price']:.2f}")
+            if "change_pct" in r:
+                parts.append(f"Chg={r['change_pct']:+.2f}%")
+            if "rsi_14" in r:
+                parts.append(f"RSI={r['rsi_14']:.1f}")
+            if "volume" in r:
+                parts.append(f"Vol={r['volume']:,.0f}")
+            print(" | ".join(parts))
+    else:
+        print("  No stocks matched the criteria.")
+
+    print()
     return results
 
 
@@ -966,8 +989,19 @@ Examples:
 
     # screen
     p = sub.add_parser("screen", help="Screen stocks by criteria")
-    p.add_argument("--criteria", required=True, help='Filter criteria, e.g. "rsi<30,pe<15"')
+    p.add_argument("--criteria", default=None, help='Filter criteria, e.g. "rsi<30,pe<15"')
     p.add_argument("--universe", default="sp500", help="Stock universe")
+    p.add_argument("--min-volume", type=float, default=None, help="Minimum volume")
+    p.add_argument("--max-volume", type=float, default=None, help="Maximum volume")
+    p.add_argument("--min-price", type=float, default=None, help="Minimum price")
+    p.add_argument("--max-price", type=float, default=None, help="Maximum price")
+    p.add_argument("--change-above", type=float, default=None, help="Daily change %% above")
+    p.add_argument("--change-below", type=float, default=None, help="Daily change %% below")
+    p.add_argument("--rsi-above", type=float, default=None, help="RSI above")
+    p.add_argument("--rsi-below", type=float, default=None, help="RSI below")
+    p.add_argument("--min-mcap", type=float, default=None, help="Minimum market cap")
+    p.add_argument("--max-mcap", type=float, default=None, help="Maximum market cap")
+    p.add_argument("--limit", "-l", type=int, default=20, help="Number of results")
 
     # analyze
     p = sub.add_parser("analyze", help="Technical analysis")
@@ -1132,6 +1166,23 @@ Examples:
     # fear-greed
     p_fng = sub.add_parser("fear-greed", help="Current Fear & Greed Index")
     p_fng.add_argument("--history", type=int, default=1, help="Number of historical data points")
+
+    # watch (shortcut for watchlist with enhanced UX)
+    p_w = sub.add_parser("watch", help="Quick watchlist commands")
+    p_w.add_argument("watch_action", nargs="?", default="show",
+                      choices=["show", "add", "remove", "create", "list"],
+                      help="Action to perform")
+    p_w.add_argument("watch_args", nargs="*", help="Tickers or watchlist name")
+    p_w.add_argument("--name", "-n", default="default", help="Watchlist name")
+
+    # gainers / losers
+    p_gain = sub.add_parser("gainers", help="Top daily gainers")
+    p_gain.add_argument("--limit", "-l", type=int, default=10, help="Number of results")
+    p_gain.add_argument("--universe", default="sp500", help="Stock universe")
+
+    p_lose = sub.add_parser("losers", help="Top daily losers")
+    p_lose.add_argument("--limit", "-l", type=int, default=10, help="Number of results")
+    p_lose.add_argument("--universe", default="sp500", help="Stock universe")
 
     # interactive
     sub.add_parser("interactive", help="Launch interactive mode")
@@ -2514,6 +2565,118 @@ def _handle_portfolio_tracker(args):
             print(tracker.export_csv(what=what))
 
 
+def cmd_watch(args):
+    """Handle 'finclaw watch' shortcut commands."""
+    from src.watchlist.manager import WatchlistManager
+
+    wm = WatchlistManager()
+    action = args.watch_action
+    extras = args.watch_args or []
+    name = args.name
+
+    if action == "show":
+        # If extras provided, treat first as watchlist name
+        if extras:
+            name = extras[0]
+        wl = wm.get(name)
+        if wl is None:
+            if name == "default":
+                wm.create("default")
+                print("  Created empty 'default' watchlist. Use 'finclaw watch add AAPL MSFT' to add tickers.")
+            else:
+                print(f"  Watchlist '{name}' not found. Create it with: finclaw watch create {name}")
+            return
+        if not wl.tickers:
+            print(f"  Watchlist '{name}' is empty. Use 'finclaw watch add TICKER' to add tickers.")
+            return
+        quotes = wm.fetch_quotes(name)
+        print(wm.format_table(name, quotes))
+
+    elif action == "add":
+        if not extras:
+            print("  Usage: finclaw watch add TICKER1 TICKER2 ...")
+            return
+        wl = wm.get(name)
+        if wl is None:
+            wm.create(name)
+        wm.add_tickers(name, extras)
+        print(f"  Added {', '.join(t.upper() for t in extras)} to '{name}'")
+
+    elif action == "remove":
+        if not extras:
+            print("  Usage: finclaw watch remove TICKER")
+            return
+        for t in extras:
+            try:
+                wm.remove_ticker(name, t)
+                print(f"  Removed {t.upper()} from '{name}'")
+            except KeyError:
+                print(f"  Watchlist '{name}' not found")
+
+    elif action == "create":
+        wl_name = extras[0] if extras else name
+        tickers = extras[1:] if len(extras) > 1 else []
+        wm.create(wl_name, tickers)
+        print(f"  Created watchlist '{wl_name}'" + (f" with {len(tickers)} tickers" if tickers else ""))
+
+    elif action == "list":
+        names = wm.list_all()
+        if not names:
+            print("  No watchlists. Create one with: finclaw watch create <name>")
+        else:
+            for n in names:
+                wl = wm.get(n)
+                count = len(wl.tickers) if wl else 0
+                print(f"  {n} ({count} tickers)")
+
+
+def cmd_gainers(args):
+    """Show top daily gainers."""
+    from src.screener.stock_screener import StockScreener, StockData
+    _show_movers(args, mode="gainers")
+
+
+def cmd_losers(args):
+    """Show top daily losers."""
+    _show_movers(args, mode="losers")
+
+
+def _show_movers(args, mode: str = "gainers"):
+    """Shared logic for gainers/losers."""
+    from src.screener.stock_screener import StockScreener, StockData
+    import numpy as np
+
+    tickers = _get_universe_tickers(args.universe)
+    screener = StockScreener()
+    universe = []
+
+    for ticker in tickers:
+        df = _fetch_data(ticker, period="5d")
+        if df is None or len(df) < 2:
+            continue
+        close = np.array(df["Close"].tolist(), dtype=np.float64)
+        volume = np.array(df["Volume"].tolist(), dtype=np.float64) if "Volume" in df.columns else None
+        universe.append(StockData(ticker=ticker, close=close, volume=volume))
+
+    if mode == "gainers":
+        results = screener.screen_gainers(universe, limit=args.limit)
+        label = "Gainers"
+        color_code = "\033[92m"
+    else:
+        results = screener.screen_losers(universe, limit=args.limit)
+        label = "Losers"
+        color_code = "\033[91m"
+
+    reset = "\033[0m"
+    print(f"\n  Top {label} ({args.universe})\n")
+    print(f"  {'#':<4} {'Ticker':<10} {'Price':>10} {'Change%':>10} {'Volume':>14}")
+    print("  " + "-" * 52)
+    for i, r in enumerate(results, 1):
+        pct_str = f"{r['change_pct']:>+9.2f}%"
+        print(f"  {i:<4} {r['ticker']:<10} {r['price']:>10.2f} {color_code}{pct_str}{reset} {r['volume']:>14,}")
+    print()
+
+
 def main(argv=None):
     """Main CLI entry point."""
     # Fix encoding on Windows (cp936/GBK can't handle Unicode box-drawing chars)
@@ -2836,6 +2999,12 @@ def test_signals():
                 print("  Usage: finclaw mcp [serve|config]")
         elif args.command == "watchlist":
             cmd_watchlist(args)
+        elif args.command == "watch":
+            cmd_watch(args)
+        elif args.command == "gainers":
+            cmd_gainers(args)
+        elif args.command == "losers":
+            cmd_losers(args)
         elif args.command == "sentiment":
             cmd_sentiment(args)
         elif args.command == "reddit-buzz":

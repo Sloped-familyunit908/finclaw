@@ -1,347 +1,685 @@
 # FinClaw API Reference
 
-## Technical Analysis (`src.ta`)
-
-All functions accept NumPy arrays and return NumPy arrays.
-
-### Moving Averages
-
-| Function | Signature | Description |
-|---|---|---|
-| `sma(data, period)` | `Array → Array` | Simple Moving Average |
-| `ema(data, period)` | `Array → Array` | Exponential Moving Average |
-| `wma(data, period)` | `Array → Array` | Weighted Moving Average |
-| `dema(data, period)` | `Array → Array` | Double EMA |
-| `tema(data, period)` | `Array → Array` | Triple EMA |
-
-### Oscillators
-
-| Function | Signature | Returns |
-|---|---|---|
-| `rsi(data, period=14)` | `Array → Array` | Relative Strength Index (0-100) |
-| `stochastic_rsi(data, rsi_period=14, stoch_period=14)` | `Array → (K, D)` | Stochastic RSI tuple |
-| `mfi(high, low, close, volume, period=14)` | `4×Array → Array` | Money Flow Index |
-
-### Trend
-
-| Function | Signature | Returns |
-|---|---|---|
-| `macd(data, fast=12, slow=26, signal_period=9)` | `Array → (line, signal, histogram)` | MACD tuple |
-| `adx(high, low, close, period=14)` | `3×Array → Array` | Average Directional Index |
-| `parabolic_sar(high, low, af_start=0.02, af_step=0.02, af_max=0.2)` | `2×Array → Array` | Parabolic SAR |
-| `ichimoku(high, low, close, ...)` | `3×Array → dict` | Ichimoku Cloud (tenkan, kijun, senkou_a, senkou_b, chikou) |
-
-### Volatility
-
-| Function | Signature | Returns |
-|---|---|---|
-| `bollinger_bands(data, period=20, num_std=2.0)` | `Array → dict` | `{upper, middle, lower, pct_b, bandwidth}` |
-| `atr(high, low, close, period=14)` | `3×Array → Array` | Average True Range |
-
-### Volume
-
-| Function | Signature | Returns |
-|---|---|---|
-| `obv(close, volume)` | `2×Array → Array` | On-Balance Volume |
-| `cmf(high, low, close, volume, period=20)` | `4×Array → Array` | Chaikin Money Flow |
+> Version 5.1.0 — Complete API documentation for FinClaw's programmatic interfaces.
 
 ---
 
-## Strategies (`src.strategies`)
+## Table of Contents
 
-All strategies implement a common interface with `generate_signal(prices, **kwargs)` returning a signal score.
-
-### `MomentumJTStrategy`
-
-Jegadeesh-Titman cross-sectional momentum.
-
-```python
-from src.strategies import MomentumJTStrategy
-s = MomentumJTStrategy(lookback=12, holding=1)
-signal = s.generate_signal(prices)
-```
-
-### `MeanReversionStrategy`
-
-Bollinger Band + RSI mean reversion.
-
-```python
-from src.strategies import MeanReversionStrategy
-s = MeanReversionStrategy(bb_period=20, rsi_period=14)
-signal = s.generate_signal(prices)
-```
-
-### `PairsTradingStrategy`
-
-Statistical arbitrage on correlated pairs.
-
-```python
-from src.strategies import PairsTradingStrategy
-s = PairsTradingStrategy(lookback=60, entry_z=2.0, exit_z=0.5)
-signal = s.generate_signal(prices_a, prices_b)
-```
-
-### `TrendFollowingStrategy`
-
-ADX + MACD trend detection.
-
-```python
-from src.strategies import TrendFollowingStrategy
-s = TrendFollowingStrategy(adx_threshold=25)
-signal = s.generate_signal(prices, high=high, low=low)
-```
-
-### `ValueMomentumStrategy`
-
-Combined value and momentum scoring.
-
-```python
-from src.strategies import ValueMomentumStrategy
-s = ValueMomentumStrategy()
-signal = s.generate_signal(prices, fundamentals=fundamentals)
-```
-
-### `StrategyCombiner`
-
-Weighted ensemble of multiple strategies.
-
-```python
-from src.strategies import StrategyCombiner, MomentumAdapter, MeanReversionAdapter
-combiner = StrategyCombiner()
-combiner.add(MomentumAdapter(), weight=0.6)
-combiner.add(MeanReversionAdapter(), weight=0.4)
-signal = combiner.generate_signal(prices)
-```
+- [CLI Reference](#cli-reference)
+- [Python API](#python-api)
+- [Strategy API](#strategy-api)
+- [Exchange Adapter API](#exchange-adapter-api)
+- [Plugin System API](#plugin-system-api)
+- [AI Strategy Generator API](#ai-strategy-generator-api)
+- [MCP Server](#mcp-server)
+- [BTC Metrics & Crypto Tools](#btc-metrics--crypto-tools)
+- [A2A Protocol](#a2a-protocol)
 
 ---
 
-## Backtesting (`src.backtesting`)
+## CLI Reference
 
-### `WalkForwardAnalyzer`
+FinClaw uses argparse-based subcommands. Run `finclaw --help` for the full list.
 
-```python
-WalkForwardAnalyzer(n_splits=5, train_ratio=0.7)
-  .analyze(strategy, prices) → dict
-```
+### Core Commands
 
-Walk-forward optimization with configurable train/test splits.
+| Command | Description | Example |
+|---------|-------------|---------|
+| `quote` | Real-time quotes from any exchange | `finclaw quote AAPL TSLA --exchange yahoo` |
+| `analyze` | Technical analysis with indicators | `finclaw analyze --ticker AAPL --indicators rsi,macd,bollinger` |
+| `backtest` | Strategy backtesting | `finclaw backtest -t AAPL,MSFT -s momentum --start 2023-01-01` |
+| `chart` | Terminal charts (candle/line/bar/histogram) | `finclaw chart AAPL --type candle --period 6mo` |
+| `price` | Current prices for multiple tickers | `finclaw price --ticker AAPL,MSFT,GOOGL` |
+| `screen` | Screen stocks by criteria | `finclaw screen --criteria "rsi<30,pe<15" --universe sp500` |
+| `compare` | Compare multiple strategies | `finclaw compare -s momentum,mean_reversion -d AAPL -p 1y` |
+| `export` | Export OHLCV + indicators to CSV/JSON | `finclaw export -t AAPL -p 1y -f csv -i sma20,rsi,macd` |
+| `demo` | Showcase all features (no API key needed) | `finclaw demo` |
+| `info` | Show system info and version | `finclaw info` |
 
-### `MonteCarloSimulator`
+### Paper Trading
 
-```python
-MonteCarloSimulator(n_simulations=1000, seed=None)
-  .simulate(returns) → dict
-```
+| Command | Description | Example |
+|---------|-------------|---------|
+| `paper start` | Start a paper trading session | `finclaw paper start --balance 100000` |
+| `paper buy` | Buy shares | `finclaw paper buy AAPL 50` |
+| `paper sell` | Sell shares | `finclaw paper sell MSFT 20` |
+| `paper portfolio` | Show portfolio | `finclaw paper portfolio` |
+| `paper pnl` | Show P&L | `finclaw paper pnl` |
+| `paper history` | Show trade history | `finclaw paper history` |
+| `paper dashboard` | Visual dashboard | `finclaw paper dashboard` |
+| `paper run-strategy` | Run a strategy | `finclaw paper run-strategy golden-cross --symbols AAPL,MSFT` |
+| `paper journal` | Trade journal (exportable) | `finclaw paper journal --export csv` |
+| `paper reset` | Reset session | `finclaw paper reset` |
 
-Monte Carlo simulation of return paths. Returns percentile statistics.
+### Strategy Library
 
-### `MultiTimeframeBacktester`
+| Command | Description | Example |
+|---------|-------------|---------|
+| `strategy list` | List all built-in + YAML strategies | `finclaw strategy list` |
+| `strategy info` | Show strategy details | `finclaw strategy info grid-trading` |
+| `strategy backtest` | Backtest a built-in strategy | `finclaw strategy backtest trend-following --symbol AAPL` |
+| `strategy create` | Interactive YAML strategy builder | `finclaw strategy create` |
+| `strategy validate` | Validate a YAML strategy file | `finclaw strategy validate my_strategy.yaml` |
+| `strategy dsl-backtest` | Backtest a YAML strategy | `finclaw strategy dsl-backtest my_strategy.yaml -s AAPL` |
+| `strategy optimize` | Grid-search parameter optimization | `finclaw strategy optimize strat.yaml --param rsi_period:10:30:5 -s AAPL` |
 
-```python
-MultiTimeframeBacktester(timeframes=["1d", "1w", "1m"])
-  .run(strategy, prices) → dict
-```
+### AI Features
 
-### `BenchmarkComparison`
+| Command | Description | Example |
+|---------|-------------|---------|
+| `generate-strategy` | AI-generate strategy from description | `finclaw generate-strategy "buy when RSI < 30 and MACD golden cross"` |
+| `optimize-strategy` | AI-optimize existing strategy | `finclaw optimize-strategy my_strategy.py --data AAPL` |
+| `copilot` | Interactive AI financial assistant | `finclaw copilot` |
 
-```python
-BenchmarkComparison()
-  .compare(strategy_returns, benchmark_returns) → dict
-```
+**Flags for `generate-strategy`:**
+
+- `--market` — Target market: `us_stock`, `crypto`, `cn_stock` (default: `us_stock`)
+- `--risk` — Risk profile: `low`, `medium`, `high` (default: `medium`)
+- `--provider` — LLM provider: `openai`, `anthropic`, `deepseek`, `ollama`, `groq`, `mistral`, `moonshot`
+- `--output` — Save generated code to file
+- `--interactive` — Multi-turn interactive builder
+
+### Crypto & BTC Tools
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `btc-metrics` | BTC on-chain metrics dashboard | `finclaw btc-metrics` |
+| `funding-rates` | Multi-exchange funding rate comparison | `finclaw funding-rates --symbols BTCUSDT,ETHUSDT,SOLUSDT` |
+| `fear-greed` | Fear & Greed Index with history | `finclaw fear-greed --history 7` |
+
+**Flags for `funding-rates`:**
+
+- `--symbols` — Comma-separated symbols (default: `BTCUSDT,ETHUSDT,SOLUSDT`)
+- `--min-spread` — Minimum annualized spread % for arbitrage alerts (default: `5.0`)
+
+### Exchanges
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `exchanges list` | List all exchange adapters | `finclaw exchanges list` |
+| `exchanges compare` | Feature comparison table | `finclaw exchanges compare yahoo binance` |
+| `history` | Get OHLCV candles from any exchange | `finclaw history AAPL -e yahoo -t 1d -l 20` |
+
+### Alerts
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `alert add` | Add alert rule | `finclaw alert add -s AAPL --price-above 200` |
+| `alert list` | List active rules | `finclaw alert list` |
+| `alert remove` | Remove a rule by ID | `finclaw alert remove 1` |
+| `alert history` | Show triggered alerts | `finclaw alert history --hours 24` |
+| `alert start` | Start alert engine | `finclaw alert start -s AAPL,TSLA --interval 60` |
+
+**Alert conditions:** `--price-above`, `--price-below`, `--rsi-above`, `--rsi-below`, `--volume-spike`, `--macd-cross`, `--bb-breakout`, `--drawdown`
+
+### Sentiment & News
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `sentiment` | Sentiment analysis for a symbol | `finclaw sentiment TSLA --reddit` |
+| `news` | Financial news | `finclaw news AAPL --limit 10` |
+| `trending` | Trending topics & WSB tickers | `finclaw trending` |
+| `scan` | Real-time market scanner | `finclaw scan --rule "rsi<30 AND volume>2x" --symbols AAPL,TSLA` |
+
+### Other
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `risk` | Portfolio risk analysis (VaR, Sharpe, etc.) | `finclaw risk --portfolio portfolio.json` |
+| `portfolio track` | Track portfolio from JSON file | `finclaw portfolio track --file portfolio.json` |
+| `options price` | Black-Scholes option pricing | `finclaw options price --type call --S 150 --K 155 --T 0.5 --r 0.05 --sigma 0.25` |
+| `report` | Generate HTML/JSON report | `finclaw report --input results.json --format html` |
+| `tearsheet` | QuantStats-style tearsheet | `finclaw tearsheet --returns returns.csv --benchmark SPY` |
+| `watchlist create` | Create/manage watchlists | `finclaw watchlist create tech AAPL MSFT GOOGL` |
+| `predict run` | ML prediction | `finclaw predict run --symbol AAPL --model gradient-boost` |
+| `predict backtest` | Walk-forward ML backtest | `finclaw predict backtest --symbol AAPL --model random-forest` |
+| `plugin list` | List installed plugins | `finclaw plugin list` |
+| `plugin install` | Install a plugin file | `finclaw plugin install my_plugin.py` |
+| `plugin create` | Create plugin from template | `finclaw plugin create --type strategy --name my_strat` |
+| `init-strategy` | Generate strategy plugin scaffolding | `finclaw init-strategy my_strategy` |
+| `serve` | Start REST API server | `finclaw serve --port 8080 --auth` |
+| `mcp serve` | Start MCP server (stdio) | `finclaw mcp serve` |
+| `mcp config` | Generate MCP client config | `finclaw mcp config --client claude` |
+| `a2a serve` | Start A2A protocol server | `finclaw a2a serve --port 8081` |
+| `a2a card` | Print A2A agent card | `finclaw a2a card` |
+| `cache` | Cache management | `finclaw cache --stats` / `finclaw cache --clear` |
+| `interactive` | Interactive REPL mode | `finclaw interactive` |
 
 ---
 
-## Risk Management (`src.risk`)
-
-### `KellyCriterion`
+## Python API
 
 ```python
-KellyCriterion(win_rate, avg_win, avg_loss)
-  .optimal_fraction() → float
-  .half_kelly() → float
+from finclaw import FinClaw
+
+fc = FinClaw()
+
+# Quote
+quote = fc.quote("AAPL")
+print(f"AAPL: ${quote['price']:.2f} ({quote['change_pct']:+.1f}%)")
+
+# Backtest
+result = fc.backtest(strategy="momentum", ticker="NVDA", start="2023-01-01")
+print(f"Return: {result.total_return:.1%} | Sharpe: {result.sharpe_ratio:.2f}")
 ```
 
-### `VaRCalculator`
+### Exchange Adapters (Python)
 
 ```python
-VaRCalculator(confidence=0.95, method="historical")
-  .calculate(returns) → float
-  .conditional_var(returns) → float
+from src.exchanges.registry import ExchangeRegistry
+
+# List available exchanges
+ExchangeRegistry.list_exchanges()       # all
+ExchangeRegistry.list_by_type("crypto") # crypto only
+
+# Get an adapter and use it
+adapter = ExchangeRegistry.get("binance")
+ticker = adapter.get_ticker("BTCUSDT")
+candles = adapter.get_ohlcv("ETHUSDT", "1h", limit=100)
 ```
 
-### `FixedFractional` / `VolatilitySizing`
+### Technical Indicators (Python)
 
 ```python
-FixedFractional(fraction=0.02)
-  .size(capital, price) → int
+from src.ta import rsi, macd, sma, ema
 
-VolatilitySizing(target_vol=0.15)
-  .size(capital, price, atr_value) → int
-```
+import numpy as np
+prices = np.array([...], dtype=np.float64)
 
-### `StopLossManager`
-
-```python
-StopLossManager(stop_type=StopLossType.TRAILING, pct=0.08)
-  .check(current_price, entry_price, high_since_entry) → bool
-```
-
-`StopLossType`: `FIXED`, `TRAILING`, `ATR_BASED`, `TIME_BASED`
-
-### `PortfolioRiskManager`
-
-```python
-PortfolioRiskManager()
-  .max_position_risk(capital, max_pct=0.05) → float
-  .portfolio_var(weights, cov_matrix, confidence=0.95) → float
+rsi_values = rsi(prices, period=14)
+macd_line, signal_line, histogram = macd(prices)
+sma_20 = sma(prices, 20)
+ema_12 = ema(prices, 12)
 ```
 
 ---
 
-## ML Pipeline (`src.ml`)
+## Strategy API
 
-### `FeatureEngine`
+### Built-in Strategies
+
+FinClaw ships with 20+ built-in strategies in two systems:
+
+**Strategy Library** (`src/strategies/library/`):
+- `trend-following` — SMA crossover trend following
+- `mean-reversion-bb` — Bollinger Band mean reversion
+- `grid-trading` — Grid trading for range-bound markets
+- `breakout` — Price breakout detection
+- `btc-cycle` — BTC halving cycle strategy
+- `dca` — Dollar cost averaging
+- `dividend-harvest` — Dividend capture
+- `funding-rate` — Crypto funding rate arbitrage
+- `multi-factor` — Multi-factor model
+- `pairs-trading` — Statistical arbitrage pairs
+- `sector-rotation` — Sector rotation
+
+**Core Strategies** (`src/strategies/`):
+- `momentum_jt` — Jegadeesh-Titman momentum
+- `mean_reversion` — Statistical mean reversion
+- `trend_following` — Classic trend following
+- `crypto_strategies` — Crypto-specific strategies
+- `regime_adaptive` — Regime-adaptive strategy
+- `value_momentum` — Value + momentum combo
+- `pairs_trading` — Pairs trading
+- `sector_rotation` — Sector rotation
+- `signal_combiner` — Multi-signal combination
+
+### Writing Custom Strategies
+
+Create a class inheriting from `StrategyPlugin`:
 
 ```python
-FeatureEngine()
-  .build(prices, volumes) → ndarray  # Feature matrix
+from src.plugin_system.plugin_types import StrategyPlugin
+import pandas as pd
+
+class MyStrategy(StrategyPlugin):
+    name = "my_strategy"
+    version = "1.0.0"
+    description = "My custom strategy"
+    markets = ["us_stock", "crypto"]
+    risk_level = "medium"
+
+    def generate_signals(self, data: pd.DataFrame) -> pd.Series:
+        """Return Series with 1=buy, -1=sell, 0=hold."""
+        signals = pd.Series(0, index=data.index)
+        # Your logic here
+        close = data["Close"]
+        sma20 = close.rolling(20).mean()
+        sma50 = close.rolling(50).mean()
+        signals[sma20 > sma50] = 1
+        signals[sma20 < sma50] = -1
+        return signals
+
+    def get_parameters(self) -> dict:
+        return {"fast_period": 20, "slow_period": 50}
 ```
 
-### Models
+Use it:
 
-```python
-LinearRegression().fit(X, y).predict(X) → ndarray
-MAPredictor(period=20).fit(X, y).predict(X) → ndarray
-RegimeClassifier(n_regimes=3).fit(X, y).predict(X) → ndarray
-EnsembleModel(models=[...]).fit(X, y).predict(X) → ndarray
+```bash
+# As a plugin
+finclaw backtest --strategy plugin:my_strategy -t AAPL
+
+# Register programmatically
+from src.plugin_system.registry import StrategyRegistry
+registry = StrategyRegistry()
+registry.register(MyStrategy())
 ```
 
-### `AlphaModel`
+### YAML Strategy DSL
 
-```python
-AlphaModel()
-  .fit(X, y) → self
-  .predict(X) → list[Signal]
+Define strategies in YAML without writing Python:
+
+```yaml
+name: Golden Cross RSI Filter
+description: Buy on golden cross when RSI confirms
+universe: sp500
+entry:
+  - sma(20) > sma(50)
+  - rsi(14) < 70
+exit:
+  - sma(20) < sma(50)
+risk:
+  stop_loss: 5%
+  take_profit: 15%
+  max_position: 10%
+rebalance: weekly
 ```
 
-`Signal` dataclass: `ticker`, `score`, `confidence`, `timestamp`
-
-### `SimpleSentiment`
-
-```python
-SimpleSentiment()
-  .analyze(text) → float  # -1.0 to 1.0
+```bash
+finclaw strategy validate my_strategy.yaml
+finclaw strategy dsl-backtest my_strategy.yaml --symbol AAPL --period 2y
+finclaw strategy optimize my_strategy.yaml --param rsi_period:10:30:5 --symbol AAPL
 ```
 
-### `WalkForwardPipeline`
+### Multi-Strategy Voting
+
+Combine multiple strategies with majority voting:
 
 ```python
-WalkForwardPipeline(model, feature_engine, n_splits=5)
-  .run(prices, volumes) → dict
-```
+from src.plugin_system.registry import StrategyRegistry
 
----
+registry = StrategyRegistry()
+registry.load_all()
 
-## Portfolio (`src.portfolio`)
-
-### `PortfolioTracker`
-
-```python
-PortfolioTracker(initial_cash=100_000)
-  .execute_trade(ticker, shares, price) → None
-  .snapshot() → Snapshot
-  .positions → dict[str, Position]
-  .total_value(prices: dict) → float
-```
-
-### `PortfolioRebalancer`
-
-```python
-PortfolioRebalancer(threshold=0.05)
-  .rebalance(current, target) → list[RebalanceAction]
-```
-
-`RebalanceAction`: `ticker`, `action` ("buy"/"sell"), `weight_change`
-
----
-
-## Analytics (`src.analytics`)
-
-| Class | Purpose |
-|---|---|
-| `AttributionAnalysis` | Performance attribution by factor |
-| `CorrelationAnalyzer` | Cross-asset correlation analysis |
-| `RegimeDetector` | Market regime classification |
-| `RollingAnalytics` | Rolling Sharpe, beta, alpha |
-| `ExecutionAnalytics` | Slippage and fill analysis |
-
----
-
-## API Server (`src.api`)
-
-### `FinClawServer`
-
-```python
-from src.api.server import FinClawServer
-server = FinClawServer(port=8080)
-server.start()  # blocking
-```
-
-### Endpoints
-
-| Method | Path | Query Params |
-|---|---|---|
-| GET | `/api/signal` | `ticker`, `strategy` |
-| GET | `/api/backtest` | `ticker`, `strategy`, `start`, `end` |
-| GET | `/api/portfolio` | `tickers`, `method` |
-| GET | `/api/screen` | `rsi_lt`, `rsi_gt`, `volume_gt`, etc. |
-| GET | `/api/health` | — |
-
-### `WebhookManager`
-
-```python
-from src.api.webhooks import WebhookManager
-wh = WebhookManager()
-wh.register("signal_change", url, format="slack")
-wh.dispatch("signal_change", payload)
-```
-
-Supported formats: `json`, `slack`, `discord`, `teams`
-
----
-
-## Alerts (`src.alerts`)
-
-### `AlertEngine`
-
-```python
-from src.alerts import AlertEngine, AlertCondition
-engine = AlertEngine()
-engine.add(AlertCondition(ticker="AAPL", field="rsi", op="<", value=30))
-alerts = engine.check()
+# Majority voting across strategies
+combined_signals = registry.vote(
+    ["trend_following", "mean_reversion", "momentum"],
+    data,
+    threshold=0.5,  # >50% must agree
+)
 ```
 
 ---
 
-## Screener (`src.screener`)
+## Exchange Adapter API
 
-### `StockScreener`
+### Supported Exchanges
+
+| Exchange | Type | OHLCV | Ticker | Orderbook | WebSocket | Funding Rates |
+|----------|------|-------|--------|-----------|-----------|---------------|
+| **Yahoo Finance** | stock_us | ✅ | ✅ | — | — | — |
+| **Binance** | crypto | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Bybit** | crypto | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **OKX** | crypto | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Coinbase** | crypto | ✅ | ✅ | ✅ | — | — |
+| **Kraken** | crypto | ✅ | ✅ | ✅ | — | — |
+| **Alpaca** | stock_us | ✅ | ✅ | — | — | — |
+| **Polygon** | stock_us | ✅ | ✅ | — | — | — |
+| **Alpha Vantage** | stock_us | ✅ | ✅ | — | — | — |
+| **AkShare** | stock_cn | ✅ | ✅ | — | — | — |
+| **BaoStock** | stock_cn | ✅ | ✅ | — | — | — |
+| **Tushare** | stock_cn | ✅ | ✅ | — | — | — |
+
+### Writing a Custom Exchange Adapter
+
+Inherit from `ExchangeAdapter`:
 
 ```python
-from src.screener import StockScreener
-screener = StockScreener()
-results = screener.screen({"rsi_lt": 30, "volume_gt": 1.5})
+from src.exchanges.base import ExchangeAdapter
+
+class MyExchangeAdapter(ExchangeAdapter):
+    exchange_type = "crypto"  # or "stock_us", "stock_cn"
+
+    def get_ticker(self, symbol: str) -> dict:
+        """Return {"symbol", "last", "bid", "ask", "volume", ...}"""
+        ...
+
+    def get_ohlcv(self, symbol: str, timeframe: str = "1d", limit: int = 100) -> list[dict]:
+        """Return list of {"open", "high", "low", "close", "volume", "timestamp"}"""
+        ...
+
+    def get_orderbook(self, symbol: str, depth: int = 20) -> dict:
+        """Return {"bids": [[price, qty], ...], "asks": [[price, qty], ...]}"""
+        ...
+
+    def place_order(self, symbol: str, side: str, order_type: str, quantity: float, price: float = None) -> dict:
+        ...
+
+    def cancel_order(self, order_id: str) -> dict:
+        ...
+
+    def get_balance(self) -> dict:
+        ...
+```
+
+Register it:
+
+```python
+from src.exchanges.registry import ExchangeRegistry
+ExchangeRegistry.register("my_exchange", MyExchangeAdapter())
+```
+
+### HTTP Client Utility
+
+All exchange adapters use a shared HTTP client with retry and error handling:
+
+```python
+from src.exchanges.http_client import HttpClient
+
+client = HttpClient("https://api.example.com", timeout=10)
+data = client.get("/endpoint", params={"key": "value"})
 ```
 
 ---
 
-## Events (`src.events`)
+## Plugin System API
 
-### `EventBus`
+### Plugin Types
+
+FinClaw supports three plugin types:
+
+1. **Strategy Plugins** — Trading strategies (`StrategyPlugin`)
+2. **Indicator Plugins** — Custom technical indicators (`IndicatorPlugin`)
+3. **Exchange Plugins** — Custom exchange adapters (`ExchangePlugin`)
+
+### Strategy Plugin Scaffold
+
+```bash
+finclaw init-strategy my_awesome_strategy
+# Creates finclaw-strategy-my_awesome_strategy/ with template files
+
+cd finclaw-strategy-my_awesome_strategy
+pip install -e .
+finclaw backtest --strategy plugin:my_awesome_strategy -t AAPL
+```
+
+### Plugin Manager
 
 ```python
-from src.events import EventBus
-bus = EventBus()
-bus.subscribe("signal", handler_fn)
-bus.publish("signal", data)
+from src.plugins.manager import PluginManager
+
+pm = PluginManager()
+pm.discover()  # Auto-discover plugins
+pm.list_plugins()
+pm.get_plugin("my_plugin")
 ```
+
+### Backtrader Compatibility
+
+FinClaw can load Backtrader strategies via an adapter:
+
+```python
+from src.plugin_system.backtrader_adapter import BacktraderAdapter
+
+# Wrap a Backtrader strategy class
+adapter = BacktraderAdapter(MyBacktraderStrategy)
+signals = adapter.generate_signals(data)
+```
+
+### TA-Lib Integration
+
+Use TA-Lib indicators alongside FinClaw's built-in ones:
+
+```python
+from src.plugin_system.talib_adapter import TaLibAdapter
+
+# Wraps TA-Lib functions into FinClaw's indicator interface
+ta = TaLibAdapter()
+rsi = ta.indicator("RSI", prices, timeperiod=14)
+macd, signal, hist = ta.indicator("MACD", prices)
+```
+
+### Pine Script Parser
+
+Basic Pine Script compatibility for simple scripts:
+
+```python
+from src.plugin_system.pine_parser import PineParser
+
+parser = PineParser()
+strategy = parser.parse("pine_strategy.pine")
+signals = strategy.generate_signals(data)
+```
+
+---
+
+## AI Strategy Generator API
+
+### Generate from Natural Language
+
+```python
+from src.ai_strategy.strategy_generator import StrategyGenerator
+
+gen = StrategyGenerator(market="us_stock", risk="medium")
+
+# Sync
+result = gen.generate("buy when RSI < 30 and MACD golden cross")
+print(result["code"])       # Generated Python code
+print(result["class_name"]) # Strategy class name
+print(result["valid"])      # True if code passes validation
+
+# Async
+result = await gen.generate_async("momentum strategy on volume spikes")
+```
+
+### Supported LLM Providers
+
+Set any of these environment variables:
+- `OPENAI_API_KEY` — OpenAI (GPT-4, etc.)
+- `ANTHROPIC_API_KEY` — Anthropic (Claude)
+- `DEEPSEEK_API_KEY` — DeepSeek
+- `GEMINI_API_KEY` — Google Gemini
+- `GROQ_API_KEY` — Groq
+- `MISTRAL_API_KEY` — Mistral
+- `MOONSHOT_API_KEY` — Moonshot
+
+Or use a local Ollama instance (auto-detected).
+
+### AI Copilot
+
+```python
+from src.ai_strategy.copilot import FinClawCopilot
+
+copilot = FinClawCopilot()
+copilot.run_interactive()
+# > 分析特斯拉最近走势
+# > 帮我创建一个均值回归策略
+```
+
+### AI Strategy Optimizer
+
+```python
+from src.ai_strategy.strategy_optimizer import StrategyOptimizer
+
+optimizer = StrategyOptimizer(provider_name="openai")
+result = optimizer.analyze(strategy_code, backtest_results)
+# Returns: analysis, suggestions (parameter tuning), risk_assessment
+```
+
+---
+
+## MCP Server
+
+FinClaw exposes its capabilities as MCP (Model Context Protocol) tools for AI agents like Claude, Cursor, VS Code Copilot, and OpenClaw.
+
+### Start the Server
+
+```bash
+finclaw mcp serve
+```
+
+### Client Configuration
+
+```bash
+finclaw mcp config --client claude    # Generate config for Claude Desktop
+finclaw mcp config --client cursor    # Generate config for Cursor
+finclaw mcp config --client openclaw  # Generate config for OpenClaw
+finclaw mcp config --client vscode    # Generate config for VS Code
+```
+
+Example Claude Desktop config (`claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "finclaw": {
+      "command": "finclaw",
+      "args": ["mcp", "serve"]
+    }
+  }
+}
+```
+
+### Available MCP Tools
+
+| Tool | Description |
+|------|-------------|
+| `get_quote` | Real-time quote for any symbol |
+| `get_history` | OHLCV candle history |
+| `list_exchanges` | List available exchange adapters |
+| `run_backtest` | Run strategy backtest |
+| `analyze_portfolio` | Portfolio analysis with risk metrics |
+| `get_indicators` | Calculate technical indicators (SMA, EMA, RSI, MACD, BBands) |
+| `screen_stocks` | Screen stocks by technical/fundamental criteria |
+| `get_sentiment` | Market sentiment analysis |
+| `compare_strategies` | Compare multiple strategies |
+| `get_funding_rates` | Crypto funding rates |
+
+### MCP Tool Schema Example
+
+```json
+{
+  "name": "get_quote",
+  "description": "Get a real-time quote for a symbol from any supported exchange.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "symbol": {"type": "string", "description": "Ticker symbol, e.g. AAPL, BTCUSDT"},
+      "exchange": {"type": "string", "default": "yahoo"}
+    },
+    "required": ["symbol"]
+  }
+}
+```
+
+---
+
+## BTC Metrics & Crypto Tools
+
+### BTC On-Chain Metrics
+
+```python
+from src.crypto.btc_metrics import BTCMetricsClient
+
+client = BTCMetricsClient()
+
+# On-chain metrics (hashrate, difficulty, mempool, fees)
+metrics = client.get_onchain_metrics()
+
+# MVRV Ratio (market cap vs realized cap)
+mvrv = client.get_mvrv_ratio()
+
+# Miner outflow tracking
+miner = client.get_miner_outflow()
+
+# Fear & Greed Index
+fg = client.get_fear_greed(limit=7)
+```
+
+**Data sources:** Blockchain.info (chain stats), Alternative.me (Fear & Greed).
+
+### Multi-Exchange Funding Dashboard
+
+```python
+from src.crypto.funding_dashboard import FundingDashboardClient
+
+client = FundingDashboardClient()
+
+# Get rates from Binance, Bybit, OKX
+rates = client.get_all_rates(["BTCUSDT", "ETHUSDT", "SOLUSDT"])
+
+# Full dashboard with arbitrage opportunities
+dashboard = client.get_dashboard(min_spread=5.0)
+for arb in dashboard.arbitrage_opportunities:
+    print(f"{arb.symbol}: Long {arb.long_exchange} → Short {arb.short_exchange} = {arb.spread}% spread")
+```
+
+### Lightning Network Monitor
+
+```python
+from src.crypto.lightning import LightningMonitor
+
+ln = LightningMonitor()
+
+# Network stats (capacity, nodes, channels, fees)
+stats = ln.get_network_stats()
+
+# Top nodes by capacity
+nodes = ln.get_top_nodes(limit=10)
+```
+
+### Other Crypto Modules
+
+- **`src.crypto.onchain`** — On-chain analytics
+- **`src.crypto.liquidation_tracker`** — Liquidation tracking
+- **`src.crypto.rebalancer`** — Portfolio rebalancing for crypto
+
+---
+
+## A2A Protocol
+
+FinClaw supports the Agent-to-Agent (A2A) protocol for inter-agent communication.
+
+```bash
+finclaw a2a serve --port 8081        # Start A2A server
+finclaw a2a card                      # Print agent card
+```
+
+Agent card endpoint: `http://localhost:8081/.well-known/agent.json`
+
+```python
+from src.a2a.server import run_server
+import asyncio
+
+asyncio.run(run_server(host="localhost", port=8081, auth_token="secret"))
+```
+
+---
+
+## REST API Server
+
+```bash
+finclaw serve --port 8080 --auth --rate-limit 100
+```
+
+Starts an HTTP API server exposing FinClaw's functionality. Use `--auth` to require API key authentication.
+
+---
+
+## Configuration
+
+FinClaw uses `~/.finclaw/` for persistent state:
+
+| File | Purpose |
+|------|---------|
+| `~/.finclaw/config.yaml` | Global configuration |
+| `~/.finclaw/cache/` | Data cache |
+| `~/.finclaw/paper_state.json` | Paper trading session |
+| `~/.finclaw/paper_journal.json` | Trade journal |
+| `~/.finclaw/alert_rules.json` | Alert rules |
+| `~/.finclaw/alert_history.json` | Alert history |
+| `~/.finclaw/watchlists/` | Saved watchlists |
+
+Project-level config: `finclaw.yml` in the project root.

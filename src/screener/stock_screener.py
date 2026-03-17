@@ -1,4 +1,4 @@
-"""Stock Screener — filter stocks by technical and fundamental criteria."""
+"""Stock Screener - filter stocks by technical and fundamental criteria."""
 
 from __future__ import annotations
 
@@ -23,6 +23,17 @@ class StockData:
     sector: str | None = None
 
 
+@dataclass
+class ScreenResult:
+    """One screener match."""
+    ticker: str
+    price: float
+    change_pct: float
+    volume: int
+    rsi: float | None = None
+    market_cap: float | None = None
+
+
 class StockScreener:
     """Filter a universe of stocks by technical and fundamental criteria."""
 
@@ -35,6 +46,9 @@ class StockScreener:
             "market_cap": self._eval_market_cap,
             "sma_cross": self._eval_sma_cross,
             "sector": self._eval_sector,
+            "price": self._eval_price,
+            "change_pct": self._eval_change_pct,
+            "volume": self._eval_volume,
         }
 
     def screen(
@@ -64,10 +78,42 @@ class StockScreener:
             if passed:
                 results.append(values)
         if sort_by and results:
-            results.sort(key=lambda r: r.get(sort_by, float("inf")))
+            reverse = sort_by.startswith("-")
+            key = sort_by.lstrip("-")
+            results.sort(key=lambda r: r.get(key, float("inf")), reverse=reverse)
         return results[:limit]
 
-    # ── Condition checker ────────────────────────────────────────────
+    def screen_gainers(self, universe: list[StockData], limit: int = 20) -> list[dict[str, Any]]:
+        """Return top gainers by daily change %."""
+        results = []
+        for stock in universe:
+            pct = self._eval_change_pct(stock)
+            if pct is not None and pct > 0:
+                results.append({
+                    "ticker": stock.ticker,
+                    "change_pct": pct,
+                    "price": float(stock.close[-1]),
+                    "volume": int(stock.volume[-1]) if stock.volume is not None and len(stock.volume) > 0 else 0,
+                })
+        results.sort(key=lambda r: r["change_pct"], reverse=True)
+        return results[:limit]
+
+    def screen_losers(self, universe: list[StockData], limit: int = 20) -> list[dict[str, Any]]:
+        """Return top losers by daily change %."""
+        results = []
+        for stock in universe:
+            pct = self._eval_change_pct(stock)
+            if pct is not None and pct < 0:
+                results.append({
+                    "ticker": stock.ticker,
+                    "change_pct": pct,
+                    "price": float(stock.close[-1]),
+                    "volume": int(stock.volume[-1]) if stock.volume is not None and len(stock.volume) > 0 else 0,
+                })
+        results.sort(key=lambda r: r["change_pct"])
+        return results[:limit]
+
+    # -- Condition checker -----------------------------------------------
     @staticmethod
     def _check(value: Any, condition: Any) -> bool:
         if isinstance(condition, dict):
@@ -85,7 +131,7 @@ class StockScreener:
             return value == condition
         return value == condition
 
-    # ── Evaluators ───────────────────────────────────────────────────
+    # -- Evaluators ------------------------------------------------------
     @staticmethod
     def _eval_rsi(stock: StockData) -> float | None:
         if len(stock.close) < 15:
@@ -133,3 +179,24 @@ class StockScreener:
     @staticmethod
     def _eval_sector(stock: StockData) -> str | None:
         return stock.sector
+
+    @staticmethod
+    def _eval_price(stock: StockData) -> float | None:
+        if len(stock.close) == 0:
+            return None
+        return float(stock.close[-1])
+
+    @staticmethod
+    def _eval_change_pct(stock: StockData) -> float | None:
+        if len(stock.close) < 2:
+            return None
+        prev = stock.close[-2]
+        if prev == 0:
+            return None
+        return float((stock.close[-1] / prev - 1) * 100)
+
+    @staticmethod
+    def _eval_volume(stock: StockData) -> float | None:
+        if stock.volume is None or len(stock.volume) == 0:
+            return None
+        return float(stock.volume[-1])
