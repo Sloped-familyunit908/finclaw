@@ -335,72 +335,65 @@ class TestMultiTimeframeAnalyzer:
 # ======================================================================
 
 class TestPortfolioTrackerEnhanced:
-    def test_add_position(self):
-        pt = PortfolioTracker()
-        pt.add_position("AAPL", 10, 150.0)
-        assert "AAPL" in pt.positions
-        assert pt.positions["AAPL"].shares == 10
+    """Tests rewritten for current PortfolioTracker API (add/remove, JSON storage)."""
 
-    def test_add_position_accumulate(self):
-        pt = PortfolioTracker()
-        pt.add_position("AAPL", 10, 150.0)
-        pt.add_position("AAPL", 5, 160.0)
-        assert pt.positions["AAPL"].shares == 15
+    def _make_tracker(self, price=150.0):
+        import tempfile, os
+        storage = os.path.join(tempfile.mkdtemp(), "portfolio.json")
+        return PortfolioTracker(storage_path=storage, price_fetcher=lambda s: price)
+
+    def test_add_holding(self):
+        pt = self._make_tracker()
+        h = pt.add("AAPL", 10, 150.0)
+        assert h.symbol == "AAPL"
+        assert h.quantity == 10
+
+    def test_add_accumulate(self):
+        pt = self._make_tracker()
+        pt.add("AAPL", 10, 150.0)
+        pt.add("AAPL", 5, 160.0)
+        h = pt._find_holding("AAPL")
+        assert h.quantity == 15
         expected_cost = (150 * 10 + 160 * 5) / 15
-        assert abs(pt.positions["AAPL"].avg_cost - expected_cost) < 0.01
+        assert abs(h.avg_cost - expected_cost) < 0.01
 
-    def test_update_prices(self):
-        pt = PortfolioTracker()
-        pt.add_position("AAPL", 10, 150.0)
-        pt.update_prices({"AAPL": 155.0})
-        assert len(pt.history) == 1
+    def test_show_with_holdings(self):
+        pt = self._make_tracker(price=155.0)
+        pt.add("AAPL", 10, 150.0)
+        status = pt.show()
+        assert len(status["holdings"]) == 1
+        assert status["total_value"] == pytest.approx(10 * 155.0)
 
-    def test_summary_empty(self):
-        pt = PortfolioTracker(initial_capital=50_000)
-        s = pt.summary()
-        assert s["total_value"] == 50_000
-        assert s["pnl"] == 0.0
+    def test_show_empty(self):
+        pt = self._make_tracker()
+        status = pt.show()
+        assert status["total_value"] == 0.0
+        assert status["total_pnl"] == 0.0
 
-    def test_summary_with_positions(self):
-        pt = PortfolioTracker(initial_capital=100_000)
-        pt.add_position("AAPL", 10, 150.0)
-        s = pt.summary()
-        assert s["total_value"] > 0
-        assert "allocation" in s
-        assert "AAPL" in s["allocation"]
+    def test_show_with_allocation(self):
+        pt = self._make_tracker(price=150.0)
+        pt.add("AAPL", 10, 150.0)
+        alloc = pt.allocation()
+        assert len(alloc) == 1
+        assert alloc[0]["symbol"] == "AAPL"
+        assert alloc[0]["pct"] == pytest.approx(100.0)
 
-    def test_summary_daily_change(self):
-        pt = PortfolioTracker()
-        pt.add_position("AAPL", 100, 100.0)
-        pt.update_prices({"AAPL": 100.0})
-        pt.update_prices({"AAPL": 110.0})
-        s = pt.summary()
-        assert s["daily_change"] > 0
+    def test_snapshot_records_history(self):
+        pt = self._make_tracker(price=110.0)
+        pt.add("AAPL", 100, 100.0)
+        pt.snapshot()
+        history = pt.get_history()
+        assert len(history) == 1
+        assert history[0]["total_value"] == pytest.approx(11000.0)
 
-    def test_export_csv(self):
-        pt = PortfolioTracker()
-        pt.buy("AAPL", 10, 150.0, date(2024, 1, 1))
-        pt.sell("AAPL", 5, 160.0, date(2024, 1, 15))
-        with tempfile.NamedTemporaryFile(suffix=".csv", delete=False, mode="w") as f:
-            path = f.name
-        try:
-            pt.export_csv(path)
-            with open(path) as f:
-                reader = list(csv.DictReader(f))
-            assert len(reader) == 2
-            assert reader[0]["type"] == "buy"
-            assert reader[1]["type"] == "sell"
-        finally:
-            os.unlink(path)
+    def test_export_csv_holdings(self):
+        pt = self._make_tracker(price=155.0)
+        pt.add("AAPL", 10, 150.0)
+        csv_str = pt.export_csv("holdings")
+        assert "AAPL" in csv_str
+        assert "symbol" in csv_str  # Header present
 
     def test_export_csv_empty(self):
-        pt = PortfolioTracker()
-        with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as f:
-            path = f.name
-        try:
-            pt.export_csv(path)
-            with open(path) as f:
-                content = f.read()
-            assert "type" in content  # Header present
-        finally:
-            os.unlink(path)
+        pt = self._make_tracker()
+        csv_str = pt.export_csv("holdings")
+        assert "symbol" in csv_str  # Header still present
