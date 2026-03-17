@@ -1005,6 +1005,23 @@ Examples:
     p_a2a_serve.add_argument("--auth-token", default=None, help="Bearer auth token")
     a2a_sub.add_parser("card", help="Print the A2A agent card")
 
+    # ── AI Strategy Generation ─────────────────────────────────
+    p_gen = sub.add_parser("generate-strategy", help="AI-generate a trading strategy from natural language")
+    p_gen.add_argument("description", nargs="?", default=None, help="Strategy description in plain English/中文")
+    p_gen.add_argument("--interactive", action="store_true", help="Interactive multi-turn builder")
+    p_gen.add_argument("--market", default="us_stock", choices=["us_stock", "crypto", "cn_stock"], help="Target market")
+    p_gen.add_argument("--risk", default="medium", choices=["low", "medium", "high"], help="Risk profile")
+    p_gen.add_argument("--provider", default=None, help="LLM provider (openai, anthropic, deepseek, ollama, ...)")
+    p_gen.add_argument("--output", "-o", default=None, help="Save generated code to file")
+
+    p_opt = sub.add_parser("optimize-strategy", help="AI-optimize an existing strategy")
+    p_opt.add_argument("strategy_file", help="Path to strategy .py file")
+    p_opt.add_argument("--data", "-d", default="AAPL", help="Ticker for backtesting")
+    p_opt.add_argument("--period", "-p", default="1y", help="Data period (e.g. 1y, 2y)")
+    p_opt.add_argument("--provider", default=None, help="LLM provider")
+
+    sub.add_parser("copilot", help="Interactive AI financial assistant chat")
+
     return parser
 
 
@@ -1867,6 +1884,83 @@ def _handle_paper(args):
             print(journal.daily_summary(date))
 
 
+def _cmd_generate_strategy(args):
+    """Handle: finclaw generate-strategy"""
+    from src.ai_strategy.strategy_generator import StrategyGenerator
+    import asyncio
+
+    gen = StrategyGenerator(
+        provider_name=args.provider,
+        market=args.market,
+        risk=args.risk,
+    )
+
+    if args.interactive:
+        code = asyncio.run(gen.interactive_async())
+        if code and args.output:
+            with open(args.output, "w") as f:
+                f.write(code)
+            print(f"  Saved to {args.output}")
+        elif code:
+            print(f"\n{code}")
+        return
+
+    if not args.description:
+        print("  Usage: finclaw generate-strategy \"description\" [--market us_stock] [--risk medium]")
+        print("         finclaw generate-strategy --interactive")
+        return
+
+    print(f"  🤖 Generating strategy for: {args.description}")
+    print(f"     Market: {args.market} | Risk: {args.risk}")
+    result = gen.generate(args.description)
+
+    if result["valid"]:
+        print(f"  ✅ Generated: {result['class_name']}\n")
+        print(result["code"])
+        if args.output:
+            with open(args.output, "w") as f:
+                f.write(result["code"])
+            print(f"\n  Saved to {args.output}")
+    else:
+        print(f"  ❌ Generation had issues: {result['errors']}")
+        if result["code"]:
+            print(result["code"])
+
+
+def _cmd_optimize_strategy(args):
+    """Handle: finclaw optimize-strategy"""
+    from src.ai_strategy.strategy_optimizer import StrategyOptimizer
+
+    with open(args.strategy_file) as f:
+        code = f.read()
+
+    print(f"  🔧 Analyzing strategy: {args.strategy_file}")
+    optimizer = StrategyOptimizer(provider_name=args.provider)
+
+    # Simple backtest results placeholder — in production would run real backtest
+    backtest_results = {
+        "ticker": args.data,
+        "period": args.period,
+        "note": "Run a backtest first for real results. This is AI analysis of the code.",
+    }
+
+    result = optimizer.analyze(code, backtest_results)
+    print(f"\n  📊 Analysis: {result.get('analysis', 'N/A')}")
+    suggestions = result.get("suggestions", [])
+    if suggestions:
+        print("\n  💡 Suggestions:")
+        for s in suggestions:
+            print(f"    • {s.get('parameter', '?')}: {s.get('current', '?')} → {s.get('suggested', '?')} — {s.get('reason', '')}")
+    print(f"\n  ⚠ Risk: {result.get('risk_assessment', 'N/A')}")
+
+
+def _cmd_copilot(args):
+    """Handle: finclaw copilot"""
+    from src.ai_strategy.copilot import FinClawCopilot
+    copilot = FinClawCopilot()
+    copilot.run_interactive()
+
+
 def main(argv=None):
     """Main CLI entry point."""
     parser = build_parser()
@@ -2149,6 +2243,12 @@ def test_signals():
             cmd_chart(args)
         elif args.command == "a2a":
             _cmd_a2a(args)
+        elif args.command == "generate-strategy":
+            _cmd_generate_strategy(args)
+        elif args.command == "optimize-strategy":
+            _cmd_optimize_strategy(args)
+        elif args.command == "copilot":
+            _cmd_copilot(args)
         else:
             parser.print_help()
     except KeyboardInterrupt:

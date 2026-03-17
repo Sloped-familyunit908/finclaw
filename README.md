@@ -88,6 +88,57 @@ Available MCP tools: `finclaw_scan`, `finclaw_backtest`, `finclaw_macro`, `fincl
 | Strategy library (YAML) | ✅ |
 | HTML backtest reports | ✅ |
 | Plugin system | ✅ |
+| **AI Strategy Generator** | ✅ |
+| **AI Strategy Optimizer** | ✅ |
+| **FinClaw Copilot** | ✅ |
+
+---
+
+## 🤖 AI Strategy Generation
+
+Turn plain English (or 中文) into production-ready trading strategies:
+
+```bash
+# Generate a strategy from natural language
+finclaw generate-strategy "buy when RSI below 30 and MACD golden cross, 5% stop loss"
+
+# Specify market and risk profile
+finclaw generate-strategy --market crypto --risk high "momentum breakout on volume spike"
+
+# Interactive multi-turn builder
+finclaw generate-strategy --interactive
+
+# Save to file
+finclaw generate-strategy "mean reversion on Bollinger Bands" -o my_strategy.py
+```
+
+### AI Strategy Optimizer
+
+Analyze an existing strategy and get AI-powered improvement suggestions:
+
+```bash
+finclaw optimize-strategy my_strategy.py --data AAPL --period 1y
+```
+
+Combines LLM analysis with grid search for parameter optimization.
+
+### FinClaw Copilot
+
+Interactive AI financial assistant — analyze markets, create strategies, compare backtests:
+
+```bash
+finclaw copilot
+```
+
+```
+You: 分析特斯拉最近走势
+🤖: TSLA has been trading in a consolidation range...
+
+You: 帮我创建一个均值回归策略
+🤖: Let me guide you through the parameters...
+```
+
+**Supported LLM providers:** OpenAI, Anthropic, Google Gemini, DeepSeek, Moonshot/Kimi, Ollama (local), Groq, Mistral. Auto-detects from environment variables.
 
 ---
 
@@ -96,7 +147,10 @@ Available MCP tools: `finclaw_scan`, `finclaw_backtest`, `finclaw_macro`, `fincl
 ```
 ┌──────────────────────────────────────┐
 │          User Interfaces             │
-│   CLI  │  MCP Server  │  Python API  │
+│ CLI │ MCP Server │ Copilot │ API     │
+├──────────────────────────────────────┤
+│       AI Strategy Engine             │
+│ Generator │ Optimizer │ Copilot Chat │
 ├──────────────────────────────────────┤
 │         Strategy Layer               │
 │   Built-in Strategies  │  Plugins    │
