@@ -35,7 +35,8 @@ def rsi(prices, n=14):
     for i in range(n + 1, len(prices)):
         avg_gain[i] = (avg_gain[i - 1] * (n - 1) + gains[i - 1]) / n
         avg_loss[i] = (avg_loss[i - 1] * (n - 1) + losses[i - 1]) / n
-    rs = np.where(avg_loss > 0, avg_gain / avg_loss, 100.0)
+    with np.errstate(divide='ignore', invalid='ignore'):
+        rs = np.where(avg_loss > 0, avg_gain / avg_loss, 100.0)
     out = 100 - 100 / (1 + rs)
     out[:n] = 50
     return out

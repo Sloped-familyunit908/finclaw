@@ -1966,6 +1966,12 @@ def _cmd_copilot(args):
 
 def main(argv=None):
     """Main CLI entry point."""
+    # Fix encoding on Windows (cp936/GBK can't handle Unicode box-drawing chars)
+    import io
+    if sys.stdout.encoding and sys.stdout.encoding.lower().replace('-', '') not in ('utf8', 'utf16'):
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+
     parser = build_parser()
     args = parser.parse_args(argv)
 
