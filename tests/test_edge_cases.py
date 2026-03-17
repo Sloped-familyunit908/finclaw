@@ -167,19 +167,19 @@ class TestSpecialTickers:
         from src.cli.main import build_parser
         parser = build_parser()
         args = parser.parse_args(["quote", "000001.SZ"])
-        assert args.symbol == "000001.SZ"
+        assert args.symbol == ["000001.SZ"]
 
     def test_ticker_with_caret(self):
         from src.cli.main import build_parser
         parser = build_parser()
         args = parser.parse_args(["quote", "^GSPC"])
-        assert args.symbol == "^GSPC"
+        assert args.symbol == ["^GSPC"]
 
     def test_ticker_with_slash(self):
         from src.cli.main import build_parser
         parser = build_parser()
         args = parser.parse_args(["quote", "BTC/USDT"])
-        assert args.symbol == "BTC/USDT"
+        assert args.symbol == ["BTC/USDT"]
 
 
 # ── Technical Indicator Math Verification ────────────────────────
