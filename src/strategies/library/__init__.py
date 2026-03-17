@@ -16,6 +16,10 @@ from .breakout import BreakoutStrategy
 from .mean_reversion_bb import MeanReversionBBStrategy
 from .multi_factor import MultiFactorStrategy
 from .btc_cycle import BTCCycleIndicator
+from .vwap import VWAPStrategy
+from .rsi_divergence import RSIDivergenceStrategy
+from .ichimoku import IchimokuStrategy
+from .momentum_rotation import MomentumRotationStrategy
 
 STRATEGY_REGISTRY: dict[str, type["Strategy"]] = {
     "grid-trading": GridTradingStrategy,
@@ -29,6 +33,10 @@ STRATEGY_REGISTRY: dict[str, type["Strategy"]] = {
     "mean-reversion-bb": MeanReversionBBStrategy,
     "multi-factor": MultiFactorStrategy,
     "btc-cycle": BTCCycleIndicator,
+    "vwap": VWAPStrategy,
+    "rsi-divergence": RSIDivergenceStrategy,
+    "ichimoku": IchimokuStrategy,
+    "momentum-rotation": MomentumRotationStrategy,
 }
 
 
@@ -51,5 +59,6 @@ __all__ = [
     "TrendFollowingStrategy", "BreakoutStrategy", "MeanReversionBBStrategy",
     "MultiFactorStrategy",
     "BTCCycleIndicator",
+    "VWAPStrategy", "RSIDivergenceStrategy", "IchimokuStrategy", "MomentumRotationStrategy",
     "STRATEGY_REGISTRY", "get_strategy", "list_strategies",
 ]
