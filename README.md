@@ -5,11 +5,11 @@
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/finclaw/"><img src="https://img.shields.io/pypi/v/finclaw?color=blue" alt="PyPI"></a>
+  <a href="https://pypi.org/project/finclaw/"><img src="https://img.shields.io/pypi/v/finclaw→color=blue" alt="PyPI"></a>
   <a href="https://github.com/NeuZhou/finclaw/actions/workflows/ci.yml"><img src="https://github.com/NeuZhou/finclaw/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License"></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.9%2B-blue" alt="Python"></a>
-  <a href="https://github.com/NeuZhou/finclaw/stargazers"><img src="https://img.shields.io/github/stars/NeuZhou/finclaw?style=social" alt="Stars"></a>
+  <a href="https://github.com/NeuZhou/finclaw/stargazers"><img src="https://img.shields.io/github/stars/NeuZhou/finclaw→style=social" alt="Stars"></a>
 </p>
 
 <p align="center">
@@ -37,7 +37,7 @@ $ finclaw backtest -t NVDA --start 2023-01-01
 
 ---
 
-## Why FinClaw?
+## Why FinClaw→
 
 Most quant tools make you configure databases, install heavy dependencies, and write boilerplate before you see your first result. **FinClaw gets you from zero to insight in one command.** Zero API keys needed — it uses Yahoo Finance by default. A pure NumPy core means it installs in seconds, not minutes. And when you're ready for AI-powered strategy generation, MCP agent integration, or multi-exchange live trading — it's all built in.
 
@@ -223,3 +223,18 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 ## License
 
 [MIT](LICENSE) — Built by [Kang Zhou](https://github.com/NeuZhou)
+
+## 🔗 NeuZhou Ecosystem
+
+FinClaw is part of the NeuZhou open source toolkit for AI agents:
+
+| Project | What it does | Link |
+|---------|-------------|------|
+| **repo2skill** | Convert any repo into an AI agent skill | [GitHub](https://github.com/NeuZhou/repo2skill) |
+| **ClawGuard** | Security scanner for AI agents | [GitHub](https://github.com/NeuZhou/clawguard) |
+| **AgentProbe** | Behavioral testing framework for agents | [GitHub](https://github.com/NeuZhou/agentprobe) |
+| **FinClaw** | AI-powered financial intelligence engine | *You are here* |
+
+**The workflow:** Generate skills with repo2skill → Scan for vulnerabilities with ClawGuard → Test behavior with AgentProbe → See it in action with FinClaw.
+
+FinClaw serves as a real-world showcase of AI agent patterns that ClawGuard scans and AgentProbe tests.
