@@ -12,7 +12,6 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 from typing import Any, Callable, Optional, Protocol
 
-from src.portfolio.tracker import PortfolioTracker
 from src.trading.oms import Order, OrderManager, OrderResult
 
 logger = logging.getLogger(__name__)
@@ -49,7 +48,9 @@ class PaperTrader:
     ):
         cfg = config or {}
         self.config = PaperTradeConfig(**{k: v for k, v in cfg.items() if hasattr(PaperTradeConfig, k)})
-        self.portfolio = PortfolioTracker(initial_capital)
+        self.initial_capital = initial_capital
+        self._cash = float(initial_capital)
+        self._positions: dict[str, dict[str, float]] = {}  # ticker -> {shares, avg_cost}
         self.strategy = strategy
         self.oms = OrderManager()
         self.price_fetcher = price_fetcher
@@ -57,6 +58,7 @@ class PaperTrader:
         self._iteration = 0
         self._trade_log: list[dict[str, Any]] = []
         self._latest_prices: dict[str, float] = {}
+        self._equity_history: list[float] = [initial_capital]
 
     # ------------------------------------------------------------------
     # Core loop
@@ -168,14 +170,31 @@ class PaperTrader:
         """Execute an order through the OMS."""
         result = self.oms.submit_order(order)
         if result.status == "filled":
-            today = date.today()
             price = result.filled_price or 0
+            qty = result.filled_quantity
+            ticker = order.ticker
             try:
                 if order.side == "buy":
-                    self.portfolio.buy(order.ticker, result.filled_quantity, price, today)
+                    cost = price * qty
+                    if cost > self._cash:
+                        logger.warning("Insufficient cash for %s: need %.2f, have %.2f", ticker, cost, self._cash)
+                        return None
+                    self._cash -= cost
+                    pos = self._positions.get(ticker, {"shares": 0, "avg_cost": 0.0})
+                    total_cost = pos["avg_cost"] * pos["shares"] + price * qty
+                    pos["shares"] += qty
+                    pos["avg_cost"] = total_cost / pos["shares"] if pos["shares"] > 0 else 0
+                    self._positions[ticker] = pos
                 elif order.side == "sell":
-                    self.portfolio.sell(order.ticker, result.filled_quantity, price, today)
-            except ValueError as e:
+                    pos = self._positions.get(ticker)
+                    if not pos or pos["shares"] < qty:
+                        logger.warning("Insufficient shares for %s", ticker)
+                        return None
+                    self._cash += price * qty
+                    pos["shares"] -= qty
+                    if pos["shares"] <= 1e-12:
+                        del self._positions[ticker]
+            except Exception as e:
                 logger.warning("Portfolio update failed: %s", e)
                 return None
         return result
@@ -193,10 +212,10 @@ class PaperTrader:
 
     def log_state(self) -> None:
         total = self._portfolio_value()
-        n_pos = len(self.portfolio.positions)
+        n_pos = len(self._positions)
         logger.info(
             "Iteration %d | Value: $%.2f | Cash: $%.2f | Positions: %d | Trades: %d",
-            self._iteration, total, self.portfolio.cash, n_pos, len(self._trade_log),
+            self._iteration, total, self._cash, n_pos, len(self._trade_log),
         )
 
     # ------------------------------------------------------------------
@@ -205,11 +224,18 @@ class PaperTrader:
 
     def get_performance(self) -> dict[str, Any]:
         """Get performance summary."""
-        perf = self.portfolio.get_performance()
-        perf["total_trades"] = len(self._trade_log)
-        perf["iterations"] = self._iteration
-        perf["open_orders"] = len(self.oms.get_open_orders())
-        return perf
+        total_value = self._portfolio_value()
+        total_return = (total_value / self.initial_capital - 1) if self.initial_capital > 0 else 0.0
+        return {
+            "initial_capital": self.initial_capital,
+            "current_value": total_value,
+            "cash": self._cash,
+            "total_return": total_return,
+            "total_trades": len(self._trade_log),
+            "iterations": self._iteration,
+            "open_orders": len(self.oms.get_open_orders()),
+            "positions": len(self._positions),
+        }
 
     def get_trade_log(self) -> list[dict[str, Any]]:
         return list(self._trade_log)
@@ -220,13 +246,13 @@ class PaperTrader:
 
     def _portfolio_value(self) -> float:
         equity = sum(
-            pos.shares * self._latest_prices.get(pos.ticker, pos.avg_cost)
-            for pos in self.portfolio.positions.values()
+            pos["shares"] * self._latest_prices.get(ticker, pos["avg_cost"])
+            for ticker, pos in self._positions.items()
         )
-        return self.portfolio.cash + equity
+        return self._cash + equity
 
     def _invested_value(self) -> float:
         return sum(
-            pos.shares * self._latest_prices.get(pos.ticker, pos.avg_cost)
-            for pos in self.portfolio.positions.values()
+            pos["shares"] * self._latest_prices.get(ticker, pos["avg_cost"])
+            for ticker, pos in self._positions.items()
         )

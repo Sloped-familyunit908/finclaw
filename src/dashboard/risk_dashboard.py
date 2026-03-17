@@ -47,9 +47,10 @@ class RiskDashboard:
         sector_exposure, correlation_risk, beta, drawdown_current.
         """
         prices = prices or {}
-        total_value = portfolio.cash + sum(
-            pos.shares * prices.get(pos.ticker, pos.avg_cost)
-            for pos in portfolio.positions.values()
+        holdings = portfolio.data.holdings
+        total_value = sum(
+            h.quantity * prices.get(h.symbol, h.avg_cost)
+            for h in holdings
         )
 
         if total_value <= 0:
@@ -57,9 +58,9 @@ class RiskDashboard:
 
         # Position weights
         weights: dict[str, float] = {}
-        for ticker, pos in portfolio.positions.items():
-            val = pos.shares * prices.get(ticker, pos.avg_cost)
-            weights[ticker] = val / total_value
+        for h in holdings:
+            val = h.quantity * prices.get(h.symbol, h.avg_cost)
+            weights[h.symbol] = val / total_value
 
         max_position_pct = max(weights.values()) if weights else 0.0
 
@@ -161,15 +162,17 @@ th {{ background: #16213e; }}
         }
 
     def _compute_daily_returns(self, portfolio: PortfolioTracker) -> list[float]:
-        if len(portfolio.history) < 2:
+        history = portfolio.data.history
+        if len(history) < 2:
             return []
-        values = [s.total_value for s in portfolio.history]
+        values = [s.total_value if hasattr(s, 'total_value') else s.get('total_value', 0) for s in history]
         return [(values[i] / values[i-1]) - 1 for i in range(1, len(values)) if values[i-1] > 0]
 
     def _current_drawdown(self, portfolio: PortfolioTracker) -> float:
-        if not portfolio.history:
+        history = portfolio.data.history
+        if not history:
             return 0.0
-        values = [s.total_value for s in portfolio.history]
+        values = [s.total_value if hasattr(s, 'total_value') else s.get('total_value', 0) for s in history]
         peak = max(values)
         current = values[-1]
         return (peak - current) / peak if peak > 0 else 0.0

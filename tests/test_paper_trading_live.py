@@ -29,7 +29,7 @@ class DummyStrategy:
 class TestPaperTrader:
     def test_init_default(self):
         pt = PaperTrader(100000, DummyStrategy())
-        assert pt.portfolio.initial_capital == 100000
+        assert pt.initial_capital == 100000
         assert pt.running is False
 
     def test_init_with_config(self):
@@ -67,7 +67,7 @@ class TestPaperTrader:
         order = Order(ticker="AAPL", side="buy", order_type="market", quantity=10, limit_price=150.0)
         result = pt.execute(order)
         assert result.status == "filled"
-        assert "AAPL" in pt.portfolio.positions
+        assert "AAPL" in pt._positions
 
     def test_execute_sell(self):
         pt = PaperTrader(100000, DummyStrategy())
@@ -208,13 +208,11 @@ class TestStrategySandbox:
 
 class TestRiskDashboard:
     def _make_portfolio(self):
-        p = PortfolioTracker(100000)
-        p.buy("AAPL", 100, 150, date(2024, 1, 1))
-        p.buy("MSFT", 50, 300, date(2024, 1, 1))
-        # Add some snapshots
-        for i in range(20):
-            prices = {"AAPL": 150 + i * 0.5, "MSFT": 300 + i}
-            p.snapshot(date(2024, 1, i + 1), prices)
+        import tempfile, os
+        storage = os.path.join(tempfile.mkdtemp(), "portfolio.json")
+        p = PortfolioTracker(storage_path=storage, price_fetcher=lambda s: 160.0)
+        p.add("AAPL", 100, 150)
+        p.add("MSFT", 50, 300)
         return p
 
     def test_current_risk_basic(self):
@@ -226,8 +224,10 @@ class TestRiskDashboard:
         assert risk["num_positions"] == 2
 
     def test_current_risk_empty_portfolio(self):
+        import tempfile, os
+        storage = os.path.join(tempfile.mkdtemp(), "portfolio.json")
         dashboard = RiskDashboard()
-        p = PortfolioTracker(100000)
+        p = PortfolioTracker(storage_path=storage, price_fetcher=lambda s: None)
         risk = dashboard.current_risk(p)
         assert risk["total_value"] == 0.0 or risk["num_positions"] == 0
 
@@ -246,11 +246,13 @@ class TestRiskDashboard:
         assert out.exists()
 
     def test_concentration_risk(self):
+        import tempfile, os
+        storage = os.path.join(tempfile.mkdtemp(), "portfolio.json")
         dashboard = RiskDashboard()
-        p = PortfolioTracker(100000)
-        p.buy("AAPL", 600, 150, date(2024, 1, 1))  # all in one stock
+        p = PortfolioTracker(storage_path=storage, price_fetcher=lambda s: 150.0)
+        p.add("AAPL", 600, 150)  # all in one stock
         risk = dashboard.current_risk(p, {"AAPL": 150})
-        assert risk["concentration_risk"] > 0.5  # high concentration (single stock + cash)
+        assert risk["concentration_risk"] >= 0.9  # ~1.0 for single stock
 
 
 # =====================================================================
