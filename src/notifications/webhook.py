@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 import requests
@@ -34,7 +34,7 @@ class WebhookChannel(NotificationChannel):
             "text": message,
             "level": level.value,
             "source": "finclaw",
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             **kwargs,
         }
         try:
@@ -75,7 +75,7 @@ class WebhookNotifier:
         results = {}
         enriched = {
             "event": event,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             **data,
         }
         for platform, url in self.webhooks.items():

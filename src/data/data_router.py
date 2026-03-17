@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
@@ -64,7 +64,7 @@ class YahooProvider(DataProvider):
             return {
                 "price": float(info.last_price),
                 "volume": int(info.last_volume) if hasattr(info, "last_volume") else 0,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "source": "yahoo",
             }
         except Exception as e:
@@ -140,7 +140,7 @@ class AlphaVantageProvider(DataProvider):
             return {
                 "price": float(q["05. price"]),
                 "volume": int(q["06. volume"]),
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "source": "alpha_vantage",
             }
         except Exception as e:
@@ -208,7 +208,7 @@ class MockProvider(DataProvider):
         return {
             "price": round(100 + random.gauss(0, 5), 2),
             "volume": random.randint(100_000, 10_000_000),
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "source": "mock",
         }
 
