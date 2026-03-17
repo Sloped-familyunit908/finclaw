@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "finclaw-ai"
-version = "0.1.0"
+version = "5.1.0"
 description = "AI-native quantitative finance platform with MCP server support"
 readme = "README.md"
 license = {text = "MIT"}
