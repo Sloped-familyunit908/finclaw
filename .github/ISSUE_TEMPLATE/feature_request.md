@@ -1,18 +1,19 @@
 ---
 name: Feature Request
-about: Suggest a feature for FinClaw
+about: Suggest a new feature or enhancement
 title: "[Feature] "
 labels: enhancement
-assignees: ""
+assignees: ''
 ---
 
 ## Problem
 What problem does this solve?
 
 ## Proposed Solution
-Describe the feature.
+How should it work?
 
 ## Alternatives Considered
-Any alternatives?
+Other approaches you've thought about.
 
 ## Additional Context
+Any relevant examples, links, or screenshots.

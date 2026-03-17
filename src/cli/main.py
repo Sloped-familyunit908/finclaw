@@ -835,6 +835,9 @@ Examples:
     p_h.add_argument("--timeframe", "-t", default="1d", help="Timeframe (1m,5m,1h,1d,...)")
     p_h.add_argument("--limit", "-l", type=int, default=20, help="Number of candles")
 
+    # demo
+    sub.add_parser("demo", help="Showcase all features with pre-baked data (no API key needed)")
+
     # info
     sub.add_parser("info", help="Show system info")
 
@@ -2021,6 +2024,9 @@ def main(argv=None):
             else:
                 stats = cache.stats()
                 print(f"  Entries: {stats['entries']} | Size: {stats['size_kb']:.1f} KB")
+        elif args.command == "demo":
+            from src.cli.demo import run_demo
+            run_demo()
         elif args.command == "info":
             print("  FinClaw v5.2.0 — AI-Powered Financial Intelligence Engine")
             print("  Commands: backtest, screen, analyze, portfolio, price, options, paper-trade, report, interactive, exchanges, quote, history")
@@ -2036,9 +2042,20 @@ def main(argv=None):
                         print(f"    [{etype}] {', '.join(names)}")
         elif args.command == "quote":
             from src.exchanges.registry import ExchangeRegistry
+            from src.cli.colors import bold, bright_green, bright_red, gray, price_color, pct_color
             adapter = ExchangeRegistry.get(args.exchange)
             ticker = adapter.get_ticker(args.symbol)
-            print(f"  {ticker['symbol']}  Last: {ticker['last']}  Bid: {ticker.get('bid', 'N/A')}  Ask: {ticker.get('ask', 'N/A')}  Vol: {ticker.get('volume', 'N/A')}")
+            last = ticker['last']
+            bid = ticker.get('bid', 'N/A')
+            ask = ticker.get('ask', 'N/A')
+            vol = ticker.get('volume', 'N/A')
+            chg = ticker.get('change', 0) or 0
+            chg_pct = ticker.get('change_pct', 0) or 0
+            chg_str = price_color(chg, f"{chg:>+.2f}") if chg else ""
+            pct_str = pct_color(chg_pct / 100, f"{chg_pct:>+.2f}%") if chg_pct else ""
+            print(f"\n  {bold(ticker['symbol'])}  {bold(f'${last:.2f}' if isinstance(last, (int,float)) else str(last))}  {chg_str} {pct_str}")
+            print(f"  Bid: {bid}  Ask: {ask}  Vol: {vol:,.0f}" if isinstance(vol, (int,float)) else f"  Bid: {bid}  Ask: {ask}  Vol: {vol}")
+            print()
         elif args.command == "history":
             from src.exchanges.registry import ExchangeRegistry
             adapter = ExchangeRegistry.get(args.exchange)

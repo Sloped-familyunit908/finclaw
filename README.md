@@ -1,263 +1,210 @@
 <h1 align="center">🦀 FinClaw</h1>
 
 <p align="center">
-  <strong>AI-native quantitative finance engine for Python</strong>
+  <strong>AI-powered quantitative finance in your terminal</strong>
 </p>
 
 <p align="center">
-  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.9%2B-blue" alt="Python 3.9+"></a>
+  <a href="https://pypi.org/project/finclaw/"><img src="https://img.shields.io/pypi/v/finclaw?color=blue" alt="PyPI"></a>
   <a href="https://github.com/NeuZhou/finclaw/actions/workflows/ci.yml"><img src="https://github.com/NeuZhou/finclaw/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
-  <a href="https://github.com/NeuZhou/finclaw/stargazers"><img src="https://img.shields.io/github/stars/NeuZhou/finclaw?style=social" alt="GitHub Stars"></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License"></a>
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.9%2B-blue" alt="Python"></a>
+  <a href="https://github.com/NeuZhou/finclaw/stargazers"><img src="https://img.shields.io/github/stars/NeuZhou/finclaw?style=social" alt="Stars"></a>
 </p>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/NeuZhou/finclaw/master/docs/demo.gif" alt="FinClaw Demo" width="700">
+</p>
+
+```
+$ finclaw quote AAPL
+  AAPL  $252.82  +2.31 +0.92%
+  Bid: 252.82  Ask: 252.83  Vol: 30,091,880
+
+$ finclaw analyze TSLA --indicators rsi,macd,bollinger
+  🔬 Technical Analysis: TSLA
+  Price: $175.21  |  52w High: $299.29  |  52w Low: $138.80
+
+  RSI(14)        62.4  NEUTRAL     momentum balanced
+  MACD          +4.82  BULLISH     histogram expanding
+  Bollinger      72%B  NEUTRAL     upper half of band
+
+$ finclaw backtest -t NVDA --start 2023-01-01
+  🚀 NVDA | momentum
+  Return: +142.3% (+55.2%/yr) | Alpha: +18.7%
+  MaxDD: -12.1% | Sharpe: 1.85 | Trades: 47
+```
 
 ---
 
-## What is FinClaw?
+## Why FinClaw?
 
-FinClaw is a lightweight quantitative finance toolkit with built-in AI agent support via the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/). Get market quotes, run backtests, and paper trade — all from Python or through an AI agent.
-
-**Key highlights:**
-
-- 📊 **Real-time quotes** via Yahoo Finance (no API key needed)
-- 🔄 **Backtesting engine** with slippage & commission models
-- 📡 **MCP Server** — expose FinClaw as tools for Claude, Cursor, or any AI agent
-- 🔌 **WebSocket streaming** from Binance, OKX, Bybit
-- 📋 **Strategy library** — YAML-configured, extensible via plugin system
-- ⚡ **Zero heavy deps** — pure NumPy core, installs in seconds
+Most quant tools make you configure databases, install heavy dependencies, and write boilerplate before you see your first result. **FinClaw gets you from zero to insight in one command.** Zero API keys needed — it uses Yahoo Finance by default. A pure NumPy core means it installs in seconds, not minutes. And when you're ready for AI-powered strategy generation, MCP agent integration, or multi-exchange live trading — it's all built in.
 
 ---
 
 ## Quick Start
 
 ```bash
-# Install from PyPI
 pip install finclaw
-
-# Or install from source
-git clone https://github.com/NeuZhou/finclaw.git
-cd finclaw
-pip install -e .
+finclaw demo              # See all features — no API key needed
+finclaw quote AAPL        # Real-time stock quote
+finclaw copilot           # AI financial assistant
 ```
 
-```python
-from finclaw import FinClaw
+---
 
-fc = FinClaw()
-quote = fc.quote("AAPL")
-print(f"AAPL: ${quote['price']:.2f} ({quote['change_pct']:+.1f}%)")
+## Feature Comparison
+
+| Feature | FinClaw | Backtrader | Zipline | Freqtrade |
+|---------|:-------:|:----------:|:-------:|:---------:|
+| Zero-config install | ✅ | ❌ | ❌ | ❌ |
+| CLI interface | ✅ | ❌ | ❌ | ✅ |
+| AI strategy generation | ✅ | ❌ | ❌ | ❌ |
+| Natural language copilot | ✅ | ❌ | ❌ | ❌ |
+| MCP server (AI agents) | ✅ | ❌ | ❌ | ❌ |
+| Paper trading | ✅ | ❌ | ✅ | ✅ |
+| Backtesting | ✅ | ✅ | ✅ | ✅ |
+| Multi-exchange | ✅ | ❌ | ❌ | ✅ |
+| Strategy plugins | ✅ | ✅ | ❌ | ✅ |
+| No heavy deps (pure NumPy) | ✅ | ❌ | ❌ | ❌ |
+| Crypto + Stocks | ✅ | ✅ | ❌ | ✅* |
+| Terminal charts | ✅ | ❌ | ❌ | ❌ |
+| YAML strategy DSL | ✅ | ❌ | ❌ | ❌ |
+
+---
+
+## What You Can Do
+
+### 📊 Quotes & Analysis
+```bash
+finclaw quote AAPL,MSFT,NVDA        # Multi-ticker quotes
+finclaw analyze TSLA --indicators rsi,macd,bollinger,sma50
+finclaw chart AAPL --type candle     # Terminal candlestick chart
+finclaw news AAPL                    # Financial news
+finclaw sentiment TSLA               # Sentiment analysis
 ```
 
-### Run a Backtest
-
-```python
-result = fc.backtest(strategy="momentum", ticker="NVDA", start="2023-01-01")
-print(f"Return: {result.total_return:.1%} | Sharpe: {result.sharpe_ratio:.2f}")
+### 🚀 Backtesting
+```bash
+finclaw backtest -t AAPL,MSFT --strategy momentum --start 2023-01-01
+finclaw backtest -t NVDA --benchmark SPY    # Compare to benchmark
+finclaw strategy list                        # 20+ built-in strategies
+finclaw strategy backtest trend-following --symbol AAPL
 ```
 
-### MCP Server (AI Agents)
+### 📋 Paper Trading
+```bash
+finclaw paper start --balance 100000
+finclaw paper buy AAPL 50
+finclaw paper sell MSFT 20
+finclaw paper dashboard
+finclaw paper run-strategy golden-cross --symbols AAPL,MSFT
+```
 
-Add to your `claude_desktop_config.json`:
+### 🤖 AI Features
+```bash
+# Generate strategies from plain English or 中文
+finclaw generate-strategy "buy when RSI < 30 and MACD golden cross"
+finclaw generate-strategy --market crypto --risk high "momentum on volume spike"
+
+# Interactive AI assistant
+finclaw copilot
+> 分析特斯拉最近走势
+> 帮我创建一个均值回归策略
+
+# AI-optimize existing strategies
+finclaw optimize-strategy my_strategy.py --data AAPL --period 1y
+```
+
+Supports: OpenAI, Anthropic, DeepSeek, Gemini, Ollama (local), Groq, Mistral, Moonshot.
+
+### 🔌 MCP Server (for AI Agents)
+
+Expose FinClaw as tools for Claude, Cursor, VS Code, or OpenClaw:
 
 ```json
 {
   "mcpServers": {
     "finclaw": {
-      "command": "python",
-      "args": ["-m", "finclaw", "mcp"],
-      "env": {}
+      "command": "finclaw",
+      "args": ["mcp", "serve"]
     }
   }
 }
 ```
 
-Available MCP tools: `finclaw_scan`, `finclaw_backtest`, `finclaw_macro`, `finclaw_info`.
+### 📈 Strategy Plugin Ecosystem
+
+```bash
+# Create a plugin in 5 minutes
+finclaw init-strategy my_strategy
+cd finclaw-strategy-my_strategy
+pip install -e .
+finclaw backtest --strategy plugin:my_strategy -t AAPL
+
+# Or use YAML DSL
+finclaw strategy create     # Interactive builder
+finclaw strategy dsl-backtest my_strategy.yaml --symbol AAPL
+```
+
+Compatible with **Backtrader** strategies, **TA-Lib** indicators, and simple **Pine Script**.
 
 ---
 
-## Features
+## Python API
 
-| Feature | Status |
-|---------|--------|
-| Yahoo Finance quotes | ✅ |
-| Backtesting engine | ✅ |
-| Paper trading | ✅ |
-| MCP Server | ✅ |
-| CLI | ✅ |
-| WebSocket streaming (Binance, OKX, Bybit) | ✅ |
-| Strategy library (YAML) | ✅ |
-| HTML backtest reports | ✅ |
-| Plugin system | ✅ |
-| **AI Strategy Generator** | ✅ |
-| **AI Strategy Optimizer** | ✅ |
-| **FinClaw Copilot** | ✅ |
+```python
+from finclaw import FinClaw
 
----
+fc = FinClaw()
 
-## 🤖 AI Strategy Generation
+# Quote
+quote = fc.quote("AAPL")
+print(f"AAPL: ${quote['price']:.2f} ({quote['change_pct']:+.1f}%)")
 
-Turn plain English (or 中文) into production-ready trading strategies:
-
-```bash
-# Generate a strategy from natural language
-finclaw generate-strategy "buy when RSI below 30 and MACD golden cross, 5% stop loss"
-
-# Specify market and risk profile
-finclaw generate-strategy --market crypto --risk high "momentum breakout on volume spike"
-
-# Interactive multi-turn builder
-finclaw generate-strategy --interactive
-
-# Save to file
-finclaw generate-strategy "mean reversion on Bollinger Bands" -o my_strategy.py
+# Backtest
+result = fc.backtest(strategy="momentum", ticker="NVDA", start="2023-01-01")
+print(f"Return: {result.total_return:.1%} | Sharpe: {result.sharpe_ratio:.2f}")
 ```
-
-### AI Strategy Optimizer
-
-Analyze an existing strategy and get AI-powered improvement suggestions:
-
-```bash
-finclaw optimize-strategy my_strategy.py --data AAPL --period 1y
-```
-
-Combines LLM analysis with grid search for parameter optimization.
-
-### FinClaw Copilot
-
-Interactive AI financial assistant — analyze markets, create strategies, compare backtests:
-
-```bash
-finclaw copilot
-```
-
-```
-You: 分析特斯拉最近走势
-🤖: TSLA has been trading in a consolidation range...
-
-You: 帮我创建一个均值回归策略
-🤖: Let me guide you through the parameters...
-```
-
-**Supported LLM providers:** OpenAI, Anthropic, Google Gemini, DeepSeek, Moonshot/Kimi, Ollama (local), Groq, Mistral. Auto-detects from environment variables.
 
 ---
 
 ## Architecture
 
 ```
-┌──────────────────────────────────────┐
-│          User Interfaces             │
-│ CLI │ MCP Server │ Copilot │ API     │
-├──────────────────────────────────────┤
-│       AI Strategy Engine             │
-│ Generator │ Optimizer │ Copilot Chat │
-├──────────────────────────────────────┤
-│         Strategy Layer               │
-│   Built-in Strategies  │  Plugins    │
-├──────────────────────────────────────┤
-│  Backtester  │  Paper Trading Engine │
-├──────────────────────────────────────┤
-│            Data Layer                │
-│  Yahoo Finance │ Binance WS │ Cache  │
-└──────────────────────────────────────┘
+┌────────────────────────────────────────┐
+│           User Interfaces              │
+│  CLI  │  MCP Server  │  Copilot  │ API │
+├────────────────────────────────────────┤
+│         AI Strategy Engine             │
+│  Generator │ Optimizer │ Copilot Chat  │
+├────────────────────────────────────────┤
+│          Strategy Layer                │
+│   Built-in (20+)  │  Plugins │  YAML  │
+├────────────────────────────────────────┤
+│   Backtester  │  Paper Trading Engine  │
+├────────────────────────────────────────┤
+│             Data Layer                 │
+│  Yahoo Finance │ Binance WS │  Cache   │
+└────────────────────────────────────────┘
 ```
 
 ---
 
-## Strategy Plugin Ecosystem
+## Examples
 
-FinClaw features an open strategy plugin system — build, share, and reuse trading strategies across the community.
+See [`examples/`](examples/) for runnable strategies:
 
-**Compatible with Backtrader strategies and TA-Lib indicators.**
-
-### Built-in Strategies
-
-| Strategy | Description | Risk | Markets |
-|----------|-------------|------|---------|
-| `trend_following` | Dual MA crossover + ADX filter | Medium | Stocks, Crypto, Forex |
-| `mean_reversion` | RSI + Bollinger Bands | Medium | Stocks, Crypto |
-| `momentum_jt` | Jegadeesh-Titman momentum | Medium | Stocks |
-| `value_momentum` | Value + momentum factor | Low | Stocks |
-
-### Create Your Own Strategy (5 minutes)
+- **[simple_momentum.py](examples/simple_momentum.py)** — SMA + RSI momentum strategy
+- **[crypto_rsi.py](examples/crypto_rsi.py)** — Crypto RSI oversold/overbought
+- **[ai_generated.py](examples/ai_generated.py)** — BB squeeze mean reversion (AI-generated)
 
 ```bash
-# Generate scaffold
-finclaw init-strategy my_strategy
-
-# Edit your logic
-cd finclaw-strategy-my_strategy
-# ... edit strategy.py ...
-
-# Install & use
-pip install -e .
-finclaw plugins list
-finclaw backtest --strategy plugin:my_strategy --tickers AAPL
+python examples/simple_momentum.py AAPL
+python examples/crypto_rsi.py BTC-USD
+python examples/ai_generated.py TSLA
 ```
-
-### Ecosystem Adapters
-
-- **Backtrader** — Wrap any `bt.Strategy` class (13K+ strategies from the community)
-- **TA-Lib** — 150+ technical indicators as signal generators (auto-fallback to pure Python)
-- **Pine Script** — Parse simple TradingView strategies (SMA, EMA, RSI, MACD, crossover)
-
-```python
-# Backtrader adapter
-from src.plugin_system.backtrader_adapter import adapt_backtrader
-plugin = adapt_backtrader(MyBTStrategy, name="my_bt")
-
-# TA-Lib signal generator
-from src.plugin_system.talib_adapter import talib_strategy
-rsi_strat = talib_strategy("rsi", period=14, overbought=70, oversold=30)
-
-# Pine Script
-from src.plugin_system.pine_parser import from_pine
-plugin = from_pine("""
-    fast = ta.sma(close, 10)
-    slow = ta.sma(close, 50)
-    if ta.crossover(fast, slow)
-        strategy.entry("Long", strategy.long)
-""", name="pine_cross")
-```
-
-### Strategy Registry
-
-```python
-from src.plugin_system import StrategyRegistry
-
-registry = StrategyRegistry()
-registry.load_all()
-
-# Filter strategies
-crypto_strats = registry.filter(market="crypto")
-safe_strats = registry.filter(risk_level="low")
-
-# Multi-strategy voting
-combined = registry.vote(["trend_following", "mean_reversion"], data, threshold=0.5)
-```
-
-### Plugin CLI
-
-```bash
-finclaw plugins list                          # List all strategy plugins
-finclaw plugins info trend_following          # Show plugin details
-finclaw init-strategy my_strategy             # Generate plugin scaffold
-finclaw backtest --strategy plugin:golden_cross --tickers AAPL
-```
-
----
-
-## Roadmap
-
-> These features are planned but **not yet implemented**:
-
-- [x] PyPI package (`pip install finclaw`)
-- [ ] Docker deployment
-- [ ] More exchange adapters (Coinbase, Alpaca, Polygon, China A-shares)
-- [ ] REST API server
-- [ ] ML pipeline (sentiment, regime detection)
-- [ ] DeFi / on-chain analytics
-- [ ] Complete API documentation
 
 ---
 
@@ -265,8 +212,7 @@ finclaw backtest --strategy plugin:golden_cross --tickers AAPL
 
 ```bash
 git clone https://github.com/NeuZhou/finclaw.git
-cd finclaw
-pip install -e ".[dev]"
+cd finclaw && pip install -e ".[dev]"
 pytest
 ```
 
@@ -276,10 +222,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## License
 
-[MIT](LICENSE)
-
----
-
-<p align="center">
-  Built by <a href="https://github.com/NeuZhou">Kang Zhou</a>
-</p>
+[MIT](LICENSE) — Built by [Kang Zhou](https://github.com/NeuZhou)
