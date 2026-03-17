@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 from typing import Any
 
 SERVER_NAME = "finclaw"
-SERVER_VERSION = "5.2.0"
+SERVER_VERSION = "5.1.0"
 PROTOCOL_VERSION = "2024-11-05"
 
 

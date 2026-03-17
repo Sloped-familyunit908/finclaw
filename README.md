@@ -5,11 +5,11 @@
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/finclaw/"><img src="https://img.shields.io/pypi/v/finclaw→color=blue" alt="PyPI"></a>
+  <a href="https://pypi.org/project/finclaw-ai/"><img src="https://img.shields.io/pypi/v/finclaw-ai?color=blue" alt="PyPI"></a>
   <a href="https://github.com/NeuZhou/finclaw/actions/workflows/ci.yml"><img src="https://github.com/NeuZhou/finclaw/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License"></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.9%2B-blue" alt="Python"></a>
-  <a href="https://github.com/NeuZhou/finclaw/stargazers"><img src="https://img.shields.io/github/stars/NeuZhou/finclaw→style=social" alt="Stars"></a>
+  <a href="https://github.com/NeuZhou/finclaw/stargazers"><img src="https://img.shields.io/github/stars/NeuZhou/finclaw?style=social" alt="Stars"></a>
 </p>
 
 <p align="center">
@@ -37,7 +37,7 @@ $ finclaw backtest -t NVDA --start 2023-01-01
 
 ---
 
-## Why FinClaw→
+## Why FinClaw?
 
 Most quant tools make you configure databases, install heavy dependencies, and write boilerplate before you see your first result. **FinClaw gets you from zero to insight in one command.** Zero API keys needed — it uses Yahoo Finance by default. A pure NumPy core means it installs in seconds, not minutes. And when you're ready for AI-powered strategy generation, MCP agent integration, or multi-exchange live trading — it's all built in.
 
@@ -46,7 +46,7 @@ Most quant tools make you configure databases, install heavy dependencies, and w
 ## Quick Start
 
 ```bash
-pip install finclaw
+pip install finclaw-ai
 finclaw demo              # See all features — no API key needed
 finclaw quote AAPL        # Real-time stock quote
 finclaw copilot           # AI financial assistant
@@ -63,14 +63,18 @@ finclaw copilot           # AI financial assistant
 | AI strategy generation | ✅ | ❌ | ❌ | ❌ |
 | Natural language copilot | ✅ | ❌ | ❌ | ❌ |
 | MCP server (AI agents) | ✅ | ❌ | ❌ | ❌ |
+| A2A protocol | ✅ | ❌ | ❌ | ❌ |
 | Paper trading | ✅ | ❌ | ✅ | ✅ |
 | Backtesting | ✅ | ✅ | ✅ | ✅ |
-| Multi-exchange | ✅ | ❌ | ❌ | ✅ |
+| Multi-exchange (12+) | ✅ | ❌ | ❌ | ✅ |
 | Strategy plugins | ✅ | ✅ | ❌ | ✅ |
 | No heavy deps (pure NumPy) | ✅ | ❌ | ❌ | ❌ |
-| Crypto + Stocks | ✅ | ✅ | ❌ | ✅* |
+| Crypto + Stocks + CN Stocks | ✅ | ✅ | ❌ | ✅* |
 | Terminal charts | ✅ | ❌ | ❌ | ❌ |
 | YAML strategy DSL | ✅ | ❌ | ❌ | ❌ |
+| BTC on-chain metrics | ✅ | ❌ | ❌ | ❌ |
+| Funding rate dashboard | ✅ | ❌ | ❌ | ✅ |
+| Lightning Network monitor | ✅ | ❌ | ❌ | ❌ |
 
 ---
 
@@ -119,6 +123,21 @@ finclaw optimize-strategy my_strategy.py --data AAPL --period 1y
 
 Supports: OpenAI, Anthropic, DeepSeek, Gemini, Ollama (local), Groq, Mistral, Moonshot.
 
+### ⛓️ BTC Metrics & Crypto Tools
+```bash
+finclaw btc-metrics                  # On-chain dashboard (hashrate, MVRV, miner outflow)
+finclaw funding-rates                # Multi-exchange funding rate comparison + arbitrage
+finclaw fear-greed --history 7       # Fear & Greed Index with history
+```
+
+Features:
+- **BTC On-Chain Metrics** — Hashrate, difficulty, mempool, MVRV ratio, miner outflow (via Blockchain.info)
+- **Multi-Exchange Funding Dashboard** — Binance, Bybit, OKX funding rates with arbitrage detection
+- **Lightning Network Monitor** — Network capacity, node count, channel stats (via 1ML.com)
+- **Fear & Greed Index** — Current and historical data (via Alternative.me)
+- **Liquidation Tracker** — Track liquidation events across exchanges
+- **On-Chain Analytics** — Transaction volume, active addresses
+
 ### 🔌 MCP Server (for AI Agents)
 
 Expose FinClaw as tools for Claude, Cursor, VS Code, or OpenClaw:
@@ -134,6 +153,8 @@ Expose FinClaw as tools for Claude, Cursor, VS Code, or OpenClaw:
 }
 ```
 
+10 MCP tools available: `get_quote`, `get_history`, `list_exchanges`, `run_backtest`, `analyze_portfolio`, `get_indicators`, `screen_stocks`, `get_sentiment`, `compare_strategies`, `get_funding_rates`.
+
 ### 📈 Strategy Plugin Ecosystem
 
 ```bash
@@ -146,9 +167,32 @@ finclaw backtest --strategy plugin:my_strategy -t AAPL
 # Or use YAML DSL
 finclaw strategy create     # Interactive builder
 finclaw strategy dsl-backtest my_strategy.yaml --symbol AAPL
+finclaw strategy optimize my_strategy.yaml --param rsi_period:10:30:5
 ```
 
-Compatible with **Backtrader** strategies, **TA-Lib** indicators, and simple **Pine Script**.
+Compatible with **Backtrader** strategies, **TA-Lib** indicators, and basic **Pine Script**.
+
+### 🌐 12+ Exchange Adapters
+
+**Crypto:** Binance, Bybit, OKX, Coinbase, Kraken (with WebSocket for Binance/Bybit/OKX)
+**US Stocks:** Yahoo Finance, Alpaca, Polygon, Alpha Vantage
+**CN Stocks:** AkShare, BaoStock, Tushare
+
+```bash
+finclaw exchanges list               # See all adapters
+finclaw exchanges compare yahoo binance alpaca
+finclaw quote BTCUSDT --exchange binance
+finclaw history ETHUSDT --exchange bybit --timeframe 1h --limit 50
+```
+
+### 🤝 A2A Protocol (Agent-to-Agent)
+
+FinClaw implements the A2A protocol for inter-agent communication:
+
+```bash
+finclaw a2a serve --port 8081        # Start A2A server
+finclaw a2a card                      # Print agent card
+```
 
 ---
 
@@ -168,26 +212,31 @@ result = fc.backtest(strategy="momentum", ticker="NVDA", start="2023-01-01")
 print(f"Return: {result.total_return:.1%} | Sharpe: {result.sharpe_ratio:.2f}")
 ```
 
+Full API documentation: [docs/API.md](docs/API.md)
+
 ---
 
 ## Architecture
 
 ```
-┌────────────────────────────────────────┐
-│           User Interfaces              │
-│  CLI  │  MCP Server  │  Copilot  │ API │
-├────────────────────────────────────────┤
-│         AI Strategy Engine             │
-│  Generator │ Optimizer │ Copilot Chat  │
-├────────────────────────────────────────┤
-│          Strategy Layer                │
-│   Built-in (20+)  │  Plugins │  YAML  │
-├────────────────────────────────────────┤
-│   Backtester  │  Paper Trading Engine  │
-├────────────────────────────────────────┤
-│             Data Layer                 │
-│  Yahoo Finance │ Binance WS │  Cache   │
-└────────────────────────────────────────┘
+┌──────────────────────────────────────────────────┐
+│               User Interfaces                     │
+│  CLI  │  MCP Server  │  A2A  │  Copilot  │  API  │
+├──────────────────────────────────────────────────┤
+│           AI Strategy Engine                      │
+│  Generator │ Optimizer │ Copilot Chat │ Pine DSL  │
+├──────────────────────────────────────────────────┤
+│            Strategy Layer                         │
+│   Built-in (20+)  │  Plugins  │  YAML DSL        │
+├──────────────────────────────────────────────────┤
+│   Backtester  │  Paper Trading  │  Risk Engine    │
+├──────────────────────────────────────────────────┤
+│              Data Layer                           │
+│  Yahoo │ Binance WS │ 12+ Exchanges │  Cache      │
+├──────────────────────────────────────────────────┤
+│            Crypto Layer                           │
+│  BTC Metrics │ Funding Rates │ Lightning │ DeFi   │
+└──────────────────────────────────────────────────┘
 ```
 
 ---
@@ -236,5 +285,3 @@ FinClaw is part of the NeuZhou open source toolkit for AI agents:
 | **FinClaw** | AI-powered financial intelligence engine | *You are here* |
 
 **The workflow:** Generate skills with repo2skill → Scan for vulnerabilities with ClawGuard → Test behavior with AgentProbe → See it in action with FinClaw.
-
-FinClaw serves as a real-world showcase of AI agent patterns that ClawGuard scans and AgentProbe tests.

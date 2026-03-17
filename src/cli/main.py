@@ -1,5 +1,5 @@
 """
-FinClaw CLI v4.0.0 - Comprehensive argparse-based CLI
+FinClaw CLI v5.1.0 - Comprehensive argparse-based CLI
 =====================================================
 All commands work end-to-end with real data via yfinance.
 """
@@ -932,7 +932,7 @@ def build_parser() -> argparse.ArgumentParser:
     """Build the full CLI argument parser."""
     parser = argparse.ArgumentParser(
         prog="finclaw",
-        description="FinClaw v0.1.0 — AI-Powered Financial Intelligence Engine",
+        description="FinClaw v5.1.0 — AI-Powered Financial Intelligence Engine",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
