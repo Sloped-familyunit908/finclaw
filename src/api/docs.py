@@ -132,6 +132,102 @@ class APIDocGenerator:
                         "responses": {"201": {"description": "Alert created"}},
                     },
                 },
+                "/paper/portfolio": {
+                    "get": {
+                        "summary": "Get paper trading portfolio",
+                        "operationId": "getPaperPortfolio",
+                        "responses": {
+                            "200": {"description": "Paper trading portfolio with positions, cash, and P&L"},
+                        },
+                    }
+                },
+                "/paper/trades": {
+                    "get": {
+                        "summary": "Get paper trading trade history",
+                        "operationId": "getPaperTrades",
+                        "parameters": [
+                            {"name": "limit", "in": "query", "schema": {"type": "integer", "default": 50}},
+                        ],
+                        "responses": {
+                            "200": {"description": "List of executed paper trades"},
+                        },
+                    }
+                },
+                "/paper/order": {
+                    "post": {
+                        "summary": "Place a paper trading order",
+                        "operationId": "placePaperOrder",
+                        "requestBody": {
+                            "required": True,
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object",
+                                        "properties": {
+                                            "symbol": {"type": "string", "description": "Ticker symbol"},
+                                            "side": {"type": "string", "enum": ["buy", "sell"]},
+                                            "quantity": {"type": "number", "description": "Number of shares/units"},
+                                            "order_type": {"type": "string", "enum": ["market", "limit"], "default": "market"},
+                                            "limit_price": {"type": "number", "description": "Limit price (required for limit orders)"},
+                                        },
+                                        "required": ["symbol", "side", "quantity"],
+                                    }
+                                }
+                            },
+                        },
+                        "responses": {
+                            "200": {"description": "Order result with fill details"},
+                            "400": {"description": "Invalid order parameters"},
+                        },
+                    }
+                },
+                "/indicators": {
+                    "get": {
+                        "summary": "List available technical indicators",
+                        "operationId": "listIndicators",
+                        "responses": {
+                            "200": {"description": "List of supported technical indicators with parameters"},
+                        },
+                    }
+                },
+                "/risk/metrics": {
+                    "post": {
+                        "summary": "Calculate risk metrics for a return series",
+                        "operationId": "calculateRiskMetrics",
+                        "requestBody": {
+                            "required": True,
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object",
+                                        "properties": {
+                                            "returns": {
+                                                "type": "array",
+                                                "items": {"type": "number"},
+                                                "description": "Array of daily returns",
+                                            },
+                                            "confidence": {"type": "number", "default": 0.95},
+                                            "risk_free_rate": {"type": "number", "default": 0.0},
+                                        },
+                                        "required": ["returns"],
+                                    }
+                                }
+                            },
+                        },
+                        "responses": {
+                            "200": {"description": "Risk metrics including VaR, Sharpe, Sortino, max drawdown"},
+                        },
+                    }
+                },
+                "/mcp/tools": {
+                    "get": {
+                        "summary": "List available MCP tools",
+                        "operationId": "listMCPTools",
+                        "responses": {
+                            "200": {"description": "List of MCP server tools and their schemas"},
+                        },
+                    }
+                },
             },
             "components": {
                 "securitySchemes": {
