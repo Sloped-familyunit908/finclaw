@@ -11,60 +11,77 @@ from src.portfolio.tracker import PortfolioTracker
 
 
 class TestPortfolioTracker:
-    def test_buy(self):
-        pt = PortfolioTracker(100_000)
-        pt.buy("AAPL", 10, 150.0, date(2024, 1, 1))
-        assert pt.cash == pytest.approx(98_500)
-        assert pt.positions["AAPL"].shares == 10
+    """Tests rewritten for current PortfolioTracker API (add/remove, JSON persistence)."""
 
-    def test_sell(self):
-        pt = PortfolioTracker(100_000)
-        pt.buy("AAPL", 10, 150.0, date(2024, 1, 1))
-        pt.sell("AAPL", 5, 160.0, date(2024, 1, 2))
-        assert pt.positions["AAPL"].shares == 5
-        assert pt.cash == pytest.approx(98_500 + 800)
+    def _make_tracker(self, tmp_path=None):
+        """Create a PortfolioTracker with a temp storage path and stub price fetcher."""
+        import tempfile, os
+        storage = os.path.join(tempfile.mkdtemp(), "portfolio.json")
+        return PortfolioTracker(storage_path=storage, price_fetcher=lambda s: 150.0)
 
-    def test_sell_all_removes_position(self):
-        pt = PortfolioTracker(100_000)
-        pt.buy("AAPL", 10, 150.0, date(2024, 1, 1))
-        pt.sell("AAPL", 10, 160.0, date(2024, 1, 2))
-        assert "AAPL" not in pt.positions
+    def test_add_holding(self):
+        pt = self._make_tracker()
+        h = pt.add("AAPL", 10, 150.0)
+        assert h.symbol == "AAPL"
+        assert h.quantity == 10
+        assert h.avg_cost == pytest.approx(150.0)
 
-    def test_insufficient_cash(self):
-        pt = PortfolioTracker(1_000)
-        with pytest.raises(ValueError, match="Insufficient cash"):
-            pt.buy("AAPL", 100, 150.0, date(2024, 1, 1))
+    def test_remove_partial(self):
+        pt = self._make_tracker()
+        pt.add("AAPL", 10, 150.0)
+        remaining = pt.remove("AAPL", 5)
+        assert remaining is not None
+        assert remaining.quantity == 5
 
-    def test_insufficient_shares(self):
-        pt = PortfolioTracker(100_000)
-        with pytest.raises(ValueError, match="Insufficient shares"):
-            pt.sell("AAPL", 1, 100.0, date(2024, 1, 1))
+    def test_remove_all_deletes_holding(self):
+        pt = self._make_tracker()
+        pt.add("AAPL", 10, 150.0)
+        remaining = pt.remove("AAPL", 10)
+        assert remaining is None
+        # Verify holding is gone
+        assert pt._find_holding("AAPL") is None
+
+    def test_add_negative_quantity_raises(self):
+        pt = self._make_tracker()
+        with pytest.raises(ValueError, match="positive"):
+            pt.add("AAPL", -1, 150.0)
+
+    def test_remove_nonexistent_raises(self):
+        pt = self._make_tracker()
+        with pytest.raises(ValueError, match="No holding found"):
+            pt.remove("AAPL", 1)
 
     def test_snapshot(self):
-        pt = PortfolioTracker(100_000)
-        pt.buy("AAPL", 10, 150.0, date(2024, 1, 1))
-        snap = pt.snapshot(date(2024, 1, 1), {"AAPL": 155.0})
-        assert snap.total_value == pytest.approx(98_500 + 10 * 155.0)
+        pt = self._make_tracker()
+        pt.add("AAPL", 10, 150.0)
+        snap = pt.snapshot()
+        # With price_fetcher returning 150.0, value = 10 * 150 = 1500
+        assert snap.total_value == pytest.approx(1500.0)
+        assert snap.holdings_count == 1
 
-    def test_performance(self):
-        pt = PortfolioTracker(100_000)
-        pt.buy("AAPL", 10, 100.0, date(2024, 1, 1))
-        for i, p in enumerate([100, 105, 110, 108, 112]):
-            pt.snapshot(date(2024, 1, i + 1), {"AAPL": p})
-        perf = pt.get_performance()
-        assert perf["total_return"] > 0
-        assert perf["num_snapshots"] == 5
+    def test_history_grows(self):
+        pt = self._make_tracker()
+        pt.add("AAPL", 10, 100.0)
+        pt.snapshot()
+        history = pt.get_history()
+        assert len(history) >= 1
+        assert "total_value" in history[0]
 
-    def test_avg_cost_multiple_buys(self):
-        pt = PortfolioTracker(100_000)
-        pt.buy("AAPL", 10, 100.0, date(2024, 1, 1))
-        pt.buy("AAPL", 10, 200.0, date(2024, 1, 2))
-        assert pt.positions["AAPL"].avg_cost == pytest.approx(150.0)
-        assert pt.positions["AAPL"].shares == 20
+    def test_avg_cost_multiple_adds(self):
+        pt = self._make_tracker()
+        pt.add("AAPL", 10, 100.0)
+        pt.add("AAPL", 10, 200.0)
+        h = pt._find_holding("AAPL")
+        assert h.avg_cost == pytest.approx(150.0)
+        assert h.quantity == 20
 
-    def test_no_snapshots_performance(self):
-        pt = PortfolioTracker(100_000)
-        assert pt.get_performance() == {"error": "no snapshots"}
+    def test_show_returns_summary(self):
+        pt = self._make_tracker()
+        pt.add("AAPL", 10, 100.0)
+        status = pt.show()
+        assert status["portfolio"] == "main"
+        assert len(status["holdings"]) == 1
+        assert status["total_value"] > 0
 
 
 # ── Technical Analysis ───────────────────────────────────────────────
