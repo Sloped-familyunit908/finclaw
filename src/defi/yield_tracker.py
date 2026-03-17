@@ -4,8 +4,6 @@ Simulated APY data for common DeFi protocols with risk scoring.
 """
 
 from dataclasses import dataclass
-import math
-import hashlib
 
 
 @dataclass
@@ -73,10 +71,45 @@ _PROTOCOL_DATA = {
 
 
 class YieldTracker:
-    """Track and compare DeFi protocol yields."""
+    """Track and compare DeFi protocol yields.
 
-    def __init__(self):
+    By default uses simulated data. Pass use_live=True to fetch real data
+    from DeFi Llama APIs.
+    """
+
+    def __init__(self, use_live: bool = False):
         self._data = _PROTOCOL_DATA
+        self._use_live = use_live
+        self._llama = None
+        if use_live:
+            from .defillama import DefiLlamaClient
+            self._llama = DefiLlamaClient()
+
+    def get_live_yields(self, chain: str | None = None, min_tvl: float = 100_000) -> list[dict]:
+        """Get real yield opportunities from DeFi Llama.
+
+        Returns list of dicts with protocol, pool, apy, tvl, chain.
+        Falls back to simulated data if live fetch fails.
+        """
+        if not self._llama:
+            from .defillama import DefiLlamaClient
+            self._llama = DefiLlamaClient()
+        try:
+            pools = self._llama.get_best_yields(chain=chain, min_tvl=min_tvl)
+            return [
+                {
+                    'protocol': p.project,
+                    'pool': p.symbol,
+                    'apy': p.apy,
+                    'tvl': p.tvl_usd,
+                    'chain': p.chain,
+                    'apy_base': p.apy_base,
+                    'apy_reward': p.apy_reward,
+                }
+                for p in pools
+            ]
+        except Exception:
+            return self.best_yields(min_tvl=min_tvl)
 
     def get_rates(self, protocols: list[str] = None) -> dict:
         """Get APY rates for protocols.

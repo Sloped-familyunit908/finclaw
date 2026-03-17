@@ -1078,6 +1078,20 @@ Examples:
     p.add_argument("--auth", action="store_true", help="Enable API key auth")
     p.add_argument("--rate-limit", type=int, default=100, help="Max requests per minute")
 
+    # defi-tvl
+    p_dtvl = sub.add_parser("defi-tvl", help="Top DeFi protocols by TVL (via DeFi Llama)")
+    p_dtvl.add_argument("--limit", "-l", type=int, default=20, help="Number of protocols")
+
+    # yields
+    p_yields = sub.add_parser("yields", help="Best DeFi yield farming opportunities (via DeFi Llama)")
+    p_yields.add_argument("--chain", default=None, help="Filter by chain (e.g. Ethereum, BSC)")
+    p_yields.add_argument("--min-tvl", type=float, default=100_000, help="Minimum pool TVL in USD")
+    p_yields.add_argument("--limit", "-l", type=int, default=20, help="Number of results")
+
+    # stablecoins
+    p_stbl = sub.add_parser("stablecoins", help="Stablecoin market overview (via DeFi Llama)")
+    p_stbl.add_argument("--limit", "-l", type=int, default=20, help="Number of stablecoins")
+
     # btc-metrics
     sub.add_parser("btc-metrics", help="Show BTC on-chain metrics dashboard")
 
@@ -2244,6 +2258,56 @@ def _cmd_copilot(args):
     copilot.run_interactive()
 
 
+def cmd_defi_tvl(args):
+    """Top DeFi protocols by TVL."""
+    from src.defi.defillama import DefiLlamaClient
+    client = DefiLlamaClient()
+    protocols = client.get_top_protocols(limit=args.limit)
+
+    print(f"\n  ?? Top {len(protocols)} DeFi Protocols by TVL\n")
+    print(f"  {'#':<4} {'Protocol':<25} {'TVL (USD)':>16} {'Chain':<15} {'Category':<15} {'1d %':>8} {'7d %':>8}")
+    print("  " + "─" * 95)
+    for i, p in enumerate(protocols, 1):
+        tvl_str = f"${p.tvl:>14,.0f}" if p.tvl else "N/A"
+        d1 = f"{p.change_1d:>+7.2f}%" if p.change_1d is not None else "    N/A"
+        d7 = f"{p.change_7d:>+7.2f}%" if p.change_7d is not None else "    N/A"
+        print(f"  {i:<4} {p.name:<25} {tvl_str} {p.chain:<15} {p.category:<15} {d1} {d7}")
+    print()
+
+
+def cmd_yields(args):
+    """Best yield farming opportunities."""
+    from src.defi.defillama import DefiLlamaClient
+    client = DefiLlamaClient()
+    pools = client.get_best_yields(chain=args.chain, min_tvl=args.min_tvl)[:args.limit]
+
+    chain_label = f" on {args.chain}" if args.chain else ""
+    print(f"\n  🌾 Top {len(pools)} Yield Opportunities{chain_label}\n")
+    print(f"  {'#':<4} {'Project':<20} {'Pool':<20} {'Chain':<12} {'APY':>10} {'TVL (USD)':>16}")
+    print("  " + "─" * 85)
+    for i, p in enumerate(pools, 1):
+        apy_str = f"{p.apy:>9.2f}%"
+        tvl_str = f"${p.tvl_usd:>14,.0f}"
+        print(f"  {i:<4} {p.project:<20} {p.symbol:<20} {p.chain:<12} {apy_str} {tvl_str}")
+    print()
+
+
+def cmd_stablecoins(args):
+    """Stablecoin market overview."""
+    from src.defi.defillama import DefiLlamaClient
+    client = DefiLlamaClient()
+    stables = client.get_stablecoin_market()[:args.limit]
+
+    total = sum(s.circulating for s in stables)
+    print(f"\n  💲 Stablecoin Market Overview (Total: ${total:,.0f})\n")
+    print(f"  {'#':<4} {'Name':<25} {'Symbol':<10} {'Circulating':>18} {'Peg Type':<15} {'Share':>8}")
+    print("  " + "─" * 85)
+    for i, s in enumerate(stables, 1):
+        share = s.circulating / total * 100 if total > 0 else 0
+        print(f"  {i:<4} {s.name:<25} {s.symbol:<10} ${s.circulating:>16,.0f} {s.peg_type:<15} {share:>6.1f}%")
+    print()
+
+
 def cmd_btc_metrics(args):
     """Show BTC on-chain metrics dashboard."""
     from src.crypto.btc_metrics import BTCMetricsClient
@@ -2370,6 +2434,12 @@ def main(argv=None):
             cmd_interactive(args)
         elif args.command == "btc-metrics":
             cmd_btc_metrics(args)
+        elif args.command == "defi-tvl":
+            cmd_defi_tvl(args)
+        elif args.command == "yields":
+            cmd_yields(args)
+        elif args.command == "stablecoins":
+            cmd_stablecoins(args)
         elif args.command == "funding-rates":
             cmd_funding_rates(args)
         elif args.command == "fear-greed":
