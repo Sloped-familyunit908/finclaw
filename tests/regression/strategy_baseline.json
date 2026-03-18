@@ -1,0 +1,110 @@
+{
+  "default__AAPL": {
+    "total_return": 0.008519,
+    "max_drawdown": -0.054625,
+    "total_trades": 3,
+    "win_rate": 0.333333
+  },
+  "default__MSFT": {
+    "total_return": 0.03966,
+    "max_drawdown": -0.115755,
+    "total_trades": 2,
+    "win_rate": 0.5
+  },
+  "default__NVDA": {
+    "total_return": 0.743085,
+    "max_drawdown": -0.146696,
+    "total_trades": 1,
+    "win_rate": 1.0
+  },
+  "low_capital__AAPL": {
+    "total_return": 0.008519,
+    "max_drawdown": -0.054625,
+    "total_trades": 3,
+    "win_rate": 0.333333
+  },
+  "low_capital__MSFT": {
+    "total_return": 0.03966,
+    "max_drawdown": -0.115755,
+    "total_trades": 2,
+    "win_rate": 0.5
+  },
+  "low_capital__NVDA": {
+    "total_return": 0.743085,
+    "max_drawdown": -0.146696,
+    "total_trades": 1,
+    "win_rate": 1.0
+  },
+  "high_commission__AAPL": {
+    "total_return": 0.001667,
+    "max_drawdown": -0.057211,
+    "total_trades": 3,
+    "win_rate": 0.333333
+  },
+  "high_commission__MSFT": {
+    "total_return": 0.032548,
+    "max_drawdown": -0.115717,
+    "total_trades": 2,
+    "win_rate": 0.5
+  },
+  "high_commission__NVDA": {
+    "total_return": 0.73243,
+    "max_drawdown": -0.146589,
+    "total_trades": 1,
+    "win_rate": 1.0
+  },
+  "zero_cost__AAPL": {
+    "total_return": 0.011281,
+    "max_drawdown": -0.053552,
+    "total_trades": 3,
+    "win_rate": 0.333333
+  },
+  "zero_cost__MSFT": {
+    "total_return": 0.042505,
+    "max_drawdown": -0.115768,
+    "total_trades": 2,
+    "win_rate": 0.5
+  },
+  "zero_cost__NVDA": {
+    "total_return": 0.74692,
+    "max_drawdown": -0.146732,
+    "total_trades": 1,
+    "win_rate": 1.0
+  },
+  "aggressive__AAPL": {
+    "total_return": 0.008519,
+    "max_drawdown": -0.054625,
+    "total_trades": 3,
+    "win_rate": 0.333333
+  },
+  "aggressive__MSFT": {
+    "total_return": 0.03966,
+    "max_drawdown": -0.115755,
+    "total_trades": 2,
+    "win_rate": 0.5
+  },
+  "aggressive__NVDA": {
+    "total_return": 0.743085,
+    "max_drawdown": -0.146696,
+    "total_trades": 1,
+    "win_rate": 1.0
+  },
+  "conservative__AAPL": {
+    "total_return": 0.013088,
+    "max_drawdown": -0.048024,
+    "total_trades": 3,
+    "win_rate": 0.333333
+  },
+  "conservative__MSFT": {
+    "total_return": 0.041653,
+    "max_drawdown": -0.089987,
+    "total_trades": 2,
+    "win_rate": 0.5
+  },
+  "conservative__NVDA": {
+    "total_return": 0.650199,
+    "max_drawdown": -0.131499,
+    "total_trades": 1,
+    "win_rate": 1.0
+  }
+}
