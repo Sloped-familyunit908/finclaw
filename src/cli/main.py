@@ -66,6 +66,7 @@ def _calc_vol(prices) -> float:
 def cmd_backtest(args):
     """Run backtest with strategy on tickers."""
     from agents.backtester_v7 import BacktesterV7
+    from agents.strategies import STRATEGY_MAP
 
     config = ConfigManager.load()
     # Support both --tickers and --ticker
@@ -110,8 +111,15 @@ def cmd_backtest(args):
         bh = prices[-1] / prices[0] - 1
         years = max(len(prices) / 252, 0.5)
 
-        bt = BacktesterV7(initial_capital=capital)
-        r = asyncio.run(bt.run(ticker, "v7", h))
+        # Select backtester based on strategy name
+        strategy_lower = (strategy or "").lower()
+        if strategy_lower in STRATEGY_MAP:
+            StrategyCls = STRATEGY_MAP[strategy_lower]
+            bt = StrategyCls(initial_capital=capital)
+            r = asyncio.run(bt.run(ticker, strategy_lower, h))
+        else:
+            bt = BacktesterV7(initial_capital=capital)
+            r = asyncio.run(bt.run(ticker, "v7", h))
         ann = (1 + r.total_return) ** (1 / years) - 1 if r.total_return > -1 else -1
 
         print(f"\n  ── {ticker} | {strategy} ──")
