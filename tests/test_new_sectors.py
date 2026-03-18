@@ -1,130 +1,127 @@
-"""Test new sectors: optical module, PCB, commercial space, AI apps"""
-import asyncio, sys, os
+﻿"""
+FinClaw — New Sectors Test (pytest conversion)
+================================================
+Tests new sector tickers, universe sizes, cross-market linkages, and backtesting.
+Run with: pytest tests/test_new_sectors.py -m integration
+"""
+import asyncio
+import sys
+import os
+import pytest
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import logging, warnings
-logging.getLogger("yfinance").setLevel(logging.CRITICAL)
-warnings.filterwarnings("ignore")
 
 from agents.backtester_v7 import BacktesterV7
 from agents.universe import (
     A_SHARES_EXTENDED, US_EXTENDED, HK_EXTENDED,
-    SECTOR_LINKAGE, get_linked_stocks
+    SECTOR_LINKAGE, get_linked_stocks,
 )
 
-try:
-    import yfinance as yf
-except:
-    print("pip install yfinance"); sys.exit(1)
+pytestmark = pytest.mark.integration
+yf = pytest.importorskip("yfinance", reason="yfinance not installed")
 
-class R:
-    def __init__(self): self.p=0;self.f=0;self.e=[]
-    def ok(self,n): self.p+=1;print(f"  [PASS] {n}")
-    def fail(self,n,m): self.f+=1;self.e.append(f"{n}:{m}");print(f"  [FAIL] {n}:{m}")
 
-def fetch(ticker):
+def _fetch(ticker: str):
+    """Fetch 1y price history via yfinance."""
+    import logging
+    logging.getLogger("yfinance").setLevel(logging.CRITICAL)
     try:
         df = yf.Ticker(ticker).history(period="1y")
-        if df.empty or len(df) < 60: return None
-        return [{"date": idx.to_pydatetime(), "price": float(row["Close"]),
-                 "volume": float(row["Volume"])} for idx, row in df.iterrows()]
-    except: return None
+        if df.empty or len(df) < 60:
+            return None
+        return [
+            {"date": idx.to_pydatetime(), "price": float(row["Close"]),
+             "volume": float(row["Volume"])}
+            for idx, row in df.iterrows()
+        ]
+    except Exception:
+        return None
 
-async def main():
-    r = R()
-    print("="*60)
-    print("  FinClaw — New Sectors Test")
-    print("="*60)
 
-    # Test universe sizes
-    print("\n--- Universe Sizes ---")
-    for name, univ in [("US", US_EXTENDED), ("CN", A_SHARES_EXTENDED), ("HK", HK_EXTENDED)]:
-        if len(univ) >= 20:
-            r.ok(f"{name} universe: {len(univ)} stocks")
-        else:
-            r.fail(f"{name} universe", f"only {len(univ)} stocks")
+# ═══ Universe Size Tests ═══
 
-    # Test new A-share sectors exist
-    print("\n--- New A-Share Sectors ---")
-    new_tickers = {
-        "optical_module": ["002281.SZ", "300308.SZ"],
-        "pcb": ["002938.SZ", "002916.SZ"],
-        "ai_apps": ["688047.SS", "002410.SZ"],
-        "space": ["688066.SS", "600118.SS"],
-    }
-    for sector, tickers in new_tickers.items():
-        for t in tickers:
-            if t in A_SHARES_EXTENDED:
-                r.ok(f"{sector}/{t} in universe")
-            else:
-                r.fail(f"{sector}/{t}", "not in universe")
+@pytest.mark.parametrize("name,universe", [
+    ("US", US_EXTENDED), ("CN", A_SHARES_EXTENDED), ("HK", HK_EXTENDED),
+])
+def test_universe_size(name, universe):
+    assert len(universe) >= 20, f"{name} universe only has {len(universe)} stocks"
 
-    # Test sector linkages
-    print("\n--- Sector Linkages ---")
-    for name in ["optical_module", "pcb_electronics", "commercial_space", "ai_applications"]:
-        if name in SECTOR_LINKAGE:
-            link = SECTOR_LINKAGE[name]
-            r.ok(f"linkage {name}: corr={link['correlation']}")
-        else:
-            r.fail(f"linkage {name}", "not found")
 
-    # Test cross-market linkage function
-    print("\n--- Cross-Market Linkage ---")
+# ═══ New A-share Sector Tickers ═══
+
+_NEW_TICKERS = {
+    "optical_module/002281.SZ": "002281.SZ",
+    "optical_module/300308.SZ": "300308.SZ",
+    "pcb/002938.SZ": "002938.SZ",
+    "pcb/002916.SZ": "002916.SZ",
+    "ai_apps/688047.SS": "688047.SS",
+    "ai_apps/002410.SZ": "002410.SZ",
+    "space/688066.SS": "688066.SS",
+    "space/600118.SS": "600118.SS",
+}
+
+
+@pytest.mark.parametrize("desc,ticker", list(_NEW_TICKERS.items()),
+                         ids=list(_NEW_TICKERS.keys()))
+def test_new_ticker_in_universe(desc, ticker):
+    assert ticker in A_SHARES_EXTENDED, f"{ticker} not in A_SHARES_EXTENDED"
+
+
+# ═══ Sector Linkage Tests ═══
+
+@pytest.mark.parametrize("sector", [
+    "optical_module", "pcb_electronics", "commercial_space", "ai_applications",
+])
+def test_sector_linkage_exists(sector):
+    assert sector in SECTOR_LINKAGE, f"Sector {sector} not in SECTOR_LINKAGE"
+    link = SECTOR_LINKAGE[sector]
+    assert "correlation" in link, f"Missing correlation for {sector}"
+
+
+def test_cross_market_linkage_nvda():
     linked = get_linked_stocks("NVDA")
-    if linked and len(linked) > 0:
-        total_linked = sum(len(l["linked_tickers"]) for l in linked)
-        r.ok(f"NVDA linked to {total_linked} stocks across {len(linked)} sectors")
-    else:
-        r.fail("NVDA linkage", "no links found")
+    assert linked, "NVDA should have linked stocks"
+    total_linked = sum(len(l["linked_tickers"]) for l in linked)
+    assert total_linked > 0, "NVDA should have at least one linked ticker"
 
-    linked_cn = get_linked_stocks("002281.SZ")  # Guangxun optical
-    if linked_cn:
-        r.ok(f"Guangxun(002281) linked: {linked_cn[0]['sector']}")
-    else:
-        r.fail("002281 linkage", "no links")
 
-    # Test backtest on new sector stocks
-    print("\n--- Backtest New Sectors ---")
-    test_tickers = {
-        "300308.SZ": "Zhongji Innolight (Optical)",
-        "002938.SZ": "Shennan Circuits (PCB)",
-        "002281.SZ": "Guangxun Tech (Optical)",
-    }
-    for ticker, name in test_tickers.items():
-        h = fetch(ticker)
-        if not h:
-            r.fail(f"bt/{ticker}", "no data")
-            continue
-        try:
-            bt = BacktesterV7(initial_capital=100000)
-            res = await bt.run(ticker, "v7", h)
-            bh = h[-1]["price"]/h[0]["price"]-1
-            r.ok(f"bt/{ticker} ({name}): WT={res.total_return:+.1%} B&H={bh:+.1%} alpha={res.total_return-bh:+.1%}")
-        except Exception as e:
-            r.fail(f"bt/{ticker}", str(e)[:60])
+def test_cross_market_linkage_guangxun():
+    linked = get_linked_stocks("002281.SZ")
+    assert linked, "002281.SZ should have linked stocks"
+    assert linked[0]["sector"], "Linkage should have a sector"
 
-    # Test existing stocks NOT broken
-    print("\n--- Existing Stocks Still Working ---")
-    existing = ["NVDA", "600519.SS", "0700.HK"]
-    for ticker in existing:
-        h = fetch(ticker)
-        if not h:
-            r.fail(f"existing/{ticker}", "no data")
-            continue
-        bt = BacktesterV7(initial_capital=100000)
-        res = await bt.run(ticker, "v7", h)
-        if -1.0 <= res.total_return <= 10.0 and 0 <= res.win_rate <= 1:
-            r.ok(f"existing/{ticker}: ret={res.total_return:+.1%} OK")
-        else:
-            r.fail(f"existing/{ticker}", "invalid results")
 
-    print(f"\n{'='*60}")
-    print(f"  RESULTS: {r.p} passed, {r.f} failed")
-    print(f"{'='*60}")
-    if r.e:
-        for e in r.e: print(f"  - {e}")
-        return 1
-    print("\nALL NEW SECTOR TESTS PASSED!")
-    return 0
+# ═══ Backtest on New Sector Stocks ═══
 
-if __name__ == "__main__":
-    exit(asyncio.run(main()))
+_BACKTEST_TICKERS = {
+    "Zhongji Innolight (Optical)": "300308.SZ",
+    "Shennan Circuits (PCB)": "002938.SZ",
+    "Guangxun Tech (Optical)": "002281.SZ",
+}
+
+
+@pytest.mark.parametrize("name,ticker", list(_BACKTEST_TICKERS.items()),
+                         ids=list(_BACKTEST_TICKERS.keys()))
+def test_backtest_new_sector(name, ticker):
+    h = _fetch(ticker)
+    if h is None:
+        pytest.skip(f"No data for {ticker}")
+
+    bt = BacktesterV7(initial_capital=100000)
+    r = asyncio.run(bt.run(ticker, "v7", h))
+    assert isinstance(r.total_return, (int, float))
+    assert 0 <= r.win_rate <= 1
+
+
+# ═══ Existing Stocks Still Work ═══
+
+@pytest.mark.parametrize("ticker", ["NVDA", "600519.SS", "0700.HK"])
+def test_existing_stocks_not_broken(ticker):
+    h = _fetch(ticker)
+    if h is None:
+        pytest.skip(f"No data for {ticker}")
+
+    bt = BacktesterV7(initial_capital=100000)
+    r = asyncio.run(bt.run(ticker, "v7", h))
+    assert -1.0 <= r.total_return <= 10.0, f"Invalid return: {r.total_return}"
+    assert 0 <= r.win_rate <= 1, f"Invalid win rate: {r.win_rate}"

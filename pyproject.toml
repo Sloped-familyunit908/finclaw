@@ -50,6 +50,9 @@ include = ["src*", "agents*", "strategies*"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "strict"
+markers = [
+    "integration: marks tests that require network access (deselect with '-m \"not integration\"')",
+]
 
 [tool.ruff]
 line-length = 120

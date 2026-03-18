@@ -1,5 +1,3 @@
-collect_ignore = [
-    "tests/test_deep_qa.py",
-    "tests/test_new_sectors.py",
-    "tests/test_v140.py",
-]
+# Root conftest — no test files are ignored.
+# Integration tests are marked with @pytest.mark.integration
+# and skipped by default (run with: pytest -m integration).
