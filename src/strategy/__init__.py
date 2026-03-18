@@ -1,15 +1,14 @@
-"""
-DEPRECATED: Use `src.strategies` for strategy templates, or `src.strategy` for the YAML DSL.
+"""FinClaw Strategy DSL Engine v2.0.0
 
-This module (`src.strategy`) contains the YAML Strategy DSL engine. It is NOT deprecated,
-but if you're looking for strategy templates (MeanReversion, Momentum, TrendFollowing, etc.),
-use `src.strategies` instead.
+**This module is the YAML Strategy DSL engine** — it parses and evaluates
+strategy definitions written in YAML.
 
-The two modules serve different purposes:
-  - `src.strategy` → YAML DSL: parse and evaluate strategy definitions written in YAML
-  - `src.strategies` → Strategy library: concrete Python strategy implementations
+For concrete Python strategy implementations (MeanReversion, Momentum,
+TrendFollowing, etc.), import from ``src.strategies`` instead.
 
-This note clarifies the naming overlap for developers.
+Summary:
+  - ``src.strategy``    → YAML DSL engine (parse, evaluate, optimize YAML strategies)
+  - ``src.strategies``  → Concrete strategy library (Python classes)
 """
 
 from .dsl import StrategyDSL, Strategy

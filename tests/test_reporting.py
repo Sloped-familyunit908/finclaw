@@ -9,7 +9,7 @@ import os
 import tempfile
 import pytest
 
-from src.reporting.html_report import (
+from src.reports.reporting_html import (
     BacktestReportGenerator,
     BacktestResult,
     _svg_line_chart,
@@ -21,7 +21,7 @@ from src.reporting.html_report import (
     _trade_log_table,
     _risk_metrics_table,
 )
-from src.reporting.tearsheet import (
+from src.reports.tearsheet import (
     Tearsheet,
     _cumulative,
     _rolling_sharpe,
@@ -31,7 +31,7 @@ from src.reporting.tearsheet import (
     _monthly_table,
     _annual_returns,
 )
-from src.reporting.comparison import StrategyComparison, _calc_metrics
+from src.reports.comparison import StrategyComparison, _calc_metrics
 
 
 # ─── Fixtures ───────────────────────────────────────────────────

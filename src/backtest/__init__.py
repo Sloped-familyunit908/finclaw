@@ -1,17 +1,25 @@
-"""FinClaw Enhanced Backtest Engine v5.6.0
+"""
+DEPRECATED: Use ``src.backtesting`` for all backtesting functionality.
 
-Core event-driven backtesting engine with order management, position tracking,
-and Monte Carlo simulation.
+This module (``src.backtest``) is deprecated and will be removed in v6.0.
+The canonical backtesting module is ``src.backtesting``, which now contains
+the core engine, order management, positions, and Monte Carlo simulation
+(all previously housed here) plus extended analysis tools.
 
-Module distinction:
-  - `src.backtest` (this module) → Core backtest engine (BacktestEngine, OrderManager, etc.)
-  - `src.backtesting` → Extended analysis tools (walk-forward, realistic simulation,
-    benchmarks, strategy comparison, overfit detection, survivorship bias checking)
-
-Both modules are canonical — they serve complementary purposes.
+All exports are re-exported here for backward compatibility.
 """
 
-from .engine import (
+import warnings as _warnings
+
+_warnings.warn(
+    "src.backtest is deprecated. Use src.backtesting for all backtesting "
+    "functionality. This module will be removed in v6.0.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
+# Re-export everything from the canonical module's core engine
+from src.backtesting.core_engine import (
     BacktestEngine,
     BacktestResult,
     EventType,
@@ -21,9 +29,9 @@ from .engine import (
     OrderEvent,
     FillEvent,
 )
-from .orders import OrderManager, Order, OrderType, OrderSide, OrderStatus
-from .positions import PositionTracker, Position, PositionSide
-from .monte_carlo import MonteCarloSimulator, MonteCarloResult
+from src.backtesting.orders import OrderManager, Order, OrderType, OrderSide, OrderStatus
+from src.backtesting.positions import PositionTracker, Position, PositionSide
+from src.backtesting.core_monte_carlo import MonteCarloSimulator, MonteCarloResult
 
 __all__ = [
     "BacktestEngine",

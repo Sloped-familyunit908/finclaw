@@ -1,12 +1,14 @@
-"""
-FinClaw Strategy Templates v1.3.0
+"""FinClaw Strategy Library v2.0.0
 
-This is the primary strategy module containing concrete Python strategy implementations.
-For the YAML Strategy DSL engine, see `src.strategy`.
+**This module is the concrete strategy library** — Python strategy classes
+for mean reversion, momentum, trend following, pairs trading, etc.
 
-Module distinction:
-  - `src.strategies` (this module) → Concrete strategy classes (MeanReversion, Momentum, etc.)
-  - `src.strategy` → YAML DSL engine for defining strategies in YAML
+For the YAML Strategy DSL engine (parsing strategy definitions from YAML),
+import from ``src.strategy`` instead.
+
+Summary:
+  - ``src.strategies``  → Concrete strategy library (Python classes) ← YOU ARE HERE
+  - ``src.strategy``    → YAML DSL engine (parse, evaluate, optimize YAML strategies)
 """
 from .mean_reversion import MeanReversionStrategy
 from .momentum_jt import MomentumJTStrategy

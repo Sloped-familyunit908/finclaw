@@ -1,14 +1,11 @@
 """
-DEPRECATED: Use `src.reports` for report generation.
+DEPRECATED: Use ``src.reports`` for report generation.
 
-This module (`src.reporting`) is deprecated. The canonical reporting module
-is `src.reports`, which contains more comprehensive report generators
-(backtest reports, PDF, performance reports, report cards).
+This module (``src.reporting``) is deprecated and will be removed in v6.0.
+The canonical reporting module is ``src.reports``, which now contains
+tearsheets, comparisons, and all report generators.
 
-This module's tearsheet and comparison functionality remain available here
-for backward compatibility, but new code should import from `src.reports`.
-
-All exports are re-exported for backward compatibility.
+All exports are re-exported here for backward compatibility.
 """
 
 import warnings as _warnings

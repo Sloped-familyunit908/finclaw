@@ -7,17 +7,17 @@ from typing import List, Optional
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from src.backtest.engine import (
+from src.backtesting.core_engine import (
     BacktestEngine, BacktestResult, EventType, Event,
     MarketEvent, SignalEvent, OrderEvent, FillEvent, StrategyContext,
 )
-from src.backtest.orders import (
+from src.backtesting.orders import (
     OrderManager, Order, OrderType, OrderSide, OrderStatus,
 )
-from src.backtest.positions import (
+from src.backtesting.positions import (
     PositionTracker, Position, PositionSide,
 )
-from src.backtest.monte_carlo import MonteCarloSimulator, MonteCarloResult
+from src.backtesting.core_monte_carlo import MonteCarloSimulator, MonteCarloResult
 
 
 # ---------------------------------------------------------------------------

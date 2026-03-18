@@ -240,7 +240,7 @@ class FinClawMCPServer:
         return result
 
     def _tool_run_backtest(self, args: dict) -> Any:
-        from src.backtesting.engine import BacktestEngine
+        from src.backtesting.core_engine import BacktestEngine
 
         tickers = [t.strip() for t in args["tickers"].split(",")]
         engine = BacktestEngine()
@@ -452,7 +452,7 @@ class FinClawMCPServer:
         }
 
     def _tool_compare_strategies(self, args: dict) -> Any:
-        from src.backtesting.engine import BacktestEngine
+        from src.backtesting.core_engine import BacktestEngine
 
         strategies = args["strategies"]
         tickers = [t.strip() for t in args["tickers"].split(",")]

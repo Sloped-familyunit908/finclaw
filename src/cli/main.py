@@ -539,7 +539,7 @@ def cmd_tearsheet(args):
                 closes = df["Close"].tolist()
                 benchmark = [(closes[i] / closes[i - 1] - 1) for i in range(1, len(closes))]
 
-    from src.reporting.tearsheet import Tearsheet
+    from src.reports.tearsheet import Tearsheet
     output = args.output or f"tearsheet_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html"
     result = Tearsheet.generate(returns, benchmark=benchmark, output_path=output)
     print(f"  ✓ Tearsheet generated: {output} ({len(result):,} bytes)")
@@ -682,7 +682,7 @@ def cmd_compare(args):
         return results
 
     # Original file-based comparison
-    from src.reporting.comparison import StrategyComparison
+    from src.reports.comparison import StrategyComparison
 
     comp = StrategyComparison()
     for filepath in strategies_arg:

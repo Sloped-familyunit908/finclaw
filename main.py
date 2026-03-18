@@ -10,7 +10,7 @@ from datetime import datetime
 from src.data.prices import build_market_data
 from src.agents.value import ValueAgent
 from src.agents.momentum import MomentumAgent
-from src.exchange.paper import PaperTradingEngine, OrderSide  # noqa: deprecated, use src.paper.engine
+from src.paper.engine import PaperTradingEngine, OrderSide
 
 
 BANNER = """
