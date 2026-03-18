@@ -242,8 +242,8 @@ class BacktraderAdapter(StrategyPlugin):
             collector.set_bar(i)
             try:
                 strat.next()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("Strategy next() failed at bar %d: %s", i, e)
 
         # Convert collected signals
         for bar_idx, signal_val in collector.signals:

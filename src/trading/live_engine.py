@@ -102,7 +102,7 @@ class LiveTradingEngine:
             try:
                 await self._task
             except asyncio.CancelledError:
-                pass
+                pass  # Expected: task cancellation is the normal shutdown path
         logger.info("Live engine stop requested")
 
     def start_background(self) -> asyncio.Task:

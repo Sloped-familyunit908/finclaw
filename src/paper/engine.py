@@ -4,6 +4,7 @@ Paper Trading Engine - simulated order execution with real market prices.
 
 from __future__ import annotations
 
+import logging
 import time
 import uuid
 from dataclasses import dataclass, field

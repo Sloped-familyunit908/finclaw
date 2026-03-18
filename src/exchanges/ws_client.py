@@ -162,8 +162,8 @@ class WebSocketClient:
         if self._ws:
             try:
                 await self._ws.close()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("Error closing WebSocket connection: %s", e)
         self._emit("closed", {})
         logger.info("WebSocket closed")
 

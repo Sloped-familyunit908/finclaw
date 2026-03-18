@@ -1237,6 +1237,11 @@ Examples:
     # info
     sub.add_parser("info", help="Show system info")
 
+    # doctor
+    p_doctor = sub.add_parser("doctor", help="Diagnose environment: deps, API keys, connectivity")
+    p_doctor.add_argument("--verbose", "-v", action="store_true", help="Show all checks, not just failures")
+    p_doctor.add_argument("--skip-network", action="store_true", help="Skip network connectivity checks")
+
     # plugin
     p_plugin = sub.add_parser("plugin", help="Plugin management")
     plugin_sub = p_plugin.add_subparsers(dest="plugin_cmd")
@@ -2950,6 +2955,12 @@ def main(argv=None):
         elif args.command == "info":
             print("  FinClaw v5.2.0 — AI-Powered Financial Intelligence Engine")
             print("  Commands: backtest, screen, analyze, portfolio, price, options, paper-trade, report, interactive, exchanges, quote, history")
+        elif args.command == "doctor":
+            from src.cli.doctor import run_doctor, format_doctor_output
+            results = run_doctor(skip_network=getattr(args, "skip_network", False))
+            print(format_doctor_output(results, verbose=getattr(args, "verbose", False)))
+            required_fails = [r for r in results if not r.passed and r.severity.value == "required"]
+            return 1 if required_fails else 0
         elif args.command == "exchanges":
             from src.exchanges.registry import ExchangeRegistry
             if getattr(args, "exchanges_cmd", "list") == "compare":

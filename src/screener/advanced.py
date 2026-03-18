@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import logging
 import operator
 from typing import Any, Callable
 
 import numpy as np
 
 from src.ta import rsi as calc_rsi, sma, atr, adx, bollinger_bands, obv
+
+logger = logging.getLogger(__name__)
 
 
 _OPS: dict[str, Callable] = {
@@ -275,8 +278,8 @@ class AdvancedScreener:
                 val = calc(candles)
                 if val is not None:
                     values[name] = val
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("Field '%s' computation failed for %s: %s", name, symbol, e)
         return values
 
     @staticmethod
@@ -310,8 +313,8 @@ class AdvancedScreener:
             adapter = self._registry.get(exchange)
             if hasattr(adapter, "list_symbols"):
                 return adapter.list_symbols()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("Failed to get symbols for exchange '%s': %s", exchange, e)
         return []
 
     def _resolve_universe(self, universe: str) -> list[str]:
