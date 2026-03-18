@@ -64,7 +64,9 @@ class TestPromptTemplates:
             assert r in RISK_PROFILES
 
     def test_example_is_valid_python(self):
-        ast.parse(STRATEGY_PLUGIN_EXAMPLE)
+        tree = ast.parse(STRATEGY_PLUGIN_EXAMPLE)
+        assert tree is not None
+        assert len(tree.body) > 0, "STRATEGY_PLUGIN_EXAMPLE should contain at least one statement"
 
 
 # ── Code Extraction & Validation ─────────────────────────────

@@ -77,6 +77,7 @@ class TestWebSocketClient:
         ws = WebSocketClient("wss://x.com")
         ws.on("evt", lambda d: 1 / 0)  # raises
         ws._emit("evt", {})  # should not raise
+        assert ws is not None, "WebSocket should survive callback errors"
 
     def test_last_message_time_initially_zero(self):
         ws = WebSocketClient("wss://x.com")

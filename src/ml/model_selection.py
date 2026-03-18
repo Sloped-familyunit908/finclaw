@@ -11,7 +11,7 @@ class LinearRegression:
         self.weights = None
         self.bias = 0.0
 
-    def fit(self, X: list[list[float]], y: list[float]):
+    def fit(self, X: list[list[float]], y: list[float]) -> "LinearRegression":
         n = len(X)
         if n == 0:
             return self
@@ -41,7 +41,7 @@ class RidgeRegression(LinearRegression):
         super().__init__()
         self.alpha = alpha
 
-    def fit(self, X, y):
+    def fit(self, X: list[list[float]], y: list[float]) -> "RidgeRegression":
         super().fit(X, y)
         if self.weights:
             shrink = 1.0 / (1.0 + self.alpha * 0.01)
@@ -55,7 +55,7 @@ class LassoRegression(LinearRegression):
         super().__init__()
         self.alpha = alpha
 
-    def fit(self, X, y):
+    def fit(self, X: list[list[float]], y: list[float]) -> "LassoRegression":
         super().fit(X, y)
         if self.weights:
             threshold = self.alpha * 0.001
@@ -72,7 +72,7 @@ class SimpleRandomForest:
         self.n_trees = n_trees
         self.trees: list[tuple[int, float, float, float]] = []  # (feature_idx, threshold, left_val, right_val)
 
-    def fit(self, X: list[list[float]], y: list[float]):
+    def fit(self, X: list[list[float]], y: list[float]) -> "SimpleRandomForest":
         n = len(X)
         k = len(X[0]) if X else 0
         self.trees = []
@@ -112,7 +112,7 @@ class SimpleGradientBoost:
         self.stumps: list[tuple[int, float, float, float]] = []
         self.base_pred = 0.0
 
-    def fit(self, X: list[list[float]], y: list[float]):
+    def fit(self, X: list[list[float]], y: list[float]) -> "SimpleGradientBoost":
         n = len(X)
         k = len(X[0]) if X else 0
         self.base_pred = sum(y) / max(1, n)

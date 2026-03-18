@@ -412,9 +412,10 @@ class TestStrategyLibrary:
         data = _make_data(300)
         for name, yaml_str in BUILTIN_STRATEGIES.items():
             s = dsl.parse(yaml_str)
-            # These shouldn't raise
-            s.should_enter(data)
-            s.should_exit(data)
+            entry = s.should_enter(data)
+            exit_ = s.should_exit(data)
+            assert isinstance(entry, bool), f"Strategy {name} should_enter should return bool"
+            assert isinstance(exit_, bool), f"Strategy {name} should_exit should return bool"
 
 
 # ════════════════════════════════════════════════════════════════════

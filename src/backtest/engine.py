@@ -234,18 +234,18 @@ class BacktestEngine:
             EventType.FILL: [self._on_fill],
         }
 
-    def add_data(self, symbol: str, data: list):
+    def add_data(self, symbol: str, data: list) -> None:
         """Add OHLCV data for a symbol. Each item: {open, high, low, close, volume, timestamp?}"""
         self.data[symbol] = data
 
-    def set_strategy(self, strategy):
+    def set_strategy(self, strategy) -> None:
         """Set strategy. Must have on_market(event, context) -> Optional[List[SignalEvent]]"""
         self.strategy = strategy
 
-    def set_commission(self, rate: float = 0.001):
+    def set_commission(self, rate: float = 0.001) -> None:
         self.commission_rate = rate
 
-    def set_slippage(self, model: str = "fixed", value: float = 0.0001):
+    def set_slippage(self, model: str = "fixed", value: float = 0.0001) -> None:
         self.slippage_model = model
         self.slippage_value = value
 

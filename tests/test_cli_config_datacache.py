@@ -51,7 +51,8 @@ class TestConfigManager:
     def test_validate_ok(self):
         from src.config_manager import ConfigManager
         cfg = ConfigManager()
-        cfg.validate()  # should not raise
+        result = cfg.validate()  # should not raise
+        assert result is None or result is True, "validate() on valid config should succeed"
 
     def test_validate_bad_commission(self):
         from src.config_manager import ConfigManager, ConfigValidationError

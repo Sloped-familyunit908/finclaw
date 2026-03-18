@@ -102,7 +102,7 @@ class Portfolio:
         if self.cash == 0.0:
             self.cash = self.initial_cash
 
-    def update_fill(self, fill: FillEvent):
+    def update_fill(self, fill: FillEvent) -> None:
         cost = fill.fill_price * fill.quantity
         if fill.quantity > 0:  # buy
             self.cash -= cost + fill.commission
@@ -119,7 +119,7 @@ class Portfolio:
             "timestamp": fill.timestamp,
         })
 
-    def mark_to_market(self, prices: Dict[str, float]):
+    def mark_to_market(self, prices: Dict[str, float]) -> float:
         value = self.cash
         for sym, qty in self.positions.items():
             value += qty * prices.get(sym, 0.0)
@@ -190,10 +190,10 @@ class EventDrivenBacktester:
         self.handlers: Dict[EventType, List[Callable]] = {}
         self.initial_cash = initial_cash
 
-    def register_handler(self, event_type: EventType, handler: Callable):
+    def register_handler(self, event_type: EventType, handler: Callable) -> None:
         self.handlers.setdefault(event_type, []).append(handler)
 
-    def emit(self, event: Event):
+    def emit(self, event: Event) -> None:
         self.event_queue.append(event)
 
     def _drain_queue(self):
@@ -232,14 +232,14 @@ class EventDrivenBacktester:
 
         # Default position sizer: 10% of equity
         if position_sizer is None:
-            def position_sizer(sig, port, price):
+            def position_sizer(sig: SignalEvent, port: Portfolio, price: float) -> int:
                 equity = port.cash + sum(
                     qty * price for qty in port.positions.values()
                 )
                 return max(1, int(equity * 0.1 / price)) if price > 0 else 0
 
         # -- wire up handlers --
-        def on_signal(event: SignalEvent):
+        def on_signal(event: SignalEvent) -> None:
             price = event.data.get("current_price", 0.0)
             if event.signal > 0:
                 qty = position_sizer(event, portfolio, price)
@@ -257,7 +257,7 @@ class EventDrivenBacktester:
                     )
                     self.emit(order)
 
-        def on_order(event: OrderEvent):
+        def on_order(event: OrderEvent) -> None:
             base_price = event.data.get("current_price", event.limit_price or 0.0)
             fill_price = slippage_fn(base_price, abs(event.quantity))
             commission = commission_fn(fill_price, abs(event.quantity))
@@ -272,7 +272,7 @@ class EventDrivenBacktester:
             )
             self.emit(fill)
 
-        def on_fill(event: FillEvent):
+        def on_fill(event: FillEvent) -> None:
             portfolio.update_fill(event)
 
         self.handlers.clear()

@@ -45,8 +45,8 @@ class TestOutputFormatterColor:
         env.pop("NO_COLOR", None)
         env.pop("FINCLAW_NO_COLOR", None)
         with patch.dict(os.environ, env, clear=True):
-            # May or may not be true depending on env
-            pass
+            result = _no_color()
+            assert isinstance(result, bool), "_no_color() should return a bool"
 
 
 class TestOutputFormatterPriceColor:

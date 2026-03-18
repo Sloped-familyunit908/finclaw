@@ -408,3 +408,4 @@ class TestEngineStartStop:
     def test_stop_without_start(self):
         e = AlertEngine()
         e.stop()  # Should not raise
+        assert not e._running, "Engine should not be running after stop()"

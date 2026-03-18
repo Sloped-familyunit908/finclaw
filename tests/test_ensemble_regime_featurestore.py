@@ -137,6 +137,8 @@ class TestEnsembleModel:
         X = np.array([[1.0]])
         y = np.array([1.0])
         ens.fit(X, y)  # Should not raise
+        result = ens.predict(X)
+        assert result is not None, "predict after fit on small data should return a result"
 
 
 # ======================================================================

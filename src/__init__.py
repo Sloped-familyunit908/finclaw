@@ -89,7 +89,7 @@ class FinClaw:
             def __init__(self, d):
                 self.__dict__.update(d)
 
-            def export_html(self, path: str):
+            def export_html(self, path: str) -> None:
                 from src.reports.html_report import generate_html_report
                 generate_html_report(self.__dict__, output_path=path)
 
@@ -113,7 +113,7 @@ class FinClaw:
         strategy: str = "trend",
         symbols: list[str] | None = None,
         capital: float = 100_000,
-    ):
+    ) -> None:
         """Start a paper-trading session (blocking)."""
         from src.paper.engine import PaperTradingEngine
         from src.paper.runner import StrategyRunner, BUILTIN_STRATEGIES

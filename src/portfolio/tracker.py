@@ -116,7 +116,7 @@ class PortfolioTracker:
         self._data = PortfolioData.from_dict(raw)
         return self._data
 
-    def save(self):
+    def save(self) -> None:
         if self._data is None:
             return
         all_data = self._load_all()
@@ -253,7 +253,7 @@ class PortfolioTracker:
         ]
 
     # ── history snapshots ───────────────────────────────────────
-    def snapshot(self):
+    def snapshot(self) -> None:
         """Take a daily value snapshot and append to history."""
         status = self.show()
         today = date.today().isoformat()
@@ -337,7 +337,7 @@ class PortfolioTracker:
                     writer.writerow(row)
         return output.getvalue()
 
-    def export_to_file(self, filepath: str, what: str = "holdings"):
+    def export_to_file(self, filepath: str, what: str = "holdings") -> None:
         """Write CSV export to a file."""
         content = self.export_csv(what)
         with open(filepath, "w", newline="") as f:

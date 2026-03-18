@@ -77,6 +77,6 @@ class LLMProvider(ABC):
             text = "\n".join(lines).strip()
         return json.loads(text)
 
-    async def close(self):
+    async def close(self) -> None:
         """Cleanup resources (override if needed)."""
         pass

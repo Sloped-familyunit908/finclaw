@@ -4,6 +4,7 @@ All exchange adapters must implement this ABC.
 """
 
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from functools import wraps
 from typing import Any
 
@@ -13,18 +14,18 @@ from src.exchanges.http_client import ExchangeAPIError, ExchangeConnectionError
 class ExchangeError(Exception):
     """User-friendly error raised by exchange adapters on network/API failures."""
 
-    def __init__(self, exchange: str, operation: str, message: str, original: Exception | None = None):
+    def __init__(self, exchange: str, operation: str, message: str, original: Exception | None = None) -> None:
         self.exchange = exchange
         self.operation = operation
         self.original = original
         super().__init__(f"[{exchange}] {operation} failed: {message}")
 
 
-def handle_network_errors(func):
+def handle_network_errors(func: Callable) -> Callable:
     """Decorator that catches network/HTTP errors and re-raises as user-friendly ExchangeError."""
 
     @wraps(func)
-    def wrapper(self, *args, **kwargs):
+    def wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
         try:
             return func(self, *args, **kwargs)
         except ExchangeAPIError as e:
@@ -67,7 +68,7 @@ class ExchangeAdapter(ABC):
     exchange_type: str = "unknown"  # 'crypto', 'stock_us', 'stock_cn'
     name: str = "base"
 
-    def __init__(self, config: dict | None = None):
+    def __init__(self, config: dict | None = None) -> None:
         self.config = config or {}
 
     @abstractmethod

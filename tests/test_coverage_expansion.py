@@ -202,7 +202,8 @@ class TestConfigManager:
     def test_validate_valid(self):
         from src.config_manager import ConfigManager
         cm = ConfigManager()
-        cm.validate()  # Should not raise
+        result = cm.validate()  # Should not raise
+        assert result is None or result is True, "validate() on valid config should succeed"
 
     def test_validate_invalid(self):
         from src.config_manager import ConfigManager, ConfigValidationError

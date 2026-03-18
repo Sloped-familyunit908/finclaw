@@ -130,13 +130,15 @@ class TestPluginBase:
         class MyPlugin(Plugin):
             name = "t"
         p = MyPlugin()
-        p.on_load({})  # should not raise
+        result = p.on_load({})  # should not raise
+        assert result is None, "Default on_load should return None"
 
     def test_on_unload_default(self):
         class MyPlugin(Plugin):
             name = "t"
         p = MyPlugin()
-        p.on_unload()  # should not raise
+        result = p.on_unload()  # should not raise
+        assert result is None, "Default on_unload should return None"
 
 
 # ─── PluginManager Tests ─────────────────────────────────────────

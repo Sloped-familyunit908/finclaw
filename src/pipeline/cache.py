@@ -98,7 +98,7 @@ class DataCache:
         self._misses += 1
         return None
 
-    def set(self, key: str, data: list[dict], ttl: float = None):
+    def set(self, key: str, data: list[dict], ttl: float = None) -> None:
         """Store data in cache."""
         ttl = ttl or self.default_ttl
         ts = time.time()
@@ -116,7 +116,7 @@ class DataCache:
         except sqlite3.Error:
             pass  # Memory cache still works
 
-    def invalidate(self, key: str):
+    def invalidate(self, key: str) -> None:
         """Remove a specific key."""
         with self._lock:
             self._memory.pop(key, None)
@@ -126,7 +126,7 @@ class DataCache:
         except sqlite3.Error:
             pass
 
-    def clear(self):
+    def clear(self) -> None:
         """Clear all cache entries."""
         with self._lock:
             self._memory.clear()
