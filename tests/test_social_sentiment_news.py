@@ -386,20 +386,20 @@ class TestSentimentCLI:
     """Tests for sentiment CLI commands."""
 
     def test_sentiment_command_parses(self):
-        from src.cli import build_parser
+        from src.cli.main import build_parser
         parser = build_parser()
         args = parser.parse_args(["sentiment", "AAPL"])
         assert args.command == "sentiment"
         assert args.symbol == "AAPL"
 
     def test_sentiment_with_reddit(self):
-        from src.cli import build_parser
+        from src.cli.main import build_parser
         parser = build_parser()
         args = parser.parse_args(["sentiment", "AAPL", "--reddit"])
         assert args.reddit is True
 
     def test_news_command_parses(self):
-        from src.cli import build_parser
+        from src.cli.main import build_parser
         parser = build_parser()
         args = parser.parse_args(["news", "BTCUSDT", "--limit", "10"])
         assert args.command == "news"
@@ -407,19 +407,19 @@ class TestSentimentCLI:
         assert args.limit == 10
 
     def test_news_with_search(self):
-        from src.cli import build_parser
+        from src.cli.main import build_parser
         parser = build_parser()
         args = parser.parse_args(["news", "AAPL", "--search", "earnings"])
         assert args.search == "earnings"
 
     def test_trending_command_parses(self):
-        from src.cli import build_parser
+        from src.cli.main import build_parser
         parser = build_parser()
         args = parser.parse_args(["trending"])
         assert args.command == "trending"
 
     def test_version_550(self):
-        from src.cli import build_parser
+        from src.cli.main import build_parser
         parser = build_parser()
         for action in parser._actions:
             if isinstance(action, argparse._VersionAction):

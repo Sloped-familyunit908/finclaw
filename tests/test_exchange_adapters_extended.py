@@ -456,11 +456,11 @@ class TestBaostockAdapter:
 
 class TestExchangeCompare:
     def test_compare_function_exists(self):
-        from src.cli import _compare_exchanges
+        from src.cli.main import _compare_exchanges
         assert callable(_compare_exchanges)
 
     def test_compare_prints_table(self, capsys):
-        from src.cli import _compare_exchanges
+        from src.cli.main import _compare_exchanges
         _compare_exchanges(["binance", "coinbase", "kraken"])
         out = capsys.readouterr().out
         assert "Feature" in out
@@ -468,13 +468,13 @@ class TestExchangeCompare:
         assert "✅" in out
 
     def test_compare_invalid_exchange(self, capsys):
-        from src.cli import _compare_exchanges
+        from src.cli.main import _compare_exchanges
         _compare_exchanges(["nonexistent_exchange"])
         out = capsys.readouterr().out
         assert "not found" in out
 
     def test_compare_shows_exchange_types(self, capsys):
-        from src.cli import _compare_exchanges
+        from src.cli.main import _compare_exchanges
         _compare_exchanges(["binance", "alpaca"])
         out = capsys.readouterr().out
         assert "crypto" in out

@@ -564,7 +564,7 @@ class TestAKShareAdapter:
 
 class TestCLIExchanges:
     def test_exchanges_list(self):
-        from src.cli import main
+        from src.cli.main import main
         # Should not raise
         ret = main(["exchanges"])
         assert ret == 0
@@ -578,7 +578,7 @@ class TestCLIExchanges:
                                    "indicators": {"quote": [{"open": [150], "high": [152], "low": [149],
                                                               "close": [151], "volume": [50000000]}]}}]}
         })
-        from src.cli import main
+        from src.cli.main import main
         ret = main(["quote", "AAPL", "--exchange", "yahoo"])
         assert ret == 0
 
@@ -590,12 +590,12 @@ class TestCLIExchanges:
                                                               "low": [149.0], "close": [151.0],
                                                               "volume": [1000000]}]}}]}
         })
-        from src.cli import main
+        from src.cli.main import main
         ret = main(["history", "AAPL", "--exchange", "yahoo", "--limit", "5"])
         assert ret == 0
 
     def test_info_command(self):
-        from src.cli import main
+        from src.cli.main import main
         ret = main(["info"])
         assert ret == 0
 

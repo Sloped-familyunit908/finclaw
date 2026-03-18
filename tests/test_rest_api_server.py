@@ -382,7 +382,7 @@ class TestLiveServer:
 
 class TestCLIServe:
     def test_build_parser_has_serve(self):
-        from src.cli import build_parser
+        from src.cli.main import build_parser
         parser = build_parser()
         # Parse serve args
         args = parser.parse_args(["serve", "--port", "9999"])
@@ -390,7 +390,7 @@ class TestCLIServe:
         assert args.port == 9999
 
     def test_build_parser_serve_defaults(self):
-        from src.cli import build_parser
+        from src.cli.main import build_parser
         parser = build_parser()
         args = parser.parse_args(["serve"])
         assert args.host == "0.0.0.0"

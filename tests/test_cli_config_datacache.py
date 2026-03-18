@@ -183,12 +183,12 @@ class TestDataCache:
 
 class TestCLIParser:
     def test_build_parser(self):
-        from src.cli import build_parser
+        from src.cli.main import build_parser
         parser = build_parser()
         assert parser is not None
 
     def test_parse_backtest(self):
-        from src.cli import build_parser
+        from src.cli.main import build_parser
         parser = build_parser()
         args = parser.parse_args(["backtest", "--strategy", "momentum", "--tickers", "AAPL,MSFT", "--start", "2023-01-01"])
         assert args.command == "backtest"
@@ -197,7 +197,7 @@ class TestCLIParser:
         assert args.start == "2023-01-01"
 
     def test_parse_screen(self):
-        from src.cli import build_parser
+        from src.cli.main import build_parser
         parser = build_parser()
         args = parser.parse_args(["screen", "--criteria", "rsi<30,pe<15", "--universe", "sp500"])
         assert args.command == "screen"
@@ -205,7 +205,7 @@ class TestCLIParser:
         assert args.universe == "sp500"
 
     def test_parse_analyze(self):
-        from src.cli import build_parser
+        from src.cli.main import build_parser
         parser = build_parser()
         args = parser.parse_args(["analyze", "--ticker", "AAPL", "--indicators", "rsi,macd"])
         assert args.command == "analyze"
@@ -213,14 +213,14 @@ class TestCLIParser:
         assert args.indicators == "rsi,macd"
 
     def test_parse_price(self):
-        from src.cli import build_parser
+        from src.cli.main import build_parser
         parser = build_parser()
         args = parser.parse_args(["price", "--ticker", "AAPL,MSFT,GOOGL"])
         assert args.command == "price"
         assert args.ticker == "AAPL,MSFT,GOOGL"
 
     def test_parse_options_price(self):
-        from src.cli import build_parser
+        from src.cli.main import build_parser
         parser = build_parser()
         args = parser.parse_args(["options", "price", "--type", "call", "--S", "150", "--K", "155", "--T", "0.5", "--r", "0.05", "--sigma", "0.25"])
         assert args.command == "options"
@@ -229,27 +229,27 @@ class TestCLIParser:
         assert args.S == 150.0
 
     def test_parse_paper_trade(self):
-        from src.cli import build_parser
+        from src.cli.main import build_parser
         parser = build_parser()
         args = parser.parse_args(["paper-trade", "--strategy", "trend", "--tickers", "AAPL", "--capital", "50000"])
         assert args.command == "paper-trade"
         assert args.capital == 50000.0
 
     def test_parse_report(self):
-        from src.cli import build_parser
+        from src.cli.main import build_parser
         parser = build_parser()
         args = parser.parse_args(["report", "--input", "data.json", "--format", "html", "--output", "out.html"])
         assert args.command == "report"
         assert args.format == "html"
 
     def test_parse_interactive(self):
-        from src.cli import build_parser
+        from src.cli.main import build_parser
         parser = build_parser()
         args = parser.parse_args(["interactive"])
         assert args.command == "interactive"
 
     def test_parse_portfolio_track(self):
-        from src.cli import build_parser
+        from src.cli.main import build_parser
         parser = build_parser()
         args = parser.parse_args(["portfolio", "track", "--file", "port.json"])
         assert args.command == "portfolio"
@@ -257,14 +257,14 @@ class TestCLIParser:
         assert args.file == "port.json"
 
     def test_version(self):
-        from src.cli import build_parser
+        from src.cli.main import build_parser
         parser = build_parser()
         with pytest.raises(SystemExit) as exc_info:
             parser.parse_args(["--version"])
         assert exc_info.value.code == 0
 
     def test_no_command_returns_1(self):
-        from src.cli import main
+        from src.cli.main import main
         result = main([])
         assert result == 1 or result is None  # prints help
 

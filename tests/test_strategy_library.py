@@ -565,21 +565,21 @@ class TestBaseBacktest:
 
 class TestCLI:
     def test_strategy_list(self, capsys):
-        from src.cli import main
+        from src.cli.main import main
         main(["strategy", "list"])
         out = capsys.readouterr().out
         assert "grid-trading" in out
         assert "trend-following" in out
 
     def test_strategy_info(self, capsys):
-        from src.cli import main
+        from src.cli.main import main
         main(["strategy", "info", "breakout"])
         out = capsys.readouterr().out
         assert "Breakout" in out
         assert "channel_period" in out
 
     def test_strategy_info_unknown(self, capsys):
-        from src.cli import main
+        from src.cli.main import main
         main(["strategy", "info", "nonexistent"])
         out = capsys.readouterr().out
         assert "Unknown strategy" in out

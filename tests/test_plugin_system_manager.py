@@ -450,7 +450,7 @@ class TestExchangePlugin:
 
 class TestPluginCLI:
     def test_plugin_list_empty(self, capsys):
-        from src.cli import main
+        from src.cli.main import main
         main(["plugin", "list"])
         out = capsys.readouterr().out
         assert "No plugins" in out or "Plugins" in out
@@ -463,7 +463,7 @@ class TestPluginCLI:
         assert os.path.isfile(path)
 
     def test_plugin_help(self, capsys):
-        from src.cli import main
+        from src.cli.main import main
         main(["plugin"])
         out = capsys.readouterr().out
         assert "Usage" in out or "plugin" in out.lower()

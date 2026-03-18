@@ -384,7 +384,7 @@ class TestCLI:
                 f.write(f"2024-01-01,{r}\n")
 
         out = str(tmp_path / "out.html")
-        from src.cli import main
+        from src.cli.main import main
         main(["tearsheet", "--returns", csv_file, "--output", out])
         assert os.path.exists(out)
 
@@ -398,7 +398,7 @@ class TestCLI:
             files.append(fp)
 
         out = str(tmp_path / "comp.html")
-        from src.cli import main
+        from src.cli.main import main
         main(["compare", "--strategies"] + files + ["--output", out])
         assert os.path.exists(out)
 
@@ -409,6 +409,6 @@ class TestCLI:
             json.dump(r.to_dict(), f)
 
         out = str(tmp_path / "report.html")
-        from src.cli import main
+        from src.cli.main import main
         main(["report", "--input", fp, "--output", out])
         assert os.path.exists(out)
