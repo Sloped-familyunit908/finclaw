@@ -54,8 +54,13 @@ class DataCache:
             try:
                 import pandas as pd
                 parsed = json.loads(data_str)
-                return pd.DataFrame(parsed["data"], columns=parsed["columns"],
-                                   index=pd.to_datetime(parsed["index"]) if parsed.get("index") else None)
+                index = None
+                if parsed.get("index"):
+                    try:
+                        index = pd.to_datetime(parsed["index"], utc=True)
+                    except Exception:
+                        index = parsed["index"]
+                return pd.DataFrame(parsed["data"], columns=parsed["columns"], index=index)
             except Exception:
                 return json.loads(data_str)
         return json.loads(data_str)
