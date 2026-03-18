@@ -1394,11 +1394,27 @@ Examples:
     p_scan_cn = sub.add_parser("scan-cn", help="Scan A-share (China) stocks for buy signals")
     p_scan_cn.add_argument("--top", type=int, default=30, help="Number of top stocks to scan (default: 30)")
     p_scan_cn.add_argument("--sector", default=None,
-                           help="Filter by sector: bank, tech, consumer, energy, pharma, manufacturing")
+                           help="Filter by sector: bank, tech, consumer, energy, pharma, manufacturing, ai, optical, storage, chip, ev, solar, military, liquor, real_estate, telecom")
     p_scan_cn.add_argument("--min-score", type=int, default=0, help="Only show stocks with score >= N")
     p_scan_cn.add_argument("--sort", default="score",
                            choices=["score", "rsi", "price", "change"],
                            help="Sort results by field (default: score)")
+
+    # scan-cn-backtest (A-share selection strategy backtest)
+    p_scan_cn_bt = sub.add_parser("scan-cn-backtest",
+                                  help="Backtest A-share selection strategy")
+    p_scan_cn_bt.add_argument("--hold", type=int, default=5,
+                              help="Hold period in trading days (1/3/5/10/20, default: 5)")
+    p_scan_cn_bt.add_argument("--min-score", type=int, default=6,
+                              help="Min score for stock selection (default: 6)")
+    p_scan_cn_bt.add_argument("--period", default="6mo",
+                              help="Data period for yfinance (e.g. 3mo, 6mo)")
+    p_scan_cn_bt.add_argument("--lookback", type=int, default=30,
+                              help="Number of recent trading days to evaluate (max 90)")
+    p_scan_cn_bt.add_argument("--sector", default=None,
+                              help="Limit backtest to a specific sector")
+    p_scan_cn_bt.add_argument("--top", type=int, default=None,
+                              help="Limit to top-N stocks")
 
     # scan
     p_scan = sub.add_parser("scan", help="Real-time market scanner")
@@ -2009,6 +2025,41 @@ def cmd_scan_cn(args):
     output = format_scan_output(results, version=version)
     print(output)
     return results
+
+
+def cmd_scan_cn_backtest(args):
+    """Backtest A-share selection strategy."""
+    from src.cn_scanner import backtest_cn_strategy, format_backtest_output
+
+    hold = args.hold
+    min_score = args.min_score
+    period = args.period
+    lookback = args.lookback
+    sector = args.sector
+    top = args.top
+
+    print(f"\n  Running A-share strategy backtest...")
+    print(f"  Hold={hold}d | MinScore={min_score} | Period={period} | Lookback={lookback}d")
+    if sector:
+        print(f"  Sector: {sector}")
+
+    try:
+        result = backtest_cn_strategy(
+            hold_days=hold,
+            min_score=min_score,
+            period=period,
+            lookback_days=lookback,
+            sector=sector,
+            top=top,
+        )
+    except ValueError as e:
+        print(f"  ERROR: {e}")
+        return
+
+    version = _get_version()
+    output = format_backtest_output(result, version=version)
+    print(output)
+    return result
 
 
 def cmd_scan(args):
@@ -3342,6 +3393,8 @@ def test_signals():
             cmd_trending(args)
         elif args.command == "scan-cn":
             cmd_scan_cn(args)
+        elif args.command == "scan-cn-backtest":
+            cmd_scan_cn_backtest(args)
         elif args.command == "scan":
             cmd_scan(args)
         elif args.command == "strategy":
