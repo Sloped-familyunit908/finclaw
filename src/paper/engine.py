@@ -44,6 +44,7 @@ class Order:
     limit_price: float | None = None
     timestamp: float = 0.0
     fill_timestamp: float = 0.0
+    reject_reason: str = ""
 
     def to_dict(self) -> dict:
         return {
@@ -58,6 +59,7 @@ class Order:
             "limit_price": self.limit_price,
             "timestamp": self.timestamp,
             "fill_timestamp": self.fill_timestamp,
+            "reject_reason": self.reject_reason,
         }
 
 
@@ -218,7 +220,7 @@ class PaperTradingEngine:
     def buy(self, symbol: str, quantity: float, order_type: str = "market", limit_price: float | None = None) -> Order:
         """Place a buy order."""
         if quantity <= 0:
-            return self._rejected_order(symbol, OrderSide.BUY, quantity, "Quantity must be positive")
+            return self._rejected_order(symbol, OrderSide.BUY, quantity, f"Invalid quantity: must be positive, got {quantity}")
 
         otype = OrderType(order_type)
         now = time.time()
@@ -230,7 +232,7 @@ class PaperTradingEngine:
 
             cost = price * quantity
             if cost > self.balance:
-                return self._rejected_order(symbol, OrderSide.BUY, quantity, "Insufficient funds")
+                return self._rejected_order(symbol, OrderSide.BUY, quantity, f"Insufficient funds: need ${cost:,.2f}, have ${self.balance:,.2f}")
 
             self.balance -= cost
 
@@ -289,10 +291,13 @@ class PaperTradingEngine:
     def sell(self, symbol: str, quantity: float, order_type: str = "market", limit_price: float | None = None) -> Order:
         """Place a sell order."""
         if quantity <= 0:
-            return self._rejected_order(symbol, OrderSide.SELL, quantity, "Quantity must be positive")
+            return self._rejected_order(symbol, OrderSide.SELL, quantity, f"Invalid quantity: must be positive, got {quantity}")
 
-        if symbol not in self.positions or self.positions[symbol].quantity < quantity:
-            return self._rejected_order(symbol, OrderSide.SELL, quantity, "Insufficient position")
+        if symbol not in self.positions:
+            return self._rejected_order(symbol, OrderSide.SELL, quantity, f"No position in {symbol}")
+
+        if self.positions[symbol].quantity < quantity:
+            return self._rejected_order(symbol, OrderSide.SELL, quantity, f"Insufficient shares: have {self.positions[symbol].quantity}, want {quantity}")
 
         otype = OrderType(order_type)
         now = time.time()
@@ -368,6 +373,7 @@ class PaperTradingEngine:
             timestamp=time.time(),
         )
         order.price = 0
+        order.reject_reason = reason
         self.orders.append(order)
         return order
 

@@ -133,11 +133,20 @@ def cmd_backtest(args):
 
         # Select backtester based on strategy name
         strategy_lower = (strategy or "").lower()
-        if strategy_lower in STRATEGY_MAP:
-            StrategyCls = STRATEGY_MAP[strategy_lower]
+        # Support aliases: sma_cross and rsi map to existing strategies
+        _BACKTEST_ALIASES = {
+            "sma_cross": "momentum",       # SMA crossover maps to momentum breakout
+            "rsi": "bollinger",             # RSI maps to Bollinger (both are mean-reversion)
+        }
+        resolved_strategy = _BACKTEST_ALIASES.get(strategy_lower, strategy_lower)
+        if resolved_strategy in STRATEGY_MAP:
+            StrategyCls = STRATEGY_MAP[resolved_strategy]
             bt = StrategyCls(initial_capital=capital)
-            r = asyncio.run(bt.run(ticker, strategy_lower, h))
+            r = asyncio.run(bt.run(ticker, resolved_strategy, h))
         else:
+            available = sorted(set(list(STRATEGY_MAP.keys()) + list(_BACKTEST_ALIASES.keys())))
+            if strategy_lower and strategy_lower not in ("v7", "default", ""):
+                print(f"  WARNING: Unknown strategy '{strategy}'. Using default (v7). Available: {', '.join(available)}")
             bt = BacktesterV7(initial_capital=capital)
             r = asyncio.run(bt.run(ticker, "v7", h))
         ann = (1 + r.total_return) ** (1 / years) - 1 if r.total_return > -1 else -1
@@ -740,13 +749,36 @@ def _run_strategy_compare(name: str, df, close, prices) -> dict | None:
     import numpy as np
     from src.ta import rsi as calc_rsi, macd as calc_macd, sma
 
+    # Alias map: backtest strategy names → compare strategy names
+    _STRATEGY_ALIASES = {
+        "sma_cross": "trend_following",
+        "rsi": "mean_reversion",
+        "macd": "macd_cross",
+        "bollinger": "mean_reversion",
+        "buy_hold": "buy_hold",
+        # Compare's own names map to themselves
+        "momentum": "momentum",
+        "mean_reversion": "mean_reversion",
+        "trend_following": "trend_following",
+        "macd_cross": "macd_cross",
+    }
+
+    all_strategy_names = sorted(set(list(_STRATEGY_ALIASES.keys()) + list(_STRATEGY_ALIASES.values())))
+    canonical = _STRATEGY_ALIASES.get(name, None)
+    if canonical is None:
+        print(f"  Unknown strategy: {name}. Available: {', '.join(all_strategy_names)}")
+        return None
+
+    # Use the canonical name for logic but keep original name for display
+    display_name = name
+
     n = len(prices)
     if n < 50:
         return None
 
     signals = []  # list of (index, 'buy'|'sell')
 
-    if name == "momentum":
+    if canonical == "momentum":
         # Buy when 10-day return > 0, sell when < 0
         for i in range(20, n):
             ret10 = prices[i] / prices[i - 10] - 1
@@ -755,7 +787,7 @@ def _run_strategy_compare(name: str, df, close, prices) -> dict | None:
             elif ret10 < -0.02:
                 signals.append((i, "sell"))
 
-    elif name == "mean_reversion":
+    elif canonical == "mean_reversion":
         rsi = calc_rsi(close, 14)
         for i in range(20, n):
             if not np.isnan(rsi[i]):
@@ -764,7 +796,7 @@ def _run_strategy_compare(name: str, df, close, prices) -> dict | None:
                 elif rsi[i] > 70:
                     signals.append((i, "sell"))
 
-    elif name == "trend_following":
+    elif canonical == "trend_following":
         sma20 = sma(close, 20)
         sma50 = sma(close, 50)
         for i in range(50, n):
@@ -774,7 +806,7 @@ def _run_strategy_compare(name: str, df, close, prices) -> dict | None:
                 else:
                     signals.append((i, "sell"))
 
-    elif name == "macd_cross":
+    elif canonical == "macd_cross":
         macd_line, signal_line, hist = calc_macd(close)
         for i in range(30, n):
             if not np.isnan(hist[i]) and not np.isnan(hist[i - 1]):
@@ -783,12 +815,8 @@ def _run_strategy_compare(name: str, df, close, prices) -> dict | None:
                 elif hist[i] < 0 and hist[i - 1] >= 0:
                     signals.append((i, "sell"))
 
-    elif name == "buy_hold":
+    elif canonical == "buy_hold":
         signals = [(20, "buy")]  # buy and hold
-
-    else:
-        print(f"  Unknown strategy: {name}. Available: momentum, mean_reversion, trend_following, macd_cross, buy_hold")
-        return None
 
     # Simulate
     holding = False
@@ -848,7 +876,7 @@ def _run_strategy_compare(name: str, df, close, prices) -> dict | None:
     win_rate = (wins / trades * 100) if trades > 0 else 0
 
     return {
-        "name": name,
+        "name": display_name,
         "return": total_return,
         "sharpe": sharpe,
         "max_dd": max_dd,
@@ -2289,7 +2317,8 @@ def _handle_paper(args):
         if order.status.value == "filled":
             print(f"  🟢 BUY {args.symbol} x{args.quantity} @${order.filled_price:.2f} = ${order.filled_price * args.quantity:,.2f}")
         else:
-            print(f"  ❌ Order {order.status.value}: {args.symbol}")
+            reason = getattr(order, "reject_reason", "") or "Unknown reason"
+            print(f"  ❌ Order rejected: {args.symbol} — {reason}")
 
     elif cmd == "sell":
         order = engine.sell(args.symbol, args.quantity, getattr(args, "type", "market"), getattr(args, "limit_price", None))
@@ -2297,7 +2326,8 @@ def _handle_paper(args):
         if order.status.value == "filled":
             print(f"  🔴 SELL {args.symbol} x{args.quantity} @${order.filled_price:.2f}")
         else:
-            print(f"  ❌ Order {order.status.value}: {args.symbol}")
+            reason = getattr(order, "reject_reason", "") or "Unknown reason"
+            print(f"  ❌ Order rejected: {args.symbol} — {reason}")
 
     elif cmd == "portfolio":
         portfolio = engine.get_portfolio()
@@ -3074,7 +3104,13 @@ def main(argv=None):
             print(f"  {args.symbol} ({args.exchange}) — {len(candles)} candles [{args.timeframe}]")
             print(f"  {'Date/Time':<20} {'Open':>10} {'High':>10} {'Low':>10} {'Close':>10} {'Volume':>12}")
             for c in candles[-args.limit:]:
-                ts = str(c['timestamp'])[:20]
+                ts_raw = c['timestamp']
+                try:
+                    # Timestamps from exchanges are typically in milliseconds
+                    ts_seconds = ts_raw / 1000 if ts_raw > 1e12 else ts_raw
+                    ts = datetime.fromtimestamp(ts_seconds).strftime("%Y-%m-%d %H:%M")
+                except (OSError, ValueError, TypeError):
+                    ts = str(ts_raw)[:20]
                 print(f"  {ts:<20} {c['open']:>10.4f} {c['high']:>10.4f} {c['low']:>10.4f} {c['close']:>10.4f} {c['volume']:>12.0f}")
         elif args.command == "plugin":
             from src.plugins.plugin_manager import PluginManager
