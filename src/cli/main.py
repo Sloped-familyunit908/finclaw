@@ -1401,6 +1401,8 @@ Examples:
                            help="Sort results by field (default: score)")
     p_scan_cn.add_argument("--strategy", default="v3", choices=["v1", "v2", "v3", "ml"],
                            help="Scoring strategy: v1 (legacy), v2 (multi-signal), v3 (OHLCV, default), ml (machine learning)")
+    p_scan_cn.add_argument("--ml-version", default="v2", choices=["v1", "v2"],
+                           help="ML feature version: v1 (20 features), v2 (40+ features, ensemble, default)")
 
     # scan-cn-backtest (A-share selection strategy backtest)
     p_scan_cn_bt = sub.add_parser("scan-cn-backtest",
@@ -1420,6 +1422,8 @@ Examples:
                               help="Limit to top-N stocks")
     p_scan_cn_bt.add_argument("--strategy", default="v1", choices=["v1", "v2", "v3", "ml"],
                               help="Scoring strategy: v1 (legacy), v2 (multi-signal), v3 (OHLCV), ml (machine learning)")
+    p_scan_cn_bt.add_argument("--ml-version", default="v2", choices=["v1", "v2"],
+                              help="ML feature version: v1 (20 features), v2 (40+ features, ensemble, default)")
     p_scan_cn_bt.add_argument("--stop-loss", type=float, default=None,
                               help="Stop-loss percentage (e.g. 3 = sell if price drops 3%%)")
     p_scan_cn_bt.add_argument("--take-profit", type=float, default=None,

@@ -1207,6 +1207,7 @@ def backtest_cn_strategy(
     stop_loss: float | None = None,
     take_profit: float | None = None,
     trailing_stop: bool = False,
+    ml_version: str = "v2",
 ) -> dict:
     """Walk-forward backtest of the A-share scoring strategy.
 
@@ -1331,11 +1332,22 @@ def backtest_cn_strategy(
             features = compute_features_series(
                 close_arr, info.get("volume"),
                 info.get("open"), info.get("high"), info.get("low"),
+                version=ml_version,
             )
             if features is None:
                 continue
-            scorer = MLStockScorer(train_bars=120, predict_bars=20, forward_days=hold_days)
-            scorer.train_and_predict(features, close_arr)
+            scorer = MLStockScorer(
+                train_bars=250 if ml_version == "v2" else 120,
+                predict_bars=5 if ml_version == "v2" else 20,
+                forward_days=hold_days,
+                version=ml_version,
+                expanding_window=(ml_version == "v2"),
+            )
+            scorer.train_and_predict(
+                features, close_arr,
+                high=info.get("high") if ml_version == "v2" else None,
+                low=info.get("low") if ml_version == "v2" else None,
+            )
             if scorer._model is not None:
                 ml_scorers[ticker] = scorer
 
