@@ -1027,10 +1027,13 @@ def scan_cn_stocks(
     import warnings
 
     use_v3 = strategy == "v3"
+    use_ml = strategy == "ml"
     if strategy == "v2":
         score_fn = compute_score_v2
     elif strategy == "v3":
         score_fn = None  # handled below with extra args
+    elif strategy == "ml":
+        score_fn = None  # handled below with ML scorer
     else:
         score_fn = compute_score
 
@@ -1063,11 +1066,15 @@ def scan_cn_stocks(
         close = np.array(df["Close"].tolist(), dtype=np.float64)
         volume = np.array(df["Volume"].tolist(), dtype=np.float64) if "Volume" in df.columns else None
 
-        if use_v3:
+        if use_v3 or use_ml:
             open_ = np.array(df["Open"].tolist(), dtype=np.float64) if "Open" in df.columns else None
             high = np.array(df["High"].tolist(), dtype=np.float64) if "High" in df.columns else None
             low = np.array(df["Low"].tolist(), dtype=np.float64) if "Low" in df.columns else None
-            result = compute_score_v3(close, volume, open_, high, low)
+            if use_ml:
+                from src.cn_ml_scorer import compute_score_ml
+                result = compute_score_ml(close, volume, open_, high, low)
+            else:
+                result = compute_score_v3(close, volume, open_, high, low)
         else:
             result = score_fn(close, volume)
 
@@ -1155,6 +1162,7 @@ def _compute_score_at(
     open_: np.ndarray | None = None,
     high: np.ndarray | None = None,
     low: np.ndarray | None = None,
+    ml_scorer: Optional[object] = None,
 ) -> dict:
     """Compute the scoring result using data up to (and including) *idx*.
 
@@ -1164,10 +1172,19 @@ def _compute_score_at(
     Parameters
     ----------
     strategy : str
-        ``"v1"`` for legacy, ``"v2"`` for multi-signal, ``"v3"`` for OHLCV.
+        ``"v1"`` for legacy, ``"v2"`` for multi-signal, ``"v3"`` for OHLCV,
+        ``"ml"`` for machine learning blended.
+    ml_scorer : MLStockScorer, optional
+        Pre-trained scorer for ML strategy.
     """
     sliced_close = close[: idx + 1]
     sliced_volume = volume[: idx + 1] if volume is not None else None
+    if strategy == "ml":
+        from src.cn_ml_scorer import compute_score_ml
+        sliced_open = open_[: idx + 1] if open_ is not None else None
+        sliced_high = high[: idx + 1] if high is not None else None
+        sliced_low = low[: idx + 1] if low is not None else None
+        return compute_score_ml(sliced_close, sliced_volume, sliced_open, sliced_high, sliced_low, scorer=ml_scorer)
     if strategy == "v3":
         sliced_open = open_[: idx + 1] if open_ is not None else None
         sliced_high = high[: idx + 1] if high is not None else None
@@ -1187,6 +1204,9 @@ def backtest_cn_strategy(
     top: int | None = None,
     data_override: dict[str, dict] | None = None,
     strategy: str = "v1",
+    stop_loss: float | None = None,
+    take_profit: float | None = None,
+    trailing_stop: bool = False,
 ) -> dict:
     """Walk-forward backtest of the A-share scoring strategy.
 
@@ -1199,7 +1219,7 @@ def backtest_cn_strategy(
     period : str
         yfinance period string for fetching historical data (e.g. ``"6mo"``).
     lookback_days : int
-        How many recent trading days to evaluate (max 90).
+        How many recent trading days to evaluate (max depends on period).
     sector : str | None
         Limit backtest to a specific sector, or ``None`` for all.
     top : int | None
@@ -1210,13 +1230,28 @@ def backtest_cn_strategy(
         When provided, yfinance is **not** called, making unit-tests fast and deterministic.
     strategy : str
         ``"v1"`` for legacy, ``"v2"`` for multi-signal, ``"v3"`` for OHLCV.
+    stop_loss : float | None
+        Stop-loss percentage (positive number, e.g. 3 means sell if price drops 3%
+        from entry). ``None`` disables stop-loss.
+    take_profit : float | None
+        Take-profit percentage (positive number, e.g. 8 means sell if price rises
+        8% from entry). ``None`` disables take-profit.
+    trailing_stop : bool
+        If ``True``, once unrealised profit hits 5% the stop is raised to
+        breakeven (0% from entry).
 
     Returns
     -------
     dict
         Keys: ``batches`` (list[dict]), ``summary`` (dict).
     """
-    lookback_days = min(max(lookback_days, 1), 90)
+    # For longer periods, allow more lookback days
+    _period_max_lookback = {
+        "1mo": 20, "3mo": 60, "6mo": 90,
+        "1y": 200, "2y": 400,
+    }
+    max_lookback = _period_max_lookback.get(period, 90)
+    lookback_days = min(max(lookback_days, 1), max_lookback)
     if hold_days not in (1, 3, 5, 10, 20):
         hold_days = 5
 
@@ -1225,7 +1260,10 @@ def backtest_cn_strategy(
         sector=sector,
     )
 
-    use_v3 = strategy == "v3"
+    use_v3 = strategy in ("v3", "ml")  # ML also needs OHLCV data
+
+    # ── Pre-train ML scorer if needed ────────────────────────────
+    ml_scorer = None  # will be populated per-stock during walk-forward
 
     # ── Fetch data ───────────────────────────────────────────────
     stock_data: dict[str, dict] = {}  # ticker → {close, volume, name, sector, [open, high, low]}
@@ -1257,7 +1295,13 @@ def backtest_cn_strategy(
                     warnings.simplefilter("ignore")
                     stock = yf.Ticker(ticker)
                     df = stock.history(period=period)
-                if df is None or df.empty or len(df) < 60:
+                # Minimum data requirement scales with requested period
+                _min_bars = 60  # default for 6mo
+                if period in ("1y",):
+                    _min_bars = 60  # still need 60 bars minimum
+                elif period in ("2y",):
+                    _min_bars = 60
+                if df is None or df.empty or len(df) < _min_bars:
                     continue
                 entry = {
                     "close": np.array(df["Close"].tolist(), dtype=np.float64),
@@ -1276,6 +1320,25 @@ def backtest_cn_strategy(
     if not stock_data:
         return {"batches": [], "summary": _empty_summary()}
 
+    # ── Train ML scorers (one per stock) if strategy == "ml" ─────
+    ml_scorers: dict[str, object] = {}
+    if strategy == "ml":
+        from src.cn_ml_scorer import MLStockScorer, compute_features_series
+        for ticker, info in stock_data.items():
+            close_arr = info["close"]
+            if len(close_arr) < 150:
+                continue  # need enough data for walk-forward
+            features = compute_features_series(
+                close_arr, info.get("volume"),
+                info.get("open"), info.get("high"), info.get("low"),
+            )
+            if features is None:
+                continue
+            scorer = MLStockScorer(train_bars=120, predict_bars=20, forward_days=hold_days)
+            scorer.train_and_predict(features, close_arr)
+            if scorer._model is not None:
+                ml_scorers[ticker] = scorer
+
     # ── Determine evaluation window ─────────────────────────────
     min_len = min(len(d["close"]) for d in stock_data.values())
     warmup = 30
@@ -1286,6 +1349,12 @@ def backtest_cn_strategy(
         return {"batches": [], "summary": _empty_summary()}
 
     # ── Walk-forward ─────────────────────────────────────────────
+    # Pre-compute stop/take thresholds once
+    use_risk_mgmt = (stop_loss is not None) or (take_profit is not None)
+    sl_pct = -(abs(stop_loss) / 100.0) if stop_loss is not None else None  # e.g. -0.03
+    tp_pct = abs(take_profit) / 100.0 if take_profit is not None else None  # e.g. 0.08
+    trailing_threshold = 0.05  # 5% profit triggers trailing stop to breakeven
+
     batches: list[dict] = []
     day = start_idx
 
@@ -1301,20 +1370,62 @@ def backtest_cn_strategy(
                 open_=info.get("open"),
                 high=info.get("high"),
                 low=info.get("low"),
+                ml_scorer=ml_scorers.get(ticker),
             )
             if result["score"] >= min_score:
                 entry_price = close[day]
-                exit_price = close[min(day + hold_days, len(close) - 1)]
-                fwd_return = (exit_price / entry_price - 1) * 100 if entry_price > 0 else 0.0
-                selected.append({
+                if entry_price <= 0:
+                    continue
+
+                # ── Determine exit with risk management ──────
+                exit_day_offset = hold_days
+                exit_reason = "hold-expiry"
+                actual_exit_price = close[min(day + hold_days, len(close) - 1)]
+
+                if use_risk_mgmt:
+                    # current stop level (can be adjusted by trailing)
+                    current_sl = sl_pct
+                    for d in range(1, hold_days + 1):
+                        idx = day + d
+                        if idx >= len(close):
+                            break
+                        day_return = (close[idx] / entry_price) - 1.0
+
+                        # Trailing stop: once we hit 5% profit, move stop to breakeven
+                        if trailing_stop and day_return >= trailing_threshold:
+                            if current_sl is None or current_sl < 0:
+                                current_sl = 0.0  # breakeven
+
+                        # Check stop-loss
+                        if current_sl is not None and day_return <= current_sl:
+                            actual_exit_price = close[idx]
+                            exit_day_offset = d
+                            exit_reason = "stop-loss"
+                            break
+
+                        # Check take-profit
+                        if tp_pct is not None and day_return >= tp_pct:
+                            actual_exit_price = close[idx]
+                            exit_day_offset = d
+                            exit_reason = "take-profit"
+                            break
+
+                fwd_return = (actual_exit_price / entry_price - 1) * 100
+
+                stock_result: dict = {
                     "ticker": ticker,
                     "name": info["name"],
                     "sector": info["sector"],
                     "score": result["score"],
                     "entry_price": float(entry_price),
-                    "exit_price": float(exit_price),
+                    "exit_price": float(actual_exit_price),
                     "return_pct": float(fwd_return),
-                })
+                }
+                if use_risk_mgmt:
+                    stock_result["exit_reason"] = exit_reason
+                    stock_result["exit_day"] = exit_day_offset
+
+                selected.append(stock_result)
 
         if selected:
             avg_ret = sum(s["return_pct"] for s in selected) / len(selected)

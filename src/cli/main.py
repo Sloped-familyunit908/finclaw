@@ -1399,8 +1399,8 @@ Examples:
     p_scan_cn.add_argument("--sort", default="score",
                            choices=["score", "rsi", "price", "change"],
                            help="Sort results by field (default: score)")
-    p_scan_cn.add_argument("--strategy", default="v3", choices=["v1", "v2", "v3"],
-                           help="Scoring strategy: v1 (legacy), v2 (multi-signal), v3 (OHLCV, default)")
+    p_scan_cn.add_argument("--strategy", default="v3", choices=["v1", "v2", "v3", "ml"],
+                           help="Scoring strategy: v1 (legacy), v2 (multi-signal), v3 (OHLCV, default), ml (machine learning)")
 
     # scan-cn-backtest (A-share selection strategy backtest)
     p_scan_cn_bt = sub.add_parser("scan-cn-backtest",
@@ -1410,15 +1410,22 @@ Examples:
     p_scan_cn_bt.add_argument("--min-score", type=int, default=6,
                               help="Min score for stock selection (default: 6)")
     p_scan_cn_bt.add_argument("--period", default="6mo",
-                              help="Data period for yfinance (e.g. 3mo, 6mo)")
+                              choices=["3mo", "6mo", "1y", "2y"],
+                              help="Data period for yfinance (3mo, 6mo, 1y, 2y)")
     p_scan_cn_bt.add_argument("--lookback", type=int, default=30,
-                              help="Number of recent trading days to evaluate (max 90)")
+                              help="Number of recent trading days to evaluate (max depends on period)")
     p_scan_cn_bt.add_argument("--sector", default=None,
                               help="Limit backtest to a specific sector")
     p_scan_cn_bt.add_argument("--top", type=int, default=None,
                               help="Limit to top-N stocks")
-    p_scan_cn_bt.add_argument("--strategy", default="v1", choices=["v1", "v2", "v3"],
-                              help="Scoring strategy: v1 (legacy), v2 (multi-signal), v3 (OHLCV)")
+    p_scan_cn_bt.add_argument("--strategy", default="v1", choices=["v1", "v2", "v3", "ml"],
+                              help="Scoring strategy: v1 (legacy), v2 (multi-signal), v3 (OHLCV), ml (machine learning)")
+    p_scan_cn_bt.add_argument("--stop-loss", type=float, default=None,
+                              help="Stop-loss percentage (e.g. 3 = sell if price drops 3%%)")
+    p_scan_cn_bt.add_argument("--take-profit", type=float, default=None,
+                              help="Take-profit percentage (e.g. 8 = sell if price rises 8%%)")
+    p_scan_cn_bt.add_argument("--trailing-stop", action="store_true", default=False,
+                              help="Enable trailing stop (move stop to breakeven at 5%% profit)")
 
     # scan
     p_scan = sub.add_parser("scan", help="Real-time market scanner")
@@ -2043,9 +2050,18 @@ def cmd_scan_cn_backtest(args):
     sector = args.sector
     top = args.top
     strategy = args.strategy
+    stop_loss_val = getattr(args, "stop_loss", None)
+    take_profit_val = getattr(args, "take_profit", None)
+    trailing_stop_val = getattr(args, "trailing_stop", False)
 
     print(f"\n  Running A-share strategy backtest...")
     print(f"  Hold={hold}d | MinScore={min_score} | Period={period} | Lookback={lookback}d | Strategy={strategy}")
+    if stop_loss_val is not None:
+        print(f"  Stop-Loss: {stop_loss_val}%")
+    if take_profit_val is not None:
+        print(f"  Take-Profit: {take_profit_val}%")
+    if trailing_stop_val:
+        print(f"  Trailing Stop: enabled")
     if sector:
         print(f"  Sector: {sector}")
 
@@ -2058,6 +2074,9 @@ def cmd_scan_cn_backtest(args):
             sector=sector,
             top=top,
             strategy=strategy,
+            stop_loss=stop_loss_val,
+            take_profit=take_profit_val,
+            trailing_stop=trailing_stop_val,
         )
     except ValueError as e:
         print(f"  ERROR: {e}")
