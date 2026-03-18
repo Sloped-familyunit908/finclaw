@@ -1,0 +1,25 @@
+{
+  "tech": {
+    "symbols": [
+      "AAPL",
+      "MSFT",
+      "NVDA",
+      "GOOGL"
+    ],
+    "metadata": {}
+  },
+  "test2": {
+    "symbols": [
+      "AAPL",
+      "NVDA"
+    ],
+    "metadata": {}
+  },
+  "mylist": {
+    "symbols": [
+      "MSFT",
+      "NVDA"
+    ],
+    "metadata": {}
+  }
+}

@@ -132,6 +132,29 @@ def adx(high: Array, low: Array, close: Array, period: int = 14) -> Array:
     return ema(dx, period)
 
 
+def adx_full(high: Array, low: Array, close: Array, period: int = 14) -> tuple[Array, Array, Array]:
+    """Average Directional Index with directional indicators.
+
+    Returns
+    -------
+    (adx_val, plus_di, minus_di)
+    """
+    n = len(close)
+    plus_dm = np.zeros(n)
+    minus_dm = np.zeros(n)
+    for i in range(1, n):
+        up = high[i] - high[i - 1]
+        down = low[i - 1] - low[i]
+        plus_dm[i] = up if up > down and up > 0 else 0.0
+        minus_dm[i] = down if down > up and down > 0 else 0.0
+    atr_val = atr(high, low, close, period)
+    plus_di = 100 * ema(plus_dm, period) / np.where(atr_val == 0, 1e-10, atr_val)
+    minus_di = 100 * ema(minus_dm, period) / np.where(atr_val == 0, 1e-10, atr_val)
+    dx = 100 * np.abs(plus_di - minus_di) / np.where(plus_di + minus_di == 0, 1e-10, plus_di + minus_di)
+    adx_val = ema(dx, period)
+    return adx_val, plus_di, minus_di
+
+
 def parabolic_sar(high: Array, low: Array, af_start: float = 0.02, af_step: float = 0.02, af_max: float = 0.2) -> Array:
     """Parabolic SAR."""
     n = len(high)

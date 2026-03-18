@@ -1399,8 +1399,8 @@ Examples:
     p_scan_cn.add_argument("--sort", default="score",
                            choices=["score", "rsi", "price", "change"],
                            help="Sort results by field (default: score)")
-    p_scan_cn.add_argument("--strategy", default="v2", choices=["v1", "v2"],
-                           help="Scoring strategy: v1 (legacy) or v2 (multi-signal, default)")
+    p_scan_cn.add_argument("--strategy", default="v3", choices=["v1", "v2", "v3"],
+                           help="Scoring strategy: v1 (legacy), v2 (multi-signal), v3 (OHLCV, default)")
 
     # scan-cn-backtest (A-share selection strategy backtest)
     p_scan_cn_bt = sub.add_parser("scan-cn-backtest",
@@ -1417,8 +1417,8 @@ Examples:
                               help="Limit backtest to a specific sector")
     p_scan_cn_bt.add_argument("--top", type=int, default=None,
                               help="Limit to top-N stocks")
-    p_scan_cn_bt.add_argument("--strategy", default="v1", choices=["v1", "v2"],
-                              help="Scoring strategy: v1 (legacy) or v2 (multi-signal)")
+    p_scan_cn_bt.add_argument("--strategy", default="v1", choices=["v1", "v2", "v3"],
+                              help="Scoring strategy: v1 (legacy), v2 (multi-signal), v3 (OHLCV)")
 
     # scan
     p_scan = sub.add_parser("scan", help="Real-time market scanner")

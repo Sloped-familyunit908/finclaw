@@ -11,7 +11,7 @@ import sys
 import numpy as np
 from typing import Optional
 
-from src.ta import rsi, macd, bollinger_bands, sma
+from src.ta import rsi, macd, bollinger_bands, sma, adx_full
 
 
 # ── Stock Universe ───────────────────────────────────────────────────
@@ -604,6 +604,389 @@ def classify_signal_v2(score: int) -> str:
         return "HOLD"
 
 
+# ── V3 Signal Functions (OHLCV-based) ───────────────────────────────
+
+def _signal_three_soldiers(
+    open_: np.ndarray,
+    high: np.ndarray,
+    low: np.ndarray,
+    close: np.ndarray,
+) -> tuple[int, str | None]:
+    """Three Soldiers: 3 consecutive up days, each closing near high. (+3)"""
+    if len(close) < 4:
+        return 0, None
+    for i in range(-3, 0):
+        # Each day must be up: close > open
+        if close[i] <= open_[i]:
+            return 0, None
+        # Close near high: upper wick < 30% of body
+        body = close[i] - open_[i]
+        if body <= 0:
+            return 0, None
+        upper_wick = high[i] - close[i]
+        if upper_wick > 0.3 * body:
+            return 0, None
+    return 3, "three soldiers(3 bullish candles)"
+
+
+def _signal_long_lower_shadow(
+    open_: np.ndarray,
+    high: np.ndarray,
+    low: np.ndarray,
+    close: np.ndarray,
+    rsi_val: float,
+) -> tuple[int, str | None]:
+    """Long Lower Shadow: lower shadow > 2x body at oversold (RSI<35). (+3)"""
+    if len(close) < 1:
+        return 0, None
+    body = abs(close[-1] - open_[-1])
+    if body < 1e-10:
+        body = 1e-10
+    lower_shadow = min(close[-1], open_[-1]) - low[-1]
+    if lower_shadow <= 0:
+        return 0, None
+    if lower_shadow > 2.0 * body and rsi_val < 35.0:
+        return 3, f"long lower shadow(RSI={rsi_val:.0f})"
+    return 0, None
+
+
+def _signal_doji_at_bottom(
+    open_: np.ndarray,
+    high: np.ndarray,
+    low: np.ndarray,
+    close: np.ndarray,
+    volume: np.ndarray | None,
+    rsi_val: float,
+) -> tuple[int, str | None]:
+    """Doji at Bottom: open ≈ close (0.5%), RSI<40, low volume. (+2)"""
+    if len(close) < 21 or volume is None or len(volume) < 21:
+        return 0, None
+    price = close[-1]
+    if price <= 0:
+        return 0, None
+    body_pct = abs(close[-1] - open_[-1]) / price * 100
+    if body_pct > 0.5:
+        return 0, None
+    if rsi_val >= 40.0:
+        return 0, None
+    vol = np.asarray(volume, dtype=np.float64)
+    avg_vol = np.mean(vol[-21:-1])
+    if avg_vol <= 0:
+        return 0, None
+    vol_ratio = vol[-1] / avg_vol
+    if vol_ratio < 0.7:  # low volume = below 70% of average
+        return 2, f"doji at bottom(RSI={rsi_val:.0f}, vol={vol_ratio:.1f}x)"
+    return 0, None
+
+
+def _signal_volume_breakout_high(
+    open_: np.ndarray,
+    high: np.ndarray,
+    low: np.ndarray,
+    close: np.ndarray,
+    volume: np.ndarray | None,
+) -> tuple[int, str | None]:
+    """Volume Breakout High: close > 20d high AND vol > 2.5x AND close in top 20% of range. (+4)"""
+    if volume is None or len(close) < 21 or len(volume) < 21:
+        return 0, None
+    # Close must be above 20-day high (of prior 20 days, excluding today)
+    prev_high = np.max(close[-21:-1])
+    if close[-1] <= prev_high:
+        return 0, None
+    vol = np.asarray(volume, dtype=np.float64)
+    avg_vol = np.mean(vol[-21:-1])
+    if avg_vol <= 0:
+        return 0, None
+    vol_ratio = vol[-1] / avg_vol
+    if vol_ratio <= 2.5:
+        return 0, None
+    # Close in top 20% of today's range
+    day_range = high[-1] - low[-1]
+    if day_range <= 0:
+        return 0, None
+    position_in_range = (close[-1] - low[-1]) / day_range
+    if position_in_range < 0.8:
+        return 0, None
+    return 4, f"vol breakout new high(vol={vol_ratio:.1f}x)"
+
+
+def _signal_volume_climax_reversal(
+    close: np.ndarray,
+    volume: np.ndarray | None,
+) -> tuple[int, str | None]:
+    """Volume Climax Reversal: huge vol (>3x) on down day, then up day. (+3)"""
+    if volume is None or len(close) < 3 or len(volume) < 21:
+        return 0, None
+    vol = np.asarray(volume, dtype=np.float64)
+    avg_vol = np.mean(vol[-21:-2])  # average excluding last 2 days
+    if avg_vol <= 0:
+        return 0, None
+    # Day -2: down day with >3x volume
+    if close[-2] >= close[-3]:  # not a down day
+        return 0, None
+    vol_ratio_prev = vol[-2] / avg_vol
+    if vol_ratio_prev <= 3.0:
+        return 0, None
+    # Day -1 (today): up day
+    if close[-1] <= close[-2]:
+        return 0, None
+    return 3, f"vol climax reversal(vol={vol_ratio_prev:.1f}x)"
+
+
+def _signal_accumulation(
+    close: np.ndarray,
+    volume: np.ndarray | None,
+) -> tuple[int, str | None]:
+    """Accumulation: price flat (3%), 5d avg volume increasing >50%. (+2)"""
+    if volume is None or len(close) < 11 or len(volume) < 11:
+        return 0, None
+    vol = np.asarray(volume, dtype=np.float64)
+    # Price flat over last 5 days
+    price_range = (np.max(close[-5:]) - np.min(close[-5:])) / close[-5] * 100 if close[-5] > 0 else 999
+    if price_range > 3.0:
+        return 0, None
+    # 5-day avg volume vs prior 5-day avg volume
+    avg_vol_recent = np.mean(vol[-5:])
+    avg_vol_prev = np.mean(vol[-10:-5])
+    if avg_vol_prev <= 0:
+        return 0, None
+    vol_increase = (avg_vol_recent / avg_vol_prev - 1) * 100
+    if vol_increase > 50.0:
+        return 2, f"accumulation(vol+{vol_increase:.0f}%)"
+    return 0, None
+
+
+def _signal_macd_hist_acceleration(
+    close: np.ndarray,
+) -> tuple[int, str | None]:
+    """MACD Histogram Acceleration: hist positive AND increasing 2+ days. (+2)"""
+    if len(close) < 30:
+        return 0, None
+    _, _, hist = macd(close)
+    if len(hist) < 3:
+        return 0, None
+    # Last 3 histogram values
+    h1, h2, h3 = float(hist[-3]), float(hist[-2]), float(hist[-1])
+    if np.isnan(h1) or np.isnan(h2) or np.isnan(h3):
+        return 0, None
+    # All positive and increasing
+    if h3 > 0 and h2 > 0 and h3 > h2 and h2 > h1:
+        return 2, "MACD hist accelerating"
+    return 0, None
+
+
+def _signal_rsi_bullish_divergence(
+    close: np.ndarray,
+    rsi_arr: np.ndarray,
+) -> tuple[int, str | None]:
+    """RSI Bullish Divergence: price new 10d low but RSI didn't. (+3)"""
+    if len(close) < 20 or len(rsi_arr) < 20:
+        return 0, None
+    # Current price must be at or near 10-day low
+    recent_low = np.nanmin(close[-10:])
+    if close[-1] > recent_low * 1.005:
+        return 0, None
+    # Find previous trough in days -20 to -10
+    prev_window = close[-20:-10]
+    if len(prev_window) == 0:
+        return 0, None
+    prev_low_offset = int(np.argmin(prev_window))
+    prev_low_idx = len(close) - 20 + prev_low_offset
+    # Price made a lower low
+    if close[-1] > close[prev_low_idx]:
+        return 0, None
+    # RSI at current point vs RSI at previous trough
+    rsi_now = rsi_arr[-1]
+    rsi_prev = rsi_arr[prev_low_idx] if prev_low_idx < len(rsi_arr) else np.nan
+    if np.isnan(rsi_now) or np.isnan(rsi_prev):
+        return 0, None
+    # Divergence: price lower low, RSI higher low
+    if rsi_now > rsi_prev:
+        return 3, "RSI bullish divergence"
+    return 0, None
+
+
+def _signal_squeeze_release(
+    close: np.ndarray,
+) -> tuple[int, str | None]:
+    """Squeeze Release: BB bandwidth expanding after tight squeeze. (+3)"""
+    if len(close) < 30:
+        return 0, None
+    bb = bollinger_bands(close)
+    bw = bb['bandwidth']
+    # Need at least 6 days of bandwidth data
+    if len(bw) < 6:
+        return 0, None
+    # Check for squeeze: bandwidth < 5% for 5+ consecutive days ending 1-3 days ago
+    # Then check if current bandwidth is expanding
+    squeeze_found = False
+    for end_offset in range(1, 4):  # check squeeze ending 1, 2, or 3 days ago
+        if len(bw) < end_offset + 5:
+            continue
+        window = bw[-(end_offset + 5): -end_offset]
+        # Filter NaN
+        valid = window[~np.isnan(window)]
+        if len(valid) >= 5 and np.all(valid < 0.05):
+            squeeze_found = True
+            break
+    if not squeeze_found:
+        return 0, None
+    # Current bandwidth must be expanding (greater than recent squeeze levels)
+    curr_bw = float(bw[-1])
+    if np.isnan(curr_bw):
+        return 0, None
+    if curr_bw >= 0.05:
+        return 3, f"squeeze release(bw={curr_bw:.3f})"
+    return 0, None
+
+
+def _signal_adx_trend_strength(
+    high: np.ndarray,
+    low: np.ndarray,
+    close: np.ndarray,
+) -> tuple[int, str | None]:
+    """ADX Trend Strength: ADX > 25 AND +DI > -DI. (+2)"""
+    if len(close) < 30:
+        return 0, None
+    adx_val, plus_di, minus_di = adx_full(high, low, close)
+    a = float(adx_val[-1])
+    p = float(plus_di[-1])
+    m = float(minus_di[-1])
+    if np.isnan(a) or np.isnan(p) or np.isnan(m):
+        return 0, None
+    if a > 25.0 and p > m:
+        return 2, f"ADX strong uptrend({a:.0f})"
+    return 0, None
+
+
+def _signal_price_above_vwap(
+    close: np.ndarray,
+    volume: np.ndarray | None,
+) -> tuple[int, str | None]:
+    """Price Above VWAP: using volume-weighted average price. (+1)"""
+    if volume is None or len(close) < 20 or len(volume) < 20:
+        return 0, None
+    vol = np.asarray(volume, dtype=np.float64)
+    # 20-day VWAP
+    total_vol = np.sum(vol[-20:])
+    if total_vol <= 0:
+        return 0, None
+    vwap = np.sum(close[-20:] * vol[-20:]) / total_vol
+    if close[-1] > vwap:
+        return 1, "above VWAP"
+    return 0, None
+
+
+# ── V3 Scoring Engine (ultimate A-share short-term engine) ──────────
+
+def compute_score_v3(
+    close: np.ndarray,
+    volume: np.ndarray | None = None,
+    open_: np.ndarray | None = None,
+    high: np.ndarray | None = None,
+    low: np.ndarray | None = None,
+) -> dict:
+    """Compute enhanced technical score using V3 (OHLCV signals).
+
+    Includes all V2 signals plus 11 new OHLCV-based signals:
+    - Three Soldiers (+3)
+    - Long Lower Shadow (+3)
+    - Doji at Bottom (+2)
+    - Volume Breakout High (+4)
+    - Volume Climax Reversal (+3)
+    - Accumulation Pattern (+2)
+    - MACD Histogram Acceleration (+2)
+    - RSI Bullish Divergence (+3)
+    - Squeeze Release (+3)
+    - ADX Trend Strength (+2)
+    - Price Above VWAP (+1)
+
+    Returns dict with same keys as compute_score_v2(), strategy='v3'.
+    """
+    close = np.asarray(close, dtype=np.float64)
+    if len(close) < 30:
+        result = _empty_result(close)
+        result["strategy"] = "v3"
+        return result
+
+    # ── V2 baseline ──────────────────────────────────────────────
+    base = compute_score_v2(close, volume)
+    score = base["score"]
+    reasons = list(base["reasons"])
+    rsi_val = base["rsi_val"]
+
+    # ── Synthesise OHLCV if not provided ─────────────────────────
+    # When only close+volume are available, create approximate OHLCV
+    if open_ is None:
+        open_ = np.copy(close)
+        # Approximate open as previous close
+        open_[1:] = close[:-1]
+    else:
+        open_ = np.asarray(open_, dtype=np.float64)
+
+    if high is None:
+        high = np.copy(close)
+    else:
+        high = np.asarray(high, dtype=np.float64)
+
+    if low is None:
+        low = np.copy(close)
+    else:
+        low = np.asarray(low, dtype=np.float64)
+
+    # ── RSI array for divergence ─────────────────────────────────
+    rsi_arr = rsi(close, 14)
+
+    # ── V3 signals ───────────────────────────────────────────────
+    v3_signals = [
+        lambda: _signal_three_soldiers(open_, high, low, close),
+        lambda: _signal_long_lower_shadow(open_, high, low, close, rsi_val),
+        lambda: _signal_doji_at_bottom(open_, high, low, close, volume, rsi_val),
+        lambda: _signal_volume_breakout_high(open_, high, low, close, volume),
+        lambda: _signal_volume_climax_reversal(close, volume),
+        lambda: _signal_accumulation(close, volume),
+        lambda: _signal_macd_hist_acceleration(close),
+        lambda: _signal_rsi_bullish_divergence(close, rsi_arr),
+        lambda: _signal_squeeze_release(close),
+        lambda: _signal_adx_trend_strength(high, low, close),
+        lambda: _signal_price_above_vwap(close, volume),
+    ]
+
+    for fn in v3_signals:
+        pts, reason = fn()
+        score += pts
+        if reason:
+            reasons.append(reason)
+
+    signal = classify_signal_v3(score)
+
+    return {
+        "score": score,
+        "rsi_val": base["rsi_val"],
+        "macd_hist": base["macd_hist"],
+        "pct_b": base["pct_b"],
+        "change_1d": base["change_1d"],
+        "change_5d": base["change_5d"],
+        "volume_ratio": base["volume_ratio"],
+        "signal": signal,
+        "price": base["price"],
+        "reasons": reasons,
+        "strategy": "v3",
+    }
+
+
+def classify_signal_v3(score: int) -> str:
+    """Classify v3 score into signal string (higher thresholds for v3)."""
+    if score >= 14:
+        return "*** STRONG BUY"
+    elif score >= 10:
+        return "** BUY"
+    elif score >= 6:
+        return "WATCH"
+    else:
+        return "HOLD"
+
+
 # ── Stock Selection ──────────────────────────────────────────────────
 
 def get_stock_universe(
@@ -628,14 +1011,14 @@ def scan_cn_stocks(
     sector: str | None = None,
     min_score: int = 0,
     sort_by: str = "score",
-    strategy: str = "v2",
+    strategy: str = "v3",
 ) -> list[dict]:
     """Scan A-share stocks and return scored results.
 
     Parameters
     ----------
     strategy : str
-        ``"v1"`` for legacy scoring, ``"v2"`` for multi-signal (default).
+        ``"v1"`` for legacy, ``"v2"`` for multi-signal, ``"v3"`` for OHLCV (default).
 
     Returns list of dicts with keys: ticker, name, sector, code, + score fields.
     """
@@ -643,7 +1026,14 @@ def scan_cn_stocks(
     import logging
     import warnings
 
-    score_fn = compute_score_v2 if strategy == "v2" else compute_score
+    use_v3 = strategy == "v3"
+    if strategy == "v2":
+        score_fn = compute_score_v2
+    elif strategy == "v3":
+        score_fn = None  # handled below with extra args
+    else:
+        score_fn = compute_score
+
     universe = get_stock_universe(top=top, sector=sector)
     cache = DataCache()
     results: list[dict] = []
@@ -673,7 +1063,14 @@ def scan_cn_stocks(
         close = np.array(df["Close"].tolist(), dtype=np.float64)
         volume = np.array(df["Volume"].tolist(), dtype=np.float64) if "Volume" in df.columns else None
 
-        result = score_fn(close, volume)
+        if use_v3:
+            open_ = np.array(df["Open"].tolist(), dtype=np.float64) if "Open" in df.columns else None
+            high = np.array(df["High"].tolist(), dtype=np.float64) if "High" in df.columns else None
+            low = np.array(df["Low"].tolist(), dtype=np.float64) if "Low" in df.columns else None
+            result = compute_score_v3(close, volume, open_, high, low)
+        else:
+            result = score_fn(close, volume)
+
         # Extract code from ticker (e.g. "600519" from "600519.SS")
         code = ticker.split(".")[0]
         result.update({
@@ -755,6 +1152,9 @@ def _compute_score_at(
     volume: np.ndarray | None,
     idx: int,
     strategy: str = "v1",
+    open_: np.ndarray | None = None,
+    high: np.ndarray | None = None,
+    low: np.ndarray | None = None,
 ) -> dict:
     """Compute the scoring result using data up to (and including) *idx*.
 
@@ -764,10 +1164,15 @@ def _compute_score_at(
     Parameters
     ----------
     strategy : str
-        ``"v1"`` for legacy scoring, ``"v2"`` for multi-signal.
+        ``"v1"`` for legacy, ``"v2"`` for multi-signal, ``"v3"`` for OHLCV.
     """
     sliced_close = close[: idx + 1]
     sliced_volume = volume[: idx + 1] if volume is not None else None
+    if strategy == "v3":
+        sliced_open = open_[: idx + 1] if open_ is not None else None
+        sliced_high = high[: idx + 1] if high is not None else None
+        sliced_low = low[: idx + 1] if low is not None else None
+        return compute_score_v3(sliced_close, sliced_volume, sliced_open, sliced_high, sliced_low)
     score_fn = compute_score_v2 if strategy == "v2" else compute_score
     return score_fn(sliced_close, sliced_volume)
 
@@ -801,9 +1206,10 @@ def backtest_cn_strategy(
         Limit to top-N stocks if no sector is specified.
     data_override : dict | None
         Pre-loaded data keyed by ticker → ``{"close": np.ndarray, "volume": np.ndarray}``.
+        For v3, also supports ``"open"``, ``"high"``, ``"low"`` keys.
         When provided, yfinance is **not** called, making unit-tests fast and deterministic.
     strategy : str
-        ``"v1"`` for legacy scoring, ``"v2"`` for multi-signal scoring.
+        ``"v1"`` for legacy, ``"v2"`` for multi-signal, ``"v3"`` for OHLCV.
 
     Returns
     -------
@@ -819,19 +1225,26 @@ def backtest_cn_strategy(
         sector=sector,
     )
 
+    use_v3 = strategy == "v3"
+
     # ── Fetch data ───────────────────────────────────────────────
-    stock_data: dict[str, dict] = {}  # ticker → {close, volume, name, sector}
+    stock_data: dict[str, dict] = {}  # ticker → {close, volume, name, sector, [open, high, low]}
 
     if data_override is not None:
         for ticker, name, sect in universe:
             if ticker in data_override:
                 d = data_override[ticker]
-                stock_data[ticker] = {
+                entry: dict = {
                     "close": np.asarray(d["close"], dtype=np.float64),
                     "volume": np.asarray(d["volume"], dtype=np.float64) if d.get("volume") is not None else None,
                     "name": name,
                     "sector": sect,
                 }
+                if use_v3:
+                    entry["open"] = np.asarray(d["open"], dtype=np.float64) if d.get("open") is not None else None
+                    entry["high"] = np.asarray(d["high"], dtype=np.float64) if d.get("high") is not None else None
+                    entry["low"] = np.asarray(d["low"], dtype=np.float64) if d.get("low") is not None else None
+                stock_data[ticker] = entry
     else:
         import logging
         import warnings
@@ -846,12 +1259,17 @@ def backtest_cn_strategy(
                     df = stock.history(period=period)
                 if df is None or df.empty or len(df) < 60:
                     continue
-                stock_data[ticker] = {
+                entry = {
                     "close": np.array(df["Close"].tolist(), dtype=np.float64),
                     "volume": np.array(df["Volume"].tolist(), dtype=np.float64) if "Volume" in df.columns else None,
                     "name": name,
                     "sector": sect,
                 }
+                if use_v3:
+                    entry["open"] = np.array(df["Open"].tolist(), dtype=np.float64) if "Open" in df.columns else None
+                    entry["high"] = np.array(df["High"].tolist(), dtype=np.float64) if "High" in df.columns else None
+                    entry["low"] = np.array(df["Low"].tolist(), dtype=np.float64) if "Low" in df.columns else None
+                stock_data[ticker] = entry
             except Exception:
                 continue
 
@@ -859,14 +1277,10 @@ def backtest_cn_strategy(
         return {"batches": [], "summary": _empty_summary()}
 
     # ── Determine evaluation window ─────────────────────────────
-    # We need at least 30 bars of history *before* the evaluation start,
-    # plus ``lookback_days + hold_days`` bars of forward data.
     min_len = min(len(d["close"]) for d in stock_data.values())
-    # Start evaluation at index ``start_idx`` and end at ``end_idx``
-    # so we can still compute N-day forward return.
-    warmup = 30  # minimum bars for indicators
+    warmup = 30
     start_idx = max(warmup, min_len - lookback_days - hold_days)
-    end_idx = min_len - hold_days  # last day where forward return is known
+    end_idx = min_len - hold_days
 
     if start_idx >= end_idx:
         return {"batches": [], "summary": _empty_summary()}
@@ -882,9 +1296,13 @@ def backtest_cn_strategy(
             volume = info["volume"]
             if day >= len(close) - hold_days:
                 continue
-            result = _compute_score_at(close, volume, day, strategy=strategy)
+            result = _compute_score_at(
+                close, volume, day, strategy=strategy,
+                open_=info.get("open"),
+                high=info.get("high"),
+                low=info.get("low"),
+            )
             if result["score"] >= min_score:
-                # Forward return
                 entry_price = close[day]
                 exit_price = close[min(day + hold_days, len(close) - 1)]
                 fwd_return = (exit_price / entry_price - 1) * 100 if entry_price > 0 else 0.0
@@ -915,7 +1333,7 @@ def backtest_cn_strategy(
                 "stocks": selected,
             })
 
-        day += hold_days  # jump by hold period to avoid overlapping batches
+        day += hold_days
 
     # ── Summary ──────────────────────────────────────────────────
     summary = _compute_summary(batches, hold_days, min_score)
