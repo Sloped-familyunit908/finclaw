@@ -11,7 +11,7 @@ import sys
 import numpy as np
 from typing import Optional
 
-from src.ta import rsi, macd, bollinger_bands
+from src.ta import rsi, macd, bollinger_bands, sma
 
 
 # ── Stock Universe ───────────────────────────────────────────────────
@@ -384,6 +384,226 @@ def _empty_result(close: np.ndarray) -> dict:
     }
 
 
+# ── V2 Scoring Engine (multi-signal) ────────────────────────────────
+
+def _signal_volume_breakout(
+    close: np.ndarray,
+    volume: np.ndarray | None,
+) -> tuple[int, str | None]:
+    """Volume Breakout: price up >2% AND volume > 2x 20-day average. (+3)"""
+    if volume is None or len(close) < 2 or len(volume) < 21:
+        return 0, None
+    change = (close[-1] / close[-2] - 1) * 100
+    vol = np.asarray(volume, dtype=np.float64)
+    avg_vol = np.mean(vol[-21:-1])
+    if avg_vol <= 0:
+        return 0, None
+    vol_ratio = vol[-1] / avg_vol
+    if change > 2.0 and vol_ratio > 2.0:
+        return 3, f"vol breakout(+{change:.1f}%, vol {vol_ratio:.1f}x)"
+    return 0, None
+
+
+def _signal_bottom_reversal(
+    close: np.ndarray,
+    rsi_val: float,
+) -> tuple[int, str | None]:
+    """Bottom Reversal: RSI < 25 AND price > prev close (bouncing). (+4)"""
+    if len(close) < 2:
+        return 0, None
+    if rsi_val < 25.0 and close[-1] > close[-2]:
+        return 4, f"bottom reversal(RSI={rsi_val:.0f}, bouncing)"
+    return 0, None
+
+
+def _signal_macd_divergence(
+    close: np.ndarray,
+    macd_hist_arr: np.ndarray,
+) -> tuple[int, str | None]:
+    """MACD Bullish Divergence: price made new 10-day low but MACD hist didn't. (+3)"""
+    if len(close) < 20 or len(macd_hist_arr) < 20:
+        return 0, None
+    # Check if current price is at or near 10-day low
+    recent_10 = close[-10:]
+    if close[-1] > np.nanmin(recent_10) * 1.005:  # within 0.5% of 10-day low
+        return 0, None
+    # Find previous trough: look at days -20 to -10 for a local low
+    prev_window = close[-20:-10]
+    if len(prev_window) == 0:
+        return 0, None
+    prev_low_offset = int(np.argmin(prev_window))  # offset within [-20:-10]
+    prev_low_idx = len(close) - 20 + prev_low_offset  # absolute index
+    # Compare MACD histogram values: current vs previous trough
+    curr_hist = macd_hist_arr[-1]
+    prev_hist = macd_hist_arr[prev_low_idx] if prev_low_idx < len(macd_hist_arr) else np.nan
+    if np.isnan(curr_hist) or np.isnan(prev_hist):
+        return 0, None
+    # Divergence: price makes new low, but MACD histogram is higher (less negative)
+    if close[-1] <= close[prev_low_idx] and curr_hist > prev_hist:
+        return 3, "MACD bullish divergence"
+    return 0, None
+
+
+def _signal_ma_alignment(
+    close: np.ndarray,
+) -> tuple[int, str | None]:
+    """MA Alignment: Close > MA5 > MA10 > MA20 (uptrend confirmation). (+2)"""
+    if len(close) < 20:
+        return 0, None
+    ma5 = np.mean(close[-5:])
+    ma10 = np.mean(close[-10:])
+    ma20 = np.mean(close[-20:])
+    if close[-1] > ma5 > ma10 > ma20:
+        return 2, "MA alignment(bullish)"
+    return 0, None
+
+
+def _signal_low_volume_pullback(
+    close: np.ndarray,
+    volume: np.ndarray | None,
+) -> tuple[int, str | None]:
+    """Low-Volume Pullback: in uptrend (MA20 up), 3-day pullback with declining volume. (+3)"""
+    if volume is None or len(close) < 25 or len(volume) < 25:
+        return 0, None
+    vol = np.asarray(volume, dtype=np.float64)
+    # Check uptrend: MA20 rising
+    ma20_now = np.mean(close[-20:])
+    ma20_5ago = np.mean(close[-25:-5])
+    if ma20_now <= ma20_5ago:
+        return 0, None
+    # Check 3-day pullback (close declining)
+    if not (close[-1] < close[-2] or close[-2] < close[-3] or close[-3] < close[-4]):
+        # At least 2 of last 3 days should be down
+        down_count = sum(1 for i in range(-3, 0) if close[i] < close[i - 1])
+        if down_count < 2:
+            return 0, None
+    # Check declining volume over last 3 days
+    if not (vol[-1] < vol[-2] and vol[-2] < vol[-3]):
+        return 0, None
+    # Price still above MA20
+    if close[-1] < ma20_now:
+        return 0, None
+    return 3, "low-vol pullback(uptrend)"
+
+
+def _signal_nday_breakout(
+    close: np.ndarray,
+    n: int = 20,
+) -> tuple[int, str | None]:
+    """N-Day Breakout: price at N-day high. (+2)"""
+    if len(close) < n:
+        return 0, None
+    n_day_max = np.max(close[-n:])
+    if close[-1] >= n_day_max:
+        return 2, f"{n}d high breakout"
+    return 0, None
+
+
+def _signal_short_term_reversal(
+    close: np.ndarray,
+) -> tuple[int, str | None]:
+    """Short-Term Reversal: 5-day return < -5% (mean reversion). (+2)"""
+    if len(close) < 6:
+        return 0, None
+    ret_5d = (close[-1] / close[-6] - 1) * 100
+    if ret_5d < -5.0:
+        return 2, f"5d reversal({ret_5d:+.1f}%)"
+    return 0, None
+
+
+def _signal_momentum_confirmation(
+    close: np.ndarray,
+) -> tuple[int, str | None]:
+    """Momentum Confirmation: 10-day return > 0 AND 20-day return > 0. (+1)"""
+    if len(close) < 21:
+        return 0, None
+    ret_10d = (close[-1] / close[-11] - 1) * 100
+    ret_20d = (close[-1] / close[-21] - 1) * 100
+    if ret_10d > 0 and ret_20d > 0:
+        return 1, "momentum confirmed"
+    return 0, None
+
+
+def compute_score_v2(
+    close: np.ndarray,
+    volume: np.ndarray | None = None,
+) -> dict:
+    """Compute enhanced technical score using multi-signal approach (v2).
+
+    Includes all v1 signals plus:
+    - Volume Breakout (+3)
+    - Bottom Reversal (+4)
+    - MACD Bullish Divergence (+3)
+    - MA Alignment (+2)
+    - Low-Volume Pullback (+3)
+    - N-Day Breakout (+2)
+    - Short-Term Reversal (+2)
+    - Momentum Confirmation (+1)
+
+    Returns dict with same keys as compute_score(), plus ``strategy`` key.
+    """
+    close = np.asarray(close, dtype=np.float64)
+    if len(close) < 30:
+        result = _empty_result(close)
+        result["strategy"] = "v2"
+        return result
+
+    # ── Start with v1 baseline ───────────────────────────────────
+    base = compute_score(close, volume)
+    score = base["score"]
+    reasons = list(base["reasons"])
+    rsi_val = base["rsi_val"]
+
+    # ── V2 signals ───────────────────────────────────────────────
+    # MACD histogram array (need it for divergence)
+    _macd_line, _macd_signal, macd_hist_arr = macd(close)
+
+    signal_funcs = [
+        lambda: _signal_volume_breakout(close, volume),
+        lambda: _signal_bottom_reversal(close, rsi_val),
+        lambda: _signal_macd_divergence(close, macd_hist_arr),
+        lambda: _signal_ma_alignment(close),
+        lambda: _signal_low_volume_pullback(close, volume),
+        lambda: _signal_nday_breakout(close, 20),
+        lambda: _signal_short_term_reversal(close),
+        lambda: _signal_momentum_confirmation(close),
+    ]
+
+    for fn in signal_funcs:
+        pts, reason = fn()
+        score += pts
+        if reason:
+            reasons.append(reason)
+
+    signal = classify_signal_v2(score)
+
+    return {
+        "score": score,
+        "rsi_val": base["rsi_val"],
+        "macd_hist": base["macd_hist"],
+        "pct_b": base["pct_b"],
+        "change_1d": base["change_1d"],
+        "change_5d": base["change_5d"],
+        "volume_ratio": base["volume_ratio"],
+        "signal": signal,
+        "price": base["price"],
+        "reasons": reasons,
+        "strategy": "v2",
+    }
+
+
+def classify_signal_v2(score: int) -> str:
+    """Classify v2 score into signal string (higher thresholds)."""
+    if score >= 10:
+        return "*** STRONG BUY"
+    elif score >= 7:
+        return "** BUY"
+    elif score >= 4:
+        return "WATCH"
+    else:
+        return "HOLD"
+
+
 # ── Stock Selection ──────────────────────────────────────────────────
 
 def get_stock_universe(
@@ -408,8 +628,14 @@ def scan_cn_stocks(
     sector: str | None = None,
     min_score: int = 0,
     sort_by: str = "score",
+    strategy: str = "v2",
 ) -> list[dict]:
     """Scan A-share stocks and return scored results.
+
+    Parameters
+    ----------
+    strategy : str
+        ``"v1"`` for legacy scoring, ``"v2"`` for multi-signal (default).
 
     Returns list of dicts with keys: ticker, name, sector, code, + score fields.
     """
@@ -417,6 +643,7 @@ def scan_cn_stocks(
     import logging
     import warnings
 
+    score_fn = compute_score_v2 if strategy == "v2" else compute_score
     universe = get_stock_universe(top=top, sector=sector)
     cache = DataCache()
     results: list[dict] = []
@@ -446,7 +673,7 @@ def scan_cn_stocks(
         close = np.array(df["Close"].tolist(), dtype=np.float64)
         volume = np.array(df["Volume"].tolist(), dtype=np.float64) if "Volume" in df.columns else None
 
-        result = compute_score(close, volume)
+        result = score_fn(close, volume)
         # Extract code from ticker (e.g. "600519" from "600519.SS")
         code = ticker.split(".")[0]
         result.update({
@@ -527,15 +754,22 @@ def _compute_score_at(
     close: np.ndarray,
     volume: np.ndarray | None,
     idx: int,
+    strategy: str = "v1",
 ) -> dict:
     """Compute the scoring result using data up to (and including) *idx*.
 
     This slices ``close[:idx+1]`` and ``volume[:idx+1]`` so the scoring
     algorithm sees only data available on that trading day.
+
+    Parameters
+    ----------
+    strategy : str
+        ``"v1"`` for legacy scoring, ``"v2"`` for multi-signal.
     """
     sliced_close = close[: idx + 1]
     sliced_volume = volume[: idx + 1] if volume is not None else None
-    return compute_score(sliced_close, sliced_volume)
+    score_fn = compute_score_v2 if strategy == "v2" else compute_score
+    return score_fn(sliced_close, sliced_volume)
 
 
 def backtest_cn_strategy(
@@ -547,6 +781,7 @@ def backtest_cn_strategy(
     sector: str | None = None,
     top: int | None = None,
     data_override: dict[str, dict] | None = None,
+    strategy: str = "v1",
 ) -> dict:
     """Walk-forward backtest of the A-share scoring strategy.
 
@@ -567,6 +802,8 @@ def backtest_cn_strategy(
     data_override : dict | None
         Pre-loaded data keyed by ticker → ``{"close": np.ndarray, "volume": np.ndarray}``.
         When provided, yfinance is **not** called, making unit-tests fast and deterministic.
+    strategy : str
+        ``"v1"`` for legacy scoring, ``"v2"`` for multi-signal scoring.
 
     Returns
     -------
@@ -645,7 +882,7 @@ def backtest_cn_strategy(
             volume = info["volume"]
             if day >= len(close) - hold_days:
                 continue
-            result = _compute_score_at(close, volume, day)
+            result = _compute_score_at(close, volume, day, strategy=strategy)
             if result["score"] >= min_score:
                 # Forward return
                 entry_price = close[day]
@@ -728,14 +965,14 @@ def _empty_summary() -> dict:
     }
 
 
-def format_backtest_output(result: dict, version: str = "5.1.0") -> str:
+def format_backtest_output(result: dict, version: str = "5.1.0", strategy: str = "v1") -> str:
     """Format backtest result dict into a human-readable table."""
     lines: list[str] = []
     summary = result["summary"]
     batches = result["batches"]
 
     lines.append("")
-    lines.append(f"  A-Share Selection Strategy Backtest -- FinClaw v{version}")
+    lines.append(f"  A-Share Selection Strategy Backtest -- FinClaw v{version} (strategy={strategy})")
     lines.append(
         f"  Hold: {summary.get('hold_days', '?')} days | "
         f"Min Score: {summary.get('min_score', '?')}"

@@ -1399,6 +1399,8 @@ Examples:
     p_scan_cn.add_argument("--sort", default="score",
                            choices=["score", "rsi", "price", "change"],
                            help="Sort results by field (default: score)")
+    p_scan_cn.add_argument("--strategy", default="v2", choices=["v1", "v2"],
+                           help="Scoring strategy: v1 (legacy) or v2 (multi-signal, default)")
 
     # scan-cn-backtest (A-share selection strategy backtest)
     p_scan_cn_bt = sub.add_parser("scan-cn-backtest",
@@ -1415,6 +1417,8 @@ Examples:
                               help="Limit backtest to a specific sector")
     p_scan_cn_bt.add_argument("--top", type=int, default=None,
                               help="Limit to top-N stocks")
+    p_scan_cn_bt.add_argument("--strategy", default="v1", choices=["v1", "v2"],
+                              help="Scoring strategy: v1 (legacy) or v2 (multi-signal)")
 
     # scan
     p_scan = sub.add_parser("scan", help="Real-time market scanner")
@@ -2008,11 +2012,12 @@ def cmd_scan_cn(args):
     sector = args.sector
     min_score = args.min_score
     sort_by = args.sort
+    strategy = args.strategy
 
-    print(f"\n  Scanning A-share stocks (top={top}, sector={sector or 'all'}, min_score={min_score})...")
+    print(f"\n  Scanning A-share stocks (top={top}, sector={sector or 'all'}, min_score={min_score}, strategy={strategy})...")
 
     try:
-        results = scan_cn_stocks(top=top, sector=sector, min_score=min_score, sort_by=sort_by)
+        results = scan_cn_stocks(top=top, sector=sector, min_score=min_score, sort_by=sort_by, strategy=strategy)
     except ValueError as e:
         print(f"  ERROR: {e}")
         return
@@ -2037,9 +2042,10 @@ def cmd_scan_cn_backtest(args):
     lookback = args.lookback
     sector = args.sector
     top = args.top
+    strategy = args.strategy
 
     print(f"\n  Running A-share strategy backtest...")
-    print(f"  Hold={hold}d | MinScore={min_score} | Period={period} | Lookback={lookback}d")
+    print(f"  Hold={hold}d | MinScore={min_score} | Period={period} | Lookback={lookback}d | Strategy={strategy}")
     if sector:
         print(f"  Sector: {sector}")
 
@@ -2051,13 +2057,14 @@ def cmd_scan_cn_backtest(args):
             lookback_days=lookback,
             sector=sector,
             top=top,
+            strategy=strategy,
         )
     except ValueError as e:
         print(f"  ERROR: {e}")
         return
 
     version = _get_version()
-    output = format_backtest_output(result, version=version)
+    output = format_backtest_output(result, version=version, strategy=strategy)
     print(output)
     return result
 
