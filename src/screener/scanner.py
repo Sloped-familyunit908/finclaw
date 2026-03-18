@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import logging
 import time
 from dataclasses import dataclass, field
 from typing import Any, Callable
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -68,8 +71,8 @@ class MarketScanner:
                             data=dict(data),
                         )
                         results.append(result)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning("Scanner rule '%s' failed for %s: %s", rule.name, sym, e)
         self._results_history.extend(results)
         return results
 

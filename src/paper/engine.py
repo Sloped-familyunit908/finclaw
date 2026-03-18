@@ -11,6 +11,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
+logger = logging.getLogger(__name__)
+
 
 class OrderSide(str, Enum):
     BUY = "BUY"
@@ -179,8 +181,8 @@ def _fetch_price(symbol: str, exchange: str = "yahoo") -> float | None:
             adapter = ExchangeRegistry.get(exchange)
             ticker = adapter.get_ticker(symbol)
             return float(ticker.get("last", 0))
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("Failed to fetch price for %s via %s: %s", symbol, exchange, e)
     return None
 
 

@@ -1,0 +1,25 @@
+# Pre-commit hooks for FinClaw
+# Install: pip install pre-commit && pre-commit install
+# Manual run: pre-commit run --all-files
+
+repos:
+  # Ruff — fast Python linter & formatter
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.6
+    hooks:
+      - id: ruff
+        name: ruff check
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+        name: ruff format
+
+  # Quick smoke test — run fast tests only
+  - repo: local
+    hooks:
+      - id: pytest-smoke
+        name: pytest smoke
+        entry: python -m pytest tests/ -x -q --tb=short -k "not integration and not slow"
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]

@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import logging
 import math
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Callable, Optional
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -79,8 +82,8 @@ class SmartAlertEngine:
                     triggered.append(alert)
                     rule.last_triggered = now
                     self._history.append(alert)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("Alert rule '%s' evaluation failed: %s", rule.name, e)
         return triggered
 
     # ------------------------------------------------------------------

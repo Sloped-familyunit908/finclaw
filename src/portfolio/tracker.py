@@ -145,7 +145,7 @@ class PortfolioTracker:
             if hist is not None and not hist.empty:
                 return float(hist["Close"].iloc[-1])
         except Exception:
-            pass
+            pass  # Optional: price fetch is best-effort; returns None on failure
         return None
 
     def get_price(self, symbol: str) -> Optional[float]:

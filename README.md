@@ -434,7 +434,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## License
 
-[MIT](LICENSE) — Built by [Kang Zhou](https://github.com/NeuZhou)
+[MIT](LICENSE) — Built by [NeuZhou](https://github.com/NeuZhou)
 
 ## 🔗 NeuZhou Ecosystem
 

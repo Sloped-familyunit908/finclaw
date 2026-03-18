@@ -5,9 +5,12 @@ from __future__ import annotations
 import json
 import csv
 import io
+import logging
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 from .engine import FiredAlert, AlertSeverity, AlertRule, AlertCondition
 
@@ -132,5 +135,5 @@ class AlertHistory:
                     timestamp=datetime.fromisoformat(d["timestamp"]),
                 )
                 self._alerts.append(alert)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("Failed to load alert history from %s: %s", self._path, e)
