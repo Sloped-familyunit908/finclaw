@@ -9,7 +9,7 @@ description = "AI-native quantitative finance platform with MCP server support"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.9"
-authors = [{name = "NeuZhou", email = "neuzhou@outlook.com"}]
+authors = [{name = "NeuZhou", email = "neuzhou@users.noreply.github.com"}]
 keywords = ["quantitative-finance", "trading", "backtesting", "mcp", "ai-agent"]
 classifiers = [
     "Development Status :: 4 - Beta",
