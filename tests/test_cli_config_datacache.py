@@ -125,10 +125,13 @@ class TestDataCache:
 
     def test_get_expired(self):
         from src.data.cache import DataCache
+        import sqlite3
         cache = DataCache(cache_dir=self.tmpdir)
         cache.set("old_key", [1, 2, 3])
-        # Force expire by setting max_age to 0
-        result = cache.get("old_key", max_age_hours=0)
+        # Force expire by back-dating the entry in the DB
+        with sqlite3.connect(cache._db_path) as conn:
+            conn.execute("UPDATE cache SET created_at = created_at - 100000 WHERE key = ?", ("old_key",))
+        result = cache.get("old_key", max_age_hours=1)
         assert result is None
 
     def test_clear(self):

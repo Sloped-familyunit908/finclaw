@@ -1,4 +1,15 @@
-"""FinClaw Enhanced Backtesting Engine v3.6.0"""
+"""FinClaw Enhanced Backtesting Engine v3.6.0
+
+Extended backtesting analysis tools: walk-forward optimization, realistic simulation,
+benchmarks, strategy comparison, overfit detection, and survivorship bias checking.
+
+Module distinction:
+  - `src.backtest` → Core backtest engine (BacktestEngine, OrderManager, etc.)
+  - `src.backtesting` (this module) → Extended analysis tools (walk-forward, realistic
+    simulation, benchmarks, strategy comparison, overfit detection, survivorship bias)
+
+Both modules are canonical — they serve complementary purposes.
+"""
 from .walk_forward import WalkForwardAnalyzer
 from .walk_forward_v2 import WalkForwardOptimizer, WalkForwardResult, WindowResult
 from .monte_carlo import MonteCarloSimulator

@@ -1,4 +1,13 @@
-"""FinClaw Strategy Templates v1.3.0"""
+"""
+FinClaw Strategy Templates v1.3.0
+
+This is the primary strategy module containing concrete Python strategy implementations.
+For the YAML Strategy DSL engine, see `src.strategy`.
+
+Module distinction:
+  - `src.strategies` (this module) → Concrete strategy classes (MeanReversion, Momentum, etc.)
+  - `src.strategy` → YAML DSL engine for defining strategies in YAML
+"""
 from .mean_reversion import MeanReversionStrategy
 from .momentum_jt import MomentumJTStrategy
 from .pairs_trading import PairsTradingStrategy

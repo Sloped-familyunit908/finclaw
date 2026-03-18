@@ -137,10 +137,10 @@ class TestPortfolio:
 
     def test_tracker(self):
         from src.portfolio import PortfolioTracker
-        assert PortfolioTracker(initial_capital=100_000) is not None
+        assert PortfolioTracker() is not None
 
     def test_rebalancer(self):
-        from src.portfolio import PortfolioRebalancer
+        from src.portfolio.rebalancer import PortfolioRebalancer
         r = PortfolioRebalancer(target_weights={"AAPL": 0.5, "MSFT": 0.5})
         assert r is not None
 
@@ -214,5 +214,5 @@ class TestFullPipeline:
         assert score.signal in ("buy", "sell", "hold")
 
         kelly = KellyCriterion()
-        tracker = PortfolioTracker(initial_capital=100_000)
+        tracker = PortfolioTracker()
         assert tracker is not None
