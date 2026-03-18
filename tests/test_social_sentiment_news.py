@@ -423,7 +423,9 @@ class TestSentimentCLI:
         parser = build_parser()
         for action in parser._actions:
             if isinstance(action, argparse._VersionAction):
-                assert "0.1.0" in action.version
+                # Should show real version from pyproject.toml, not hardcoded 0.1.0
+                assert "0.1.0" not in action.version
+                assert "finclaw" in action.version
                 return
         pytest.fail("No version action found")
 

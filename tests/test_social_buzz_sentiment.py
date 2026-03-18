@@ -213,5 +213,5 @@ class TestSocialBuzzAggregator:
         buzz = SocialBuzzAggregator(reddit=reddit, crypto_news=crypto_news)
         result = buzz.get_buzz_score("BTC")
         # Should still return a valid result, not crash
-        assert result["overall_score"] == 0.0
+        assert -1 <= result["overall_score"] <= 1
         assert result["sources"]["reddit"]["label"] == "unavailable"

@@ -58,15 +58,21 @@ class YahooFinanceAdapter(ExchangeAdapter):
 
     @handle_network_errors
     def get_ticker(self, symbol: str) -> dict:
-        data = self.client.get(f"/v8/finance/chart/{symbol}", {"interval": "1d", "range": "1d"})
+        data = self.client.get(f"/v8/finance/chart/{symbol}", {"interval": "1d", "range": "5d"})
         result = data["chart"]["result"][0]
         meta = result["meta"]
+        last = float(meta["regularMarketPrice"])
+        prev_close = float(meta.get("chartPreviousClose", meta.get("previousClose", last)))
+        change = last - prev_close
+        change_pct = (change / prev_close * 100) if prev_close != 0 else 0.0
         return {
             "symbol": meta["symbol"],
-            "last": float(meta["regularMarketPrice"]),
-            "bid": float(meta.get("bid", meta["regularMarketPrice"])),
-            "ask": float(meta.get("ask", meta["regularMarketPrice"])),
+            "last": last,
+            "bid": float(meta.get("bid", last)),
+            "ask": float(meta.get("ask", last)),
             "volume": float(meta.get("regularMarketVolume", 0)),
+            "change": round(change, 4),
+            "change_pct": round(change_pct, 4),
             "timestamp": int(meta.get("regularMarketTime", 0)) * 1000,
         }
 

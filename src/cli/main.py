@@ -18,6 +18,26 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 from src.config_manager import ConfigManager
 
 
+def _get_version() -> str:
+    """Read version from pyproject.toml so CLI always matches the package version."""
+    try:
+        import importlib.metadata
+        return importlib.metadata.version("finclaw-ai")
+    except Exception:
+        pass
+    # Fallback: parse pyproject.toml manually
+    try:
+        import pathlib, re
+        pyproject = pathlib.Path(__file__).resolve().parents[2] / "pyproject.toml"
+        text = pyproject.read_text(encoding="utf-8")
+        m = re.search(r'^version\s*=\s*"([^"]+)"', text, re.MULTILINE)
+        if m:
+            return m.group(1)
+    except Exception:
+        pass
+    return "0.0.0"
+
+
 def _fetch_data(ticker: str, start: str = None, end: str = None, period: str = "5y"):
     """Fetch price data via yfinance with cache."""
     from src.data.cache import DataCache
@@ -981,7 +1001,7 @@ Examples:
   finclaw interactive
 """,
     )
-    parser.add_argument("--version", action="version", version="finclaw 0.1.0")
+    parser.add_argument("--version", action="version", version=f"finclaw {_get_version()}")
     sub = parser.add_subparsers(dest="command", help="Available commands")
 
     # backtest
@@ -1243,7 +1263,8 @@ Examples:
     sub.add_parser("demo", help="Showcase all features with pre-baked data (no API key needed)")
 
     # info
-    sub.add_parser("info", help="Show system info")
+    p_info = sub.add_parser("info", help="Show system info or ticker info")
+    p_info.add_argument("ticker", nargs="?", default=None, help="Optional ticker symbol for detailed info")
 
     # doctor
     p_doctor = sub.add_parser("doctor", help="Diagnose environment: deps, API keys, connectivity")
@@ -1278,7 +1299,8 @@ Examples:
     p_pred = sub.add_parser("predict", help="ML prediction engine")
     pred_sub = p_pred.add_subparsers(dest="predict_cmd")
     p_pred_run = pred_sub.add_parser("run", help="Run prediction on a symbol")
-    p_pred_run.add_argument("--symbol", "-s", required=True, help="Ticker symbol")
+    p_pred_run.add_argument("--symbol", "-s", default=None, help="Ticker symbol")
+    p_pred_run.add_argument("--ticker", dest="ticker_alias", default=None, help="Ticker symbol (alias for --symbol)")
     p_pred_run.add_argument("--model", "-m", default="gradient-boost",
                             choices=["linear", "decision-tree", "random-forest", "gradient-boost"],
                             help="Model to use")
@@ -1514,7 +1536,12 @@ def _compare_exchanges(names: list[str]) -> None:
 def cmd_predict(args):
     """Handle ML prediction commands: run, backtest."""
     if args.predict_cmd == "run":
-        print(f"\n  🤖 ML Prediction: {args.symbol}")
+        # Resolve --ticker alias for --symbol
+        symbol = args.symbol or getattr(args, "ticker_alias", None)
+        if not symbol:
+            print("  ERROR: --symbol or --ticker is required")
+            return
+        print(f"\n  🤖 ML Prediction: {symbol}")
         print(f"  Model: {args.model}  Features: {args.features}")
         print(f"  (Prediction engine ready — connect live data for real predictions)")
         print()
@@ -1759,7 +1786,8 @@ def _strategy_optimize(args):
 def cmd_watchlist(args):
     """Manage watchlists."""
     from src.screener.watchlist import WatchlistManager
-    wm = WatchlistManager()
+    from src.exchanges.registry import ExchangeRegistry
+    wm = WatchlistManager(exchange_registry=ExchangeRegistry)
     cmd = args.watchlist_cmd
 
     if cmd == "create":
@@ -2961,8 +2989,30 @@ def main(argv=None):
             from src.cli.demo import run_demo
             run_demo()
         elif args.command == "info":
-            print("  FinClaw v5.2.0 — AI-Powered Financial Intelligence Engine")
-            print("  Commands: backtest, screen, analyze, portfolio, price, options, paper-trade, report, interactive, exchanges, quote, history")
+            if args.ticker:
+                # Show ticker info
+                ticker = args.ticker.upper()
+                df = _fetch_data(ticker, period="1y")
+                if df is None:
+                    print(f"  No data for {ticker}.")
+                else:
+                    close = df["Close"].tolist()
+                    price = close[-1]
+                    change = price - close[-2] if len(close) > 1 else 0
+                    pct = change / close[-2] if len(close) > 1 else 0
+                    hi = max(close)
+                    lo = min(close)
+                    vol = _calc_vol(close)
+                    print(f"\n  ── {ticker} Info ──")
+                    print(f"  Price:     ${price:.2f}")
+                    print(f"  Change:    {change:+.2f} ({pct:+.2%})")
+                    print(f"  52w High:  ${hi:.2f}")
+                    print(f"  52w Low:   ${lo:.2f}")
+                    print(f"  Ann. Vol:  {vol:.2%}")
+                    print()
+            else:
+                print(f"  FinClaw v{_get_version()} — AI-Powered Financial Intelligence Engine")
+                print("  Commands: backtest, screen, analyze, portfolio, price, options, paper-trade, report, interactive, exchanges, quote, history")
         elif args.command == "doctor":
             from src.cli.doctor import run_doctor, format_doctor_output
             results = run_doctor(skip_network=getattr(args, "skip_network", False))

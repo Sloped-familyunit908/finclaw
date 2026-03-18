@@ -66,7 +66,9 @@ class TestCLIHelpAndVersion:
     def test_version(self):
         rc, out, _ = _run_cli("--version")
         assert rc == 0
-        assert "0.1.0" in out
+        assert "finclaw" in out
+        # Should show the version from pyproject.toml, not the old hardcoded 0.1.0
+        assert "0.1.0" not in out
 
     def test_no_command_shows_help(self):
         rc, out, _ = _run_cli()

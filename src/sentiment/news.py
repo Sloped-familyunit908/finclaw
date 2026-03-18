@@ -59,7 +59,8 @@ class NewsArticle:
 
 
 def _parse_date(date_str: str) -> Optional[datetime]:
-    """Best-effort date parsing."""
+    """Best-effort date parsing.  Always returns a timezone-aware datetime (UTC)
+    so that sorted comparisons never mix naive and aware objects."""
     if not date_str:
         return None
     formats = [
@@ -71,7 +72,11 @@ def _parse_date(date_str: str) -> Optional[datetime]:
     ]
     for fmt in formats:
         try:
-            return datetime.strptime(date_str.strip(), fmt)
+            dt = datetime.strptime(date_str.strip(), fmt)
+            # Ensure timezone-aware — treat naive results as UTC
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return dt
         except ValueError:
             continue
     return None
