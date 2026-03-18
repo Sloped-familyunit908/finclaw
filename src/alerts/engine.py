@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import time
 import threading
 from dataclasses import dataclass, field
@@ -10,6 +11,8 @@ from enum import Enum
 from typing import Any, Callable, Optional
 
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 
 class AlertCondition(str, Enum):
@@ -168,8 +171,8 @@ class AlertEngine:
         for ch in self.channels:
             try:
                 ch.send(alert)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("Alert channel %s.send failed: %s", type(ch).__name__, e)
         return alert
 
     def evaluate(self, market_data: dict) -> list[FiredAlert]:
@@ -204,8 +207,8 @@ class AlertEngine:
                 alert = self._evaluate_rule(rule, price, close, volume, sentiment, equity, position_pct)
                 if alert:
                     triggered.append(alert)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("Rule evaluation failed for %s: %s", rule.rule_id, e)
 
         return triggered
 
@@ -290,8 +293,8 @@ class AlertEngine:
                     data_list = fetch_fn(symbols)
                     for data in data_list:
                         self.evaluate(data)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning("Alert engine loop iteration failed: %s", e)
                 time.sleep(interval)
 
         self._thread = threading.Thread(target=_loop, daemon=True)

@@ -3,11 +3,14 @@ Multi-Timeframe Backtester
 Run the same strategy on daily, weekly, and monthly resampled data.
 """
 
+import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Callable
 
 from agents.backtester import BacktestResult
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -99,8 +102,8 @@ class MultiTimeframeBacktester:
             bt = backtester_factory()
             try:
                 report.daily = await bt.run(asset, strategy_name, daily_history)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("Multi-timeframe daily backtest failed for %s: %s", asset, e)
 
         # Weekly
         weekly = _resample_weekly(daily_history)
@@ -108,8 +111,8 @@ class MultiTimeframeBacktester:
             bt = backtester_factory()
             try:
                 report.weekly = await bt.run(asset, f"{strategy_name}_weekly", weekly)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("Multi-timeframe weekly backtest failed for %s: %s", asset, e)
 
         # Monthly
         monthly = _resample_monthly(daily_history)
@@ -117,7 +120,7 @@ class MultiTimeframeBacktester:
             bt = backtester_factory()
             try:
                 report.monthly = await bt.run(asset, f"{strategy_name}_monthly", monthly)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("Multi-timeframe monthly backtest failed for %s: %s", asset, e)
 
         return report
