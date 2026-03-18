@@ -1390,6 +1390,16 @@ Examples:
     # trending
     sub.add_parser("trending", help="Show trending financial topics and WSB tickers")
 
+    # scan-cn (A-share scanner)
+    p_scan_cn = sub.add_parser("scan-cn", help="Scan A-share (China) stocks for buy signals")
+    p_scan_cn.add_argument("--top", type=int, default=30, help="Number of top stocks to scan (default: 30)")
+    p_scan_cn.add_argument("--sector", default=None,
+                           help="Filter by sector: bank, tech, consumer, energy, pharma, manufacturing")
+    p_scan_cn.add_argument("--min-score", type=int, default=0, help="Only show stocks with score >= N")
+    p_scan_cn.add_argument("--sort", default="score",
+                           choices=["score", "rsi", "price", "change"],
+                           help="Sort results by field (default: score)")
+
     # scan
     p_scan = sub.add_parser("scan", help="Real-time market scanner")
     p_scan.add_argument("--rule", required=True, help='Rule expression, e.g. "rsi<30 AND volume>2x"')
@@ -1972,6 +1982,33 @@ def cmd_reddit_buzz(args):
         for t in results[:20]:
             print(f"  ${t['ticker']:<7} {t['mentions']:>8} {t['total_engagement']:>10} {t['sentiment_score']:>+10.4f} {t['sentiment_label']}")
     print()
+
+
+def cmd_scan_cn(args):
+    """Scan A-share stocks for buy signals."""
+    from src.cn_scanner import scan_cn_stocks, format_scan_output
+
+    top = args.top
+    sector = args.sector
+    min_score = args.min_score
+    sort_by = args.sort
+
+    print(f"\n  Scanning A-share stocks (top={top}, sector={sector or 'all'}, min_score={min_score})...")
+
+    try:
+        results = scan_cn_stocks(top=top, sector=sector, min_score=min_score, sort_by=sort_by)
+    except ValueError as e:
+        print(f"  ERROR: {e}")
+        return
+
+    if not results:
+        print("  No results found. Check network or try different filters.")
+        return
+
+    version = _get_version()
+    output = format_scan_output(results, version=version)
+    print(output)
+    return results
 
 
 def cmd_scan(args):
@@ -3303,6 +3340,8 @@ def test_signals():
             cmd_news(args)
         elif args.command == "trending":
             cmd_trending(args)
+        elif args.command == "scan-cn":
+            cmd_scan_cn(args)
         elif args.command == "scan":
             cmd_scan(args)
         elif args.command == "strategy":
