@@ -404,6 +404,77 @@ flowchart LR
 
 ---
 
+## 🧬 Strategy Self-Evolution
+
+FinClaw includes an **EvoSkill-inspired strategy evolution engine** that automatically improves trading strategies through iterative backtest-driven mutation.
+
+### How It Works
+
+```
+Seed Strategy → Evaluate → Analyze Failures → Propose Mutations → Mutate → Evaluate Child → Update Frontier → Repeat
+```
+
+The evolution loop:
+1. **Evaluates** a strategy on historical data (Sharpe ratio, return, drawdown, win rate)
+2. **Analyzes failures** — identifies *why* a strategy underperformed (too few trades, high drawdown, low win rate)
+3. **Proposes targeted mutations** — parameter tuning, indicator swapping, adding/removing filters, risk adjustment
+4. **Maintains a frontier** of top-N best strategies with full lineage tracking
+
+### Quick Start
+
+```bash
+# Evolve the golden-cross strategy on AAPL over 20 generations
+finclaw evolve --symbol AAPL --generations 20
+
+# Use a specific seed strategy
+finclaw evolve --symbol NVDA --strategy rsi-mean-reversion --generations 15
+
+# Save the best evolved strategy
+finclaw evolve --symbol TSLA --generations 10 --output best_strategy.yaml --verbose
+```
+
+### Python API
+
+```python
+from src.evolution import EvolutionEngine, EvolutionConfig
+from src.strategy.expression import OHLCVData
+
+# Configure evolution
+config = EvolutionConfig(max_generations=20, frontier_size=5, no_improvement_limit=5)
+engine = EvolutionEngine(config=config)
+
+# Run evolution
+result = engine.run(seed_strategy_yaml, historical_data)
+print(f"Best Sharpe: {result['best_score'].sharpe_ratio:.2f}")
+print(f"Best Return: {result['best_score'].total_return:.2%}")
+print(result['best_strategy'])  # Evolved YAML strategy
+```
+
+### Mutation Types
+
+| Type | Description | Example |
+|------|-------------|---------|
+| **Parameter Tune** | Adjust indicator periods | `sma(20)` → `sma(30)` |
+| **Indicator Swap** | Replace one indicator with another | `sma` → `ema` |
+| **Add Filter** | Add confirmation conditions | Add `volume > sma_volume(20) * 1.5` |
+| **Remove Filter** | Remove overly restrictive conditions | Remove ADX filter |
+| **Adjust Risk** | Modify stop-loss/take-profit | `stop_loss: 5%` → `3%` |
+| **Combine Strategy** | Merge two strategy configs | Golden Cross + RSI Reversion |
+
+### Architecture
+
+```
+src/evolution/
+├── evaluator.py    # Backtest → FitnessScore (Sharpe, return, drawdown, win rate)
+├── proposer.py     # Failure analysis → mutation proposals
+├── mutator.py      # Apply mutations to YAML strategy configs
+├── frontier.py     # Top-N strategies with lineage tracking
+├── engine.py       # Main evolution loop
+└── cli.py          # CLI: finclaw evolve
+```
+
+---
+
 ## Examples
 
 See [`examples/`](examples/) for runnable strategies:
