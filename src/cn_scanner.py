@@ -1,4 +1,4 @@
-"""
+﻿"""
 A-Share (China Stock) Scanner for FinClaw
 ==========================================
 Scans major A-share stocks and recommends buys based on technical indicators.
@@ -82,7 +82,6 @@ CN_UNIVERSE: list[tuple[str, str, str]] = [
     ('600015.SS', '华夏银行', 'bank'),
     ('601818.SS', '光大银行', 'bank'),
     ('601788.SS', '光大证券', 'bank'),
-    ('600837.SS', '海通证券', 'bank'),
     ('601211.SS', '国泰君安', 'bank'),
     ('601601.SS', '中国太保', 'bank'),
     ('601628.SS', '中国人寿', 'bank'),
@@ -113,7 +112,6 @@ CN_UNIVERSE: list[tuple[str, str, str]] = [
     ('688158.SS', '优刻得', 'ai'),
     ('9888.HK', '百度集团', 'ai'),
     ('1024.HK', '快手', 'ai'),
-    ('6185.HK', '商汤', 'ai'),
     ('688680.SS', '海天瑞声', 'ai'),
 
     # ══════════════════════════════════════════════════════════════
