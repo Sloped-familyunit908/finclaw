@@ -475,6 +475,48 @@ CN_UNIVERSE: list[tuple[str, str, str]] = [
     ('688006.SS', '杭可科技', 'robot'),
     ('688188.SS', '柏楚电子', 'manufacturing'),
     ('002409.SZ', '雅克科技', 'chip'),
+
+    # ══════════════════════════════════════════════════════════════
+    # satellite / 卫星低空经济 (5) — NEW SECTOR
+    # ══════════════════════════════════════════════════════════════
+    ('600118.SS', '中国卫星', 'satellite'),
+    ('002025.SZ', '航天电器', 'satellite'),
+    ('600879.SS', '航天电子', 'satellite'),
+    ('688066.SS', '航天宏图', 'satellite'),
+    ('002151.SZ', '北斗星通', 'satellite'),
+
+    # ── PCB / Electronics additions ──
+    ('002916.SZ', '深南电路', 'chip'),
+    ('603068.SS', '博通集成', 'chip'),
+    ('300408.SZ', '三环集团', 'manufacturing'),
+    ('002036.SZ', '联创电子', 'optical'),
+
+    # ── Gaming additions ──
+    ('002555.SZ', '三七互娱', 'ai'),
+    ('002174.SZ', '游族网络', 'ai'),
+    ('002624.SZ', '完美世界', 'ai'),
+    ('002602.SZ', '世纪华通', 'ai'),
+
+    # ── AIGC / Media additions ──
+    ('300133.SZ', '华策影视', 'ai'),
+    ('300251.SZ', '光线传媒', 'ai'),
+
+    # ── Power Equipment additions ──
+    ('688390.SS', '固德威', 'solar'),
+    ('300763.SZ', '锦浪科技', 'solar'),
+    ('002139.SZ', '拓邦股份', 'manufacturing'),
+
+    # ── Rare Earth / New Materials additions ──
+    ('600111.SS', '北方稀土', 'energy'),
+    ('600392.SS', '盛和资源', 'energy'),
+    ('688598.SS', '金博股份', 'manufacturing'),
+
+    # ── Data Center additions ──
+    ('603881.SS', '数据港', 'tech'),
+
+    # ── Humanoid Robot additions ──
+    ('688696.SS', '奥比中光', 'robot'),
+    ('688615.SS', '特种机器人', 'robot'),
 ]
 
 # De-duplicate: some tickers appear in both TOP50 (old sectors) and CN_UNIVERSE (new sectors).
