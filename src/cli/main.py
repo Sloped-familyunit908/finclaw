@@ -1,4 +1,4 @@
-"""
+﻿"""
 FinClaw CLI v5.1.0 - Comprehensive argparse-based CLI
 =====================================================
 All commands work end-to-end with real data via yfinance.
@@ -1399,8 +1399,8 @@ Examples:
     p_scan_cn.add_argument("--sort", default="score",
                            choices=["score", "rsi", "price", "change"],
                            help="Sort results by field (default: score)")
-    p_scan_cn.add_argument("--strategy", default="v3", choices=["v1", "v2", "v3", "ml"],
-                           help="Scoring strategy: v1 (legacy), v2 (multi-signal), v3 (OHLCV, default), ml (machine learning)")
+    p_scan_cn.add_argument("--strategy", default="v1", choices=["v1"],
+                           help="Scoring strategy")
     p_scan_cn.add_argument("--ml-version", default="v2", choices=["v1", "v2"],
                            help="ML feature version: v1 (20 features), v2 (40+ features, ensemble, default)")
 
@@ -1421,7 +1421,7 @@ Examples:
     p_scan_cn_bt.add_argument("--top", type=int, default=None,
                               help="Limit to top-N stocks")
     p_scan_cn_bt.add_argument("--strategy", default="v1", choices=["v1", "v2", "v3", "ml"],
-                              help="Scoring strategy: v1 (legacy), v2 (multi-signal), v3 (OHLCV), ml (machine learning)")
+                              help="Scoring strategy")
     p_scan_cn_bt.add_argument("--ml-version", default="v2", choices=["v1", "v2"],
                               help="ML feature version: v1 (20 features), v2 (40+ features, ensemble, default)")
     p_scan_cn_bt.add_argument("--stop-loss", type=float, default=None,
