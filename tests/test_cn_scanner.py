@@ -63,6 +63,7 @@ class TestStockUniverse:
             'bank', 'tech', 'consumer', 'energy', 'pharma', 'manufacturing',
             'ai', 'optical', 'storage', 'chip', 'ev', 'solar',
             'military', 'liquor', 'real_estate', 'telecom',
+            'robot', 'software',
         }
         assert set(VALID_SECTORS) == expected
 
@@ -323,14 +324,17 @@ class TestExpandedUniverse:
         assert len(CN_UNIVERSE) >= 150
 
     def test_cn_universe_ticker_format(self):
-        """Every ticker in CN_UNIVERSE must be 6 digits + .SS or .SZ."""
+        """Every ticker in CN_UNIVERSE must be valid: 6 digits + .SS/.SZ, or 4 digits + .HK."""
         for ticker, name, sector in CN_UNIVERSE:
             parts = ticker.split(".")
             assert len(parts) == 2, f"Bad ticker format: {ticker}"
             code, exchange = parts
-            assert len(code) == 6, f"Bad code length: {ticker}"
             assert code.isdigit(), f"Code not numeric: {ticker}"
-            assert exchange in ("SS", "SZ"), f"Bad exchange suffix: {ticker}"
+            assert exchange in ("SS", "SZ", "HK"), f"Bad exchange suffix: {ticker}"
+            if exchange in ("SS", "SZ"):
+                assert len(code) == 6, f"Bad code length for A-share: {ticker}"
+            else:  # HK
+                assert 3 <= len(code) <= 5, f"Bad code length for HK: {ticker}"
 
     def test_cn_universe_no_duplicates(self):
         """No duplicate tickers in CN_UNIVERSE."""
@@ -340,7 +344,8 @@ class TestExpandedUniverse:
     def test_new_sectors_exist(self):
         """All new sector categories should be present."""
         new_sectors = ['ai', 'optical', 'storage', 'chip', 'ev', 'solar',
-                       'military', 'liquor', 'real_estate', 'telecom']
+                       'military', 'liquor', 'real_estate', 'telecom',
+                       'robot', 'software']
         for s in new_sectors:
             assert s in SECTORS, f"Missing sector: {s}"
             assert len(SECTORS[s]) > 0, f"Empty sector: {s}"
