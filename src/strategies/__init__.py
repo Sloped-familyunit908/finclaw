@@ -19,6 +19,7 @@ from .combiner import StrategyCombiner, MeanReversionAdapter, MomentumAdapter, T
 from .sector_rotation import SectorRotation, SectorSignal
 from .signal_combiner import SignalCombiner, CombinedSignal
 from .regime_adaptive import RegimeAdaptive, RegimeSignal
+from .trend_discovery import TrendDiscovery, TrendCandidate
 
 __all__ = [
     "MeanReversionStrategy",
@@ -37,4 +38,6 @@ __all__ = [
     "CombinedSignal",
     "RegimeAdaptive",
     "RegimeSignal",
+    "TrendDiscovery",
+    "TrendCandidate",
 ]

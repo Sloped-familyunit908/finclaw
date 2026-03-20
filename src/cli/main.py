@@ -1449,6 +1449,20 @@ Examples:
     p_scan_cn_bt.add_argument("--trailing-stop", action="store_true", default=False,
                               help="Enable trailing stop (move stop to breakeven at 5%% profit)")
 
+    # trend-scan (Trend Discovery — parallel long-term strategy)
+    p_trend_scan = sub.add_parser("trend-scan",
+                                  help="Scan A-share stocks for emerging long-term trend candidates")
+    p_trend_scan.add_argument("--top", type=int, default=30, help="Number of top stocks to scan (default: 30)")
+    p_trend_scan.add_argument("--sector", default=None,
+                              help="Filter by sector (same values as scan-cn)")
+    p_trend_scan.add_argument("--min-score", type=int, default=0, help="Only show stocks with score >= N")
+
+    # trend-check (single-stock trend analysis)
+    p_trend_check = sub.add_parser("trend-check",
+                                   help="Check if a specific stock has long-term trend potential")
+    p_trend_check.add_argument("code", help="Stock code (e.g. 688498)")
+    p_trend_check.add_argument("--period", default="1y", help="Data period (e.g. 6mo, 1y, 2y)")
+
     # scan
     p_scan = sub.add_parser("scan", help="Real-time market scanner")
     p_scan.add_argument("--rule", required=True, help='Rule expression, e.g. "rsi<30 AND volume>2x"')
@@ -2130,6 +2144,108 @@ def cmd_scan_cn_backtest(args):
     version = _get_version()
     output = format_backtest_output(result, version=version, strategy=strategy)
     print(output)
+    return result
+
+
+def cmd_trend_scan(args):
+    """Scan A-share stocks for long-term trend candidates."""
+    from src.strategies.trend_discovery import TrendDiscovery
+    import numpy as np
+
+    top = args.top
+    sector = args.sector
+    min_score = args.min_score
+
+    print(f"\n  🔭 Trend Discovery Scan (top={top}, sector={sector or 'all'}, min_score={min_score})...")
+
+    try:
+        # Reuse the cn_scanner universe to get tickers
+        from src.cn_scanner import _get_cn_universe
+        tickers = _get_cn_universe(top=top, sector=sector)
+    except (ImportError, AttributeError):
+        # Fallback: use a small built-in list
+        tickers = []
+        print("  ⚠ Could not load A-share universe. Provide tickers via scan-cn first.")
+        return
+
+    td = TrendDiscovery()
+    stock_data = {}
+
+    for code, name in tickers:
+        suffix = ".SS" if code.startswith("6") else ".SZ"
+        ticker = f"{code}{suffix}"
+        df = _fetch_data(ticker, period="1y")
+        if df is None or len(df) < 60:
+            continue
+        prices = np.array(df["Close"].tolist(), dtype=np.float64)
+        volumes = np.array(df["Volume"].tolist(), dtype=np.float64) if "Volume" in df.columns else None
+        stock_data[code] = {"prices": prices, "volumes": volumes, "name": name}
+
+    if not stock_data:
+        print("  No stock data fetched. Check network connection.")
+        return
+
+    candidates = td.scan(stock_data)
+    if min_score > 0:
+        candidates = [c for c in candidates if c.score >= min_score]
+
+    if not candidates:
+        print("  No trend candidates found.")
+        return
+
+    report = td.generate_report(candidates)
+    print(report)
+    return candidates
+
+
+def cmd_trend_check(args):
+    """Check if a specific stock has long-term trend potential."""
+    from src.strategies.trend_discovery import TrendDiscovery
+    import numpy as np
+
+    code = args.code
+    period = args.period
+
+    # Determine exchange suffix
+    suffix = ".SS" if code.startswith("6") else ".SZ"
+    ticker = f"{code}{suffix}"
+
+    print(f"\n  🔍 Trend Check: {code} ({ticker})")
+    df = _fetch_data(ticker, period=period)
+    if df is None or len(df) < 30:
+        print(f"  ❌ No sufficient data for {code}.")
+        return
+
+    prices = np.array(df["Close"].tolist(), dtype=np.float64)
+    volumes = np.array(df["Volume"].tolist(), dtype=np.float64) if "Volume" in df.columns else None
+
+    td = TrendDiscovery()
+    result = td.analyze_stock(prices, volumes, code=code)
+
+    signal_emoji = {
+        "strong_trend": "🟢", "emerging_trend": "🟡",
+        "mature_trend": "🔴", "no_trend": "⚪",
+    }.get(result.signal, "❓")
+
+    print(f"\n  Signal:      {signal_emoji} {result.signal}")
+    print(f"  Score:       {result.score:.0f} / 100")
+    print(f"  Price:       {result.price:.2f}")
+    print(f"  RSI Min 60d: {result.rsi_min_60d:.1f}")
+    print(f"  R² 30d:      {result.r2_30d:.3f}")
+    print(f"  R² 60d:      {result.r2_60d:.3f}")
+    print(f"  R² 120d:     {result.r2_120d:.3f}")
+    print(f"  Slope 30d:   {result.slope_30d:+.4f}")
+    print(f"  Return 60d:  {result.total_return_60d:+.1f}%")
+    print(f"  Suggestion:  {result.hold_suggestion}")
+
+    # Check sell signal too
+    sell, sell_reason = td.should_sell(prices)
+    if sell:
+        print(f"  ⚠ Sell Signal: {sell_reason}")
+    else:
+        print(f"  ✅ No sell signal")
+
+    print()
     return result
 
 
@@ -3654,6 +3770,10 @@ def test_signals():
             cmd_scan_cn(args)
         elif args.command == "scan-cn-backtest":
             cmd_scan_cn_backtest(args)
+        elif args.command == "trend-scan":
+            cmd_trend_scan(args)
+        elif args.command == "trend-check":
+            cmd_trend_check(args)
         elif args.command == "scan":
             cmd_scan(args)
         elif args.command == "strategy":
