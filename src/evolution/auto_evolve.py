@@ -272,17 +272,28 @@ def compute_fitness(
     max_drawdown: float,
     win_rate: float,
     sharpe: float,
+    total_trades: int = 200,
 ) -> float:
     """Compute composite fitness score.
 
-    fitness = annual_return * sqrt(win_rate) / max(max_drawdown, 5.0) * sharpe_bonus
+    fitness = annual_return * sqrt(win_rate) / max(max_drawdown, 5.0) * sharpe_bonus * trade_penalty
 
-    Rewards: high return, high win rate, low drawdown, good Sharpe.
+    Rewards: high return, high win rate, low drawdown, good Sharpe, enough trades.
+    Penalizes: fewer than 100 trades (statistically unreliable).
     """
     dd_denom = max(max_drawdown, 5.0)
     win_factor = math.sqrt(max(win_rate, 0.0))
     sharpe_bonus = 1.0 + max(sharpe, 0.0) * 0.2
-    return annual_return * win_factor / dd_denom * sharpe_bonus
+    
+    # Penalize low trade count — results with <100 trades are unreliable
+    if total_trades < 30:
+        trade_penalty = 0.1  # almost worthless
+    elif total_trades < 100:
+        trade_penalty = total_trades / 100.0  # linear penalty
+    else:
+        trade_penalty = 1.0  # no penalty
+    
+    return annual_return * win_factor / dd_denom * sharpe_bonus * trade_penalty
 
 
 class AutoEvolver:
@@ -651,7 +662,7 @@ class AutoEvolver:
         # Profit factor
         profit_factor = gross_profit / gross_loss if gross_loss > 0 else (10.0 if gross_profit > 0 else 0.0)
 
-        fitness = compute_fitness(annual_return, max_drawdown, win_rate, sharpe)
+        fitness = compute_fitness(annual_return, max_drawdown, win_rate, sharpe, total_trades)
 
         return EvolutionResult(
             dna=dna,
