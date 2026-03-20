@@ -3,6 +3,9 @@ Ensemble Model — Combine multiple ML models via voting, stacking, or weighted 
 
 Supports heterogeneous model types (any object with fit/predict) and provides
 confidence scores and model agreement metrics.
+
+Community Edition: Standard ensemble implementation.
+See finclaw-pro for production parameters and optimized model configurations.
 """
 
 from __future__ import annotations

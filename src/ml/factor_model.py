@@ -1,6 +1,9 @@
 """
 FinClaw - Fama-French Factor Model
 Multi-factor regression model for return attribution and prediction.
+
+Community Edition: Standard factor model implementation.
+See finclaw-pro for production parameters and calibrated factor loadings.
 """
 
 from __future__ import annotations

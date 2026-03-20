@@ -1,8 +1,12 @@
 ﻿"""
-A-Share (China Stock) Scanner for FinClaw
-==========================================
+A-Share (China Stock) Scanner for FinClaw (Community Edition)
+==============================================================
 Scans major A-share stocks and recommends buys based on technical indicators.
 Uses yfinance with .SS (Shanghai) and .SZ (Shenzhen) suffixes.
+
+This is the open-source community edition with standard technical scoring.
+Advanced scoring with ML-enhanced signals and optimized parameters is
+available in finclaw-pro.
 """
 
 from __future__ import annotations
@@ -534,7 +538,9 @@ for _ticker, _name, _sector in CN_UNIVERSE:
 VALID_SECTORS = sorted(SECTORS.keys())
 
 
-# ── Scoring Engine ───────────────────────────────────────────────────
+# ── Scoring Engine (Community Edition) ───────────────────────────────
+# Standard technical scoring with RSI, MACD, Bollinger Bands, and volume.
+# Advanced scoring with ML-enhanced signals available in finclaw-pro.
 
 def compute_score(
     close: np.ndarray,
@@ -657,7 +663,10 @@ def _empty_result(close: np.ndarray) -> dict:
     }
 
 
-# ── V2 Scoring Engine (multi-signal) ────────────────────────────────
+# ── V2 Scoring Engine (multi-signal, Community Edition) ──────────────
+# Multi-signal scoring with volume breakout, bottom reversal, MACD divergence,
+# MA alignment, and momentum signals.
+# Production-tuned weights and thresholds available in finclaw-pro.
 
 def _signal_volume_breakout(
     close: np.ndarray,
@@ -877,7 +886,9 @@ def classify_signal_v2(score: int) -> str:
         return "HOLD"
 
 
-# ── V3 Signal Functions (OHLCV-based) ───────────────────────────────
+# ── V3 Signal Functions (OHLCV-based, Community Edition) ─────────────
+# Candlestick pattern recognition and advanced volume analysis.
+# Optimized signal parameters and ML feature integration in finclaw-pro.
 
 def _signal_three_soldiers(
     open_: np.ndarray,
@@ -1150,7 +1161,9 @@ def _signal_price_above_vwap(
     return 0, None
 
 
-# ── V3 Scoring Engine (ultimate A-share short-term engine) ──────────
+# ── V3 Scoring Engine (ultimate A-share short-term engine, Community Edition) ──
+# Combines V1 + V2 + 11 OHLCV-based signals for comprehensive analysis.
+# Production parameters and ML-blended scoring available in finclaw-pro.
 
 def compute_score_v3(
     close: np.ndarray,
@@ -1425,7 +1438,9 @@ def format_scan_output(results: list[dict], version: str = "5.1.0") -> str:
     return "\n".join(lines)
 
 
-# ── Backtest Engine ──────────────────────────────────────────────────
+# ── Backtest Engine (Community Edition) ──────────────────────────────
+# Walk-forward backtesting with risk management.
+# ML strategy integration and advanced walk-forward available in finclaw-pro.
 
 def _compute_score_at(
     close: np.ndarray,

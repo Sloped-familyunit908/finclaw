@@ -1,5 +1,8 @@
 """
 Alpha model — combine multiple signals into a unified alpha score.
+
+Community Edition: Standard alpha model implementation.
+See finclaw-pro for production parameters and optimized signal weights.
 """
 
 from __future__ import annotations
