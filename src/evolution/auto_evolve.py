@@ -285,13 +285,13 @@ def compute_fitness(
     win_factor = math.sqrt(max(win_rate, 0.0))
     sharpe_bonus = 1.0 + max(sharpe, 0.0) * 0.2
     
-    # Penalize low trade count — results with <100 trades are unreliable
-    if total_trades < 30:
+    # Penalize very low trade count — results with <10 trades are pure luck
+    if total_trades < 10:
         trade_penalty = 0.1  # almost worthless
-    elif total_trades < 100:
-        trade_penalty = total_trades / 100.0  # linear penalty
+    elif total_trades < 30:
+        trade_penalty = total_trades / 30.0  # linear penalty
     else:
-        trade_penalty = 1.0  # no penalty
+        trade_penalty = 1.0  # no penalty, 30+ trades is enough
     
     return annual_return * win_factor / dd_denom * sharpe_bonus * trade_penalty
 
