@@ -1,3 +1,14 @@
+# ── Stage 1: Builder — install dependencies ──────────────────────────
+FROM python:3.12-slim AS builder
+
+WORKDIR /build
+
+# Install build dependencies
+COPY pyproject.toml requirements.txt ./
+RUN pip install --no-cache-dir --prefix=/install \
+    yfinance aiohttp numpy pyyaml scipy
+
+# ── Stage 2: Runtime — minimal final image ──────────────────────────
 FROM python:3.12-slim
 
 WORKDIR /app
@@ -5,10 +16,8 @@ WORKDIR /app
 # Create non-root user
 RUN groupadd -r finclaw && useradd -r -g finclaw -d /app -s /sbin/nologin finclaw
 
-# Install dependencies
-COPY pyproject.toml requirements.txt ./
-RUN pip install --no-cache-dir -e ".[full]" 2>/dev/null || \
-    pip install --no-cache-dir yfinance aiohttp numpy pyyaml scipy
+# Copy installed Python packages from builder
+COPY --from=builder /install /usr/local
 
 # Copy application code
 COPY src/ ./src/
