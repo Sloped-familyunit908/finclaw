@@ -6,6 +6,7 @@ from .protocol_monitor import ProtocolMonitor, PoolInfo, Liquidation
 from .onchain import OnChainAnalyzer, MempoolTransaction
 from .funding_arb import FundingRateArbitrage, FundingOpportunity
 from .sentiment import CryptoSentiment
+from .defi_monitor import DeFiMonitor
 
 __all__ = [
     "YieldTracker",
@@ -14,4 +15,5 @@ __all__ = [
     "OnChainAnalyzer", "MempoolTransaction",
     "FundingRateArbitrage", "FundingOpportunity",
     "CryptoSentiment",
+    "DeFiMonitor",
 ]

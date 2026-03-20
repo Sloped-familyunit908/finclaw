@@ -1245,6 +1245,24 @@ Examples:
     p_fng = sub.add_parser("fear-greed", help="Current Fear & Greed Index")
     p_fng.add_argument("--history", type=int, default=1, help="Number of historical data points")
 
+    # ── crypto (RSI trading bot) ────────────────────────────────
+    p_crypto = sub.add_parser("crypto", help="Crypto RSI trading bot commands")
+    crypto_sub = p_crypto.add_subparsers(dest="crypto_cmd")
+    p_csig = crypto_sub.add_parser("signals", help="Show BTC/ETH/SOL RSI signals")
+    p_csig.add_argument("--symbols", default="BTC/USDT,ETH/USDT,SOL/USDT", help="Comma-separated symbols")
+    p_cport = crypto_sub.add_parser("portfolio", help="Show crypto sandbox portfolio")
+
+    # ── defi (DeFi monitor) ──────────────────────────────────────
+    p_defi = sub.add_parser("defi", help="DeFi yield monitoring commands")
+    defi_sub = p_defi.add_subparsers(dest="defi_cmd")
+    p_dscan = defi_sub.add_parser("scan", help="Scan DeFi yield opportunities")
+    p_dscan.add_argument("--chain", default="Arbitrum", help="Chain to scan")
+    p_dscan.add_argument("--min-tvl", type=float, default=1_000_000, help="Minimum TVL in USD")
+    p_dscan.add_argument("--min-apy", type=float, default=5.0, help="Minimum APY %%")
+    p_dscan.add_argument("--limit", "-l", type=int, default=20, help="Number of results")
+    p_drec = defi_sub.add_parser("recommend", help="Generate DeFi allocation recommendation")
+    p_drec.add_argument("--budget", type=float, default=2000, help="Budget in USD")
+
     # watch (shortcut for watchlist with enhanced UX)
     p_w = sub.add_parser("watch", help="Quick watchlist commands")
     p_w.add_argument("watch_action", nargs="?", default="show",
@@ -2839,6 +2857,78 @@ def cmd_fear_greed(args):
     print()
 
 
+def cmd_crypto(args):
+    """Handle crypto subcommands: signals, portfolio."""
+    from src.crypto.trading_bot import CryptoTradingBot
+
+    subcmd = getattr(args, "crypto_cmd", None)
+
+    if subcmd == "signals":
+        symbols = [s.strip() for s in args.symbols.split(",")]
+        bot = CryptoTradingBot(sandbox=True)
+        print(f"\n  📊 Crypto RSI Signals\n")
+        print(f"  {'Symbol':<14} {'Price':>12} {'RSI':>8} {'Signal':<14} {'Conf':>6}")
+        print("  " + "─" * 58)
+        for symbol in symbols:
+            try:
+                sig = bot.get_signal(symbol)
+                emoji = {
+                    "strong_buy": "🟢🟢", "buy": "🟢", "hold": "⚪",
+                    "sell": "🔴", "strong_sell": "🔴🔴",
+                }.get(sig["signal"], "❓")
+                print(
+                    f"  {symbol:<14} ${sig['price']:>11,.2f} {sig['rsi']:>7.1f} "
+                    f"{emoji} {sig['signal']:<10} {sig['confidence']:>5.0%}"
+                )
+            except Exception as exc:
+                print(f"  {symbol:<14} ⚠ Error: {exc}")
+        print()
+
+    elif subcmd == "portfolio":
+        bot = CryptoTradingBot(sandbox=True)
+        portfolio = bot.get_portfolio()
+        print(f"\n  💼 Crypto Portfolio (sandbox)\n")
+        if not portfolio:
+            print("  (empty)")
+        else:
+            for asset, amount in sorted(portfolio.items()):
+                print(f"  {asset:<10} {amount:>16.6f}")
+        print()
+
+    else:
+        print("  Usage: finclaw crypto {signals|portfolio}")
+
+
+def cmd_defi(args):
+    """Handle defi subcommands: scan, recommend."""
+    from src.defi.defi_monitor import DeFiMonitor
+
+    subcmd = getattr(args, "defi_cmd", None)
+
+    if subcmd == "scan":
+        monitor = DeFiMonitor()
+        chain = args.chain
+        pools = monitor.get_top_pools(
+            chain=chain, min_tvl=args.min_tvl, min_apy=args.min_apy, limit=args.limit
+        )
+        print(f"\n  🌾 DeFi Yields: {chain} (TVL ≥ ${args.min_tvl:,.0f}, APY ≥ {args.min_apy}%)\n")
+        if not pools:
+            print("  No qualifying pools found.")
+        else:
+            print(f"  {'#':<4} {'Project':<20} {'Pool':<22} {'APY':>10} {'TVL (USD)':>16}")
+            print("  " + "─" * 75)
+            for i, p in enumerate(pools, 1):
+                print(f"  {i:<4} {p['project']:<20} {p['symbol']:<22} {p['apy']:>9.2f}% ${p['tvl']:>14,.0f}")
+        print()
+
+    elif subcmd == "recommend":
+        monitor = DeFiMonitor()
+        print(monitor.generate_recommendation(budget_usd=args.budget))
+
+    else:
+        print("  Usage: finclaw defi {scan|recommend --budget 2000}")
+
+
 def _handle_portfolio_tracker(args):
     """Handle portfolio tracker subcommands (add/remove/show/history/alert/export)."""
     from src.portfolio.tracker import PortfolioTracker
@@ -3259,6 +3349,10 @@ def main(argv=None):
             cmd_funding_rates(args)
         elif args.command == "fear-greed":
             cmd_fear_greed(args)
+        elif args.command == "crypto":
+            cmd_crypto(args)
+        elif args.command == "defi":
+            cmd_defi(args)
         elif args.command == "cache":
             from src.data.cache import DataCache
             cache = DataCache()
