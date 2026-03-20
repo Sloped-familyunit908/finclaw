@@ -11,6 +11,9 @@ Runs 24/7. Each generation:
 Uses local CSV data only — no API calls needed.
 Separate from the YAML-DSL evolution engine (engine.py).
 This is pure numerical parameter optimization via genetic algorithms.
+
+v2: 12-signal scoring system with MACD, Bollinger, KDJ, OBV, MA alignment,
+    candle patterns, volume profile, support/resistance.
 """
 
 from __future__ import annotations
@@ -23,6 +26,23 @@ import time
 from dataclasses import asdict, dataclass, fields
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+
+
+# ────────────────── Weight keys (shared constant) ──────────────────
+
+_WEIGHT_KEYS: List[str] = [
+    "w_momentum",
+    "w_mean_reversion",
+    "w_volume",
+    "w_trend",
+    "w_pattern",
+    "w_macd",
+    "w_bollinger",
+    "w_kdj",
+    "w_obv",
+    "w_support",
+    "w_volume_profile",
+]
 
 
 @dataclass
@@ -47,12 +67,20 @@ class StrategyDNA:
     dip_threshold_pct: float = 10.0  # pullback from high
     r2_trend_min: float = 0.6  # min R² for bull stock confirmation
 
-    # --- Scoring weights (must sum ≈ 1.0) ---
-    w_momentum: float = 0.25
-    w_mean_reversion: float = 0.20
-    w_volume: float = 0.15
-    w_trend: float = 0.25
-    w_pattern: float = 0.15
+    # --- Scoring weights (12 dimensions, auto-normalized to sum=1) ---
+    # Original 5
+    w_momentum: float = 0.1       # RSI + slope
+    w_mean_reversion: float = 0.1 # RSI oversold
+    w_volume: float = 0.1         # volume ratio
+    w_trend: float = 0.1          # R² + MA alignment
+    w_pattern: float = 0.1        # candle patterns
+    # New 6
+    w_macd: float = 0.1           # MACD golden/death cross
+    w_bollinger: float = 0.1      # Bollinger Band position
+    w_kdj: float = 0.1            # KDJ golden cross
+    w_obv: float = 0.1            # OBV trend (price-volume)
+    w_support: float = 0.05       # support/resistance proximity
+    w_volume_profile: float = 0.05  # volume profile shape
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -77,11 +105,19 @@ _PARAM_RANGES: Dict[str, Tuple[float, float, bool]] = {
     "max_positions": (1, 10, True),
     "dip_threshold_pct": (3.0, 30.0, False),
     "r2_trend_min": (0.2, 0.95, False),
+    # Original weights
     "w_momentum": (0.0, 1.0, False),
     "w_mean_reversion": (0.0, 1.0, False),
     "w_volume": (0.0, 1.0, False),
     "w_trend": (0.0, 1.0, False),
     "w_pattern": (0.0, 1.0, False),
+    # New weights
+    "w_macd": (0.0, 1.0, False),
+    "w_bollinger": (0.0, 1.0, False),
+    "w_kdj": (0.0, 1.0, False),
+    "w_obv": (0.0, 1.0, False),
+    "w_support": (0.0, 1.0, False),
+    "w_volume_profile": (0.0, 1.0, False),
 }
 
 
@@ -197,19 +233,339 @@ def compute_volume_ratio(volumes: List[float], period: int = 20) -> List[float]:
     return ratios
 
 
+# ────────────────── New Signal Functions (v2) ──────────────────
+
+
+def _ema(values: List[float], period: int) -> List[float]:
+    """Exponential moving average. Returns list same length, NaN-padded."""
+    out = [float("nan")] * len(values)
+    if len(values) < period:
+        return out
+    # Seed with SMA
+    sma = sum(values[:period]) / period
+    out[period - 1] = sma
+    k = 2.0 / (period + 1)
+    for i in range(period, len(values)):
+        out[i] = values[i] * k + out[i - 1] * (1 - k)
+    return out
+
+
+def compute_macd(
+    closes: List[float], fast: int = 12, slow: int = 26, signal: int = 9
+) -> Tuple[List[float], List[float], List[float]]:
+    """MACD line, signal line, histogram. Returns 3 lists same length, NaN-padded."""
+    n = len(closes)
+    nan_list = [float("nan")] * n
+    if n < slow + signal:
+        return nan_list[:], nan_list[:], nan_list[:]
+
+    fast_ema = _ema(closes, fast)
+    slow_ema = _ema(closes, slow)
+
+    macd_line = [float("nan")] * n
+    for i in range(slow - 1, n):
+        if not (math.isnan(fast_ema[i]) or math.isnan(slow_ema[i])):
+            macd_line[i] = fast_ema[i] - slow_ema[i]
+
+    # Signal line = EMA of MACD line
+    # Collect valid MACD values for EMA seed
+    valid_macd = [(i, macd_line[i]) for i in range(n) if not math.isnan(macd_line[i])]
+    signal_line = [float("nan")] * n
+    hist = [float("nan")] * n
+
+    if len(valid_macd) >= signal:
+        sma = sum(v for _, v in valid_macd[:signal]) / signal
+        start_idx = valid_macd[signal - 1][0]
+        signal_line[start_idx] = sma
+        k = 2.0 / (signal + 1)
+        vi = signal
+        for i in range(start_idx + 1, n):
+            if not math.isnan(macd_line[i]):
+                signal_line[i] = macd_line[i] * k + signal_line[i - 1] * (1 - k)
+            elif not math.isnan(signal_line[i - 1]):
+                signal_line[i] = signal_line[i - 1]
+
+        for i in range(n):
+            if not (math.isnan(macd_line[i]) or math.isnan(signal_line[i])):
+                hist[i] = macd_line[i] - signal_line[i]
+
+    return macd_line, signal_line, hist
+
+
+def compute_bollinger_bands(
+    closes: List[float], window: int = 20, num_std: int = 2
+) -> Tuple[List[float], List[float], List[float], List[float]]:
+    """Upper, middle, lower bands, and bandwidth percentage. NaN-padded."""
+    n = len(closes)
+    upper = [float("nan")] * n
+    middle = [float("nan")] * n
+    lower = [float("nan")] * n
+    bw_pct = [float("nan")] * n
+
+    if n < window:
+        return upper, middle, lower, bw_pct
+
+    for i in range(window - 1, n):
+        seg = closes[i - window + 1: i + 1]
+        mean = sum(seg) / window
+        var = sum((x - mean) ** 2 for x in seg) / window
+        std = math.sqrt(var)
+        middle[i] = mean
+        upper[i] = mean + num_std * std
+        lower[i] = mean - num_std * std
+        bw_pct[i] = (num_std * 2 * std / mean * 100) if mean > 0 else 0.0
+
+    return upper, middle, lower, bw_pct
+
+
+def compute_kdj(
+    highs: List[float], lows: List[float], closes: List[float], n: int = 9
+) -> Tuple[List[float], List[float], List[float]]:
+    """KDJ indicator. Returns K, D, J lists. NaN-padded."""
+    length = len(closes)
+    k_out = [float("nan")] * length
+    d_out = [float("nan")] * length
+    j_out = [float("nan")] * length
+
+    if length < n:
+        return k_out, d_out, j_out
+
+    k_val = 50.0
+    d_val = 50.0
+
+    for i in range(n - 1, length):
+        highest = max(highs[i - n + 1: i + 1])
+        lowest = min(lows[i - n + 1: i + 1])
+        denom = highest - lowest
+        rsv = ((closes[i] - lowest) / denom * 100) if denom > 0 else 50.0
+        k_val = 2.0 / 3.0 * k_val + 1.0 / 3.0 * rsv
+        d_val = 2.0 / 3.0 * d_val + 1.0 / 3.0 * k_val
+        j_val = 3.0 * k_val - 2.0 * d_val
+        k_out[i] = k_val
+        d_out[i] = d_val
+        j_out[i] = j_val
+
+    return k_out, d_out, j_out
+
+
+def compute_obv_trend(
+    closes: List[float], volumes: List[float], window: int = 10
+) -> List[float]:
+    """OBV trend direction. Returns list of slopes (positive = accumulation). NaN-padded."""
+    n = len(closes)
+    trend = [float("nan")] * n
+    if n < window + 1:
+        return trend
+
+    # Build OBV series
+    obv = [0.0] * n
+    for i in range(1, n):
+        if closes[i] > closes[i - 1]:
+            obv[i] = obv[i - 1] + volumes[i]
+        elif closes[i] < closes[i - 1]:
+            obv[i] = obv[i - 1] - volumes[i]
+        else:
+            obv[i] = obv[i - 1]
+
+    # Slope of OBV over window (linear regression slope, normalized)
+    for i in range(window, n):
+        seg = obv[i - window + 1: i + 1]
+        mean_y = sum(seg) / window
+        mean_x = (window - 1) / 2.0
+        ss_xy = 0.0
+        ss_xx = 0.0
+        for j, y in enumerate(seg):
+            dx = j - mean_x
+            ss_xy += dx * (y - mean_y)
+            ss_xx += dx * dx
+        slope = ss_xy / ss_xx if ss_xx > 0 else 0.0
+        # Normalize by avg volume to get comparable values
+        avg_vol = sum(volumes[i - window + 1: i + 1]) / window
+        trend[i] = slope / avg_vol if avg_vol > 0 else 0.0
+
+    return trend
+
+
+def compute_ma_alignment(closes: List[float]) -> List[float]:
+    """MA5/10/20/60 alignment state. 1=bullish, -1=bearish, 0=mixed. NaN-padded."""
+    n = len(closes)
+    result = [float("nan")] * n
+    if n < 60:
+        return result
+
+    # Pre-compute running sums for efficiency
+    ma5 = [float("nan")] * n
+    ma10 = [float("nan")] * n
+    ma20 = [float("nan")] * n
+    ma60 = [float("nan")] * n
+
+    cumsum = [0.0] * (n + 1)
+    for i in range(n):
+        cumsum[i + 1] = cumsum[i] + closes[i]
+
+    for period, arr in [(5, ma5), (10, ma10), (20, ma20), (60, ma60)]:
+        for i in range(period - 1, n):
+            arr[i] = (cumsum[i + 1] - cumsum[i - period + 1]) / period
+
+    for i in range(59, n):
+        m5, m10, m20, m60_v = ma5[i], ma10[i], ma20[i], ma60[i]
+        if m5 > m10 > m20 > m60_v:
+            result[i] = 1.0   # bullish alignment
+        elif m5 < m10 < m20 < m60_v:
+            result[i] = -1.0  # bearish alignment
+        else:
+            result[i] = 0.0
+
+    return result
+
+
+def compute_candle_patterns(
+    opens: List[float],
+    highs: List[float],
+    lows: List[float],
+    closes: List[float],
+    idx: int,
+) -> float:
+    """Candle pattern detection at idx. Returns score in [-1, +1].
+
+    Detects: hammer, inverted hammer, doji, engulfing, three soldiers/crows.
+    Positive = bullish, negative = bearish.
+    """
+    if idx < 2 or idx >= len(closes):
+        return 0.0
+
+    o, h, lo, c = opens[idx], highs[idx], lows[idx], closes[idx]
+    body = abs(c - o)
+    full_range = h - lo
+    if full_range <= 0:
+        return 0.0
+
+    body_ratio = body / full_range
+    upper_shadow = h - max(o, c)
+    lower_shadow = min(o, c) - lo
+
+    score = 0.0
+
+    # Hammer (bullish): small body at top, long lower shadow
+    if lower_shadow > body * 2 and upper_shadow < body * 0.5 and c > o:
+        score += 0.3
+
+    # Inverted hammer (potential reversal)
+    if upper_shadow > body * 2 and lower_shadow < body * 0.5 and c > o:
+        score += 0.15
+
+    # Doji at bottom (indecision after decline)
+    if body_ratio < 0.1 and idx >= 3:
+        # Check if we were declining
+        recent_decline = closes[idx - 3] > closes[idx - 1] * 1.02
+        if recent_decline:
+            score += 0.2
+
+    # Bullish engulfing
+    prev_o, prev_c = opens[idx - 1], closes[idx - 1]
+    if prev_c < prev_o and c > o:  # prev bearish, current bullish
+        if c > prev_o and o < prev_c:  # current body engulfs prev
+            score += 0.35
+
+    # Bearish engulfing
+    if prev_c > prev_o and c < o:  # prev bullish, current bearish
+        if c < prev_o and o > prev_c:
+            score -= 0.35
+
+    # Three white soldiers
+    if idx >= 3:
+        all_bullish = all(closes[idx - j] > opens[idx - j] for j in range(3))
+        ascending = closes[idx] > closes[idx - 1] > closes[idx - 2]
+        if all_bullish and ascending:
+            score += 0.3
+
+    # Three black crows
+    if idx >= 3:
+        all_bearish = all(closes[idx - j] < opens[idx - j] for j in range(3))
+        descending = closes[idx] < closes[idx - 1] < closes[idx - 2]
+        if all_bearish and descending:
+            score -= 0.3
+
+    return max(-1.0, min(1.0, score))
+
+
+def compute_volume_profile(
+    volumes: List[float], idx: int, window: int = 20
+) -> float:
+    """Volume profile at idx. Returns: 1=surge, -1=shrink, 0=normal."""
+    if idx < window or idx >= len(volumes):
+        return 0.0
+
+    avg_vol = sum(volumes[idx - window: idx]) / window
+    if avg_vol <= 0:
+        return 0.0
+
+    ratio = volumes[idx] / avg_vol
+    if ratio > 2.0:
+        return 1.0   # volume surge
+    elif ratio < 0.5:
+        return -1.0  # volume shrink
+    elif ratio > 1.3:
+        return 0.5
+    elif ratio < 0.7:
+        return -0.5
+    return 0.0
+
+
+def compute_support_resistance(
+    closes: List[float],
+    highs: List[float],
+    lows: List[float],
+    idx: int,
+    window: int = 20,
+) -> float:
+    """Distance from support level as a percentage (0-1 score).
+
+    Closer to support = higher score (more upside potential).
+    """
+    if idx < window or idx >= len(closes):
+        return 0.5
+
+    lookback_lows = lows[idx - window: idx]
+    lookback_highs = highs[idx - window: idx]
+
+    support = min(lookback_lows)
+    resistance = max(lookback_highs)
+
+    price = closes[idx]
+    price_range = resistance - support
+    if price_range <= 0:
+        return 0.5
+
+    # Position in range: 0 = at support (bullish), 1 = at resistance (bearish)
+    position = (price - support) / price_range
+    # Invert: closer to support = higher score
+    return max(0.0, min(1.0, 1.0 - position))
+
+
+# ────────────────── Scoring ──────────────────
+
+
 def score_stock(
     idx: int,
-    rsi: List[float],
-    r2: List[float],
-    slope: List[float],
-    volume_ratio: List[float],
-    closes: List[float],
+    indicators: Dict[str, Any],
     dna: StrategyDNA,
 ) -> float:
-    """Score a stock at a given index using DNA weights.
+    """Score a stock at a given index using 12-dimensional DNA weights.
+
+    Args:
+        idx: Day index to score
+        indicators: Dict with pre-computed indicator arrays
+        dna: Strategy parameters
 
     Returns score in [0, 10] range.
     """
+    rsi = indicators["rsi"]
+    r2 = indicators["r2"]
+    slope = indicators["slope"]
+    volume_ratio = indicators["volume_ratio"]
+    closes = indicators["close"]
+
     if idx >= len(rsi) or idx >= len(r2) or idx >= len(slope) or idx >= len(volume_ratio):
         return 0.0
     if any(
@@ -218,10 +574,10 @@ def score_stock(
     ):
         return 0.0
 
-    # Momentum: higher slope = better
+    # 1. Momentum: higher slope = better
     momentum_raw = min(slope[idx] / max(dna.slope_min, 0.01), 2.0) / 2.0
 
-    # Mean reversion: RSI near buy threshold is good
+    # 2. Mean reversion: RSI near buy threshold is good
     rsi_val = rsi[idx]
     if rsi_val <= dna.rsi_buy_threshold:
         mr_raw = 1.0
@@ -231,36 +587,134 @@ def score_stock(
         rng = dna.rsi_sell_threshold - dna.rsi_buy_threshold
         mr_raw = 1.0 - (rsi_val - dna.rsi_buy_threshold) / rng if rng > 0 else 0.5
 
-    # Volume: higher ratio = better
+    # 3. Volume: higher ratio = better
     vol_raw = min(volume_ratio[idx] / max(dna.volume_ratio_min, 0.01), 2.0) / 2.0
 
-    # Trend: R² + positive slope
-    trend_raw = r2[idx] if slope[idx] > 0 else r2[idx] * 0.3
+    # 4. Trend: R² + positive slope + MA alignment
+    ma_align = indicators.get("ma_alignment", [0.0] * (idx + 1))
+    ma_val = ma_align[idx] if idx < len(ma_align) and not math.isnan(ma_align[idx]) else 0.0
+    base_trend = r2[idx] if slope[idx] > 0 else r2[idx] * 0.3
+    trend_raw = base_trend * (1.0 + 0.3 * ma_val)  # MA alignment boosts trend
+    trend_raw = max(0.0, min(1.0, trend_raw))
 
-    # Pattern: golden dip — pullback from recent high
+    # 5. Pattern: golden dip + candle patterns
     lookback = min(20, idx)
     if lookback > 0:
-        recent_high = max(closes[idx - lookback : idx])
+        recent_high = max(closes[idx - lookback: idx])
         pullback = (recent_high - closes[idx]) / recent_high * 100 if recent_high > 0 else 0
         if pullback >= dna.dip_threshold_pct * 0.5 and r2[idx] >= dna.r2_trend_min:
-            pattern_raw = min(pullback / dna.dip_threshold_pct, 1.0)
+            dip_score = min(pullback / dna.dip_threshold_pct, 1.0)
         else:
-            pattern_raw = 0.0
+            dip_score = 0.0
     else:
-        pattern_raw = 0.0
+        dip_score = 0.0
+    candle = compute_candle_patterns(
+        indicators["open"], indicators["high"], indicators["low"], closes, idx
+    )
+    pattern_raw = max(0.0, min(1.0, dip_score * 0.5 + (candle + 1) / 2 * 0.5))
 
-    # Weighted sum
+    # 6. MACD
+    macd_hist = indicators.get("macd_hist", [float("nan")] * (idx + 1))
+    macd_line = indicators.get("macd_line", [float("nan")] * (idx + 1))
+    macd_signal = indicators.get("macd_signal", [float("nan")] * (idx + 1))
+    if idx < len(macd_hist) and not math.isnan(macd_hist[idx]) and idx >= 1 and not math.isnan(macd_hist[idx - 1]):
+        # Golden cross: histogram turns positive
+        if macd_hist[idx] > 0 and macd_hist[idx - 1] <= 0:
+            macd_raw = 1.0
+        elif macd_hist[idx] > 0:
+            macd_raw = 0.7
+        elif macd_hist[idx] > macd_hist[idx - 1]:  # improving
+            macd_raw = 0.4
+        else:
+            macd_raw = 0.1
+    else:
+        macd_raw = 0.5
+
+    # 7. Bollinger Bands
+    bb_upper = indicators.get("bb_upper", [float("nan")] * (idx + 1))
+    bb_lower = indicators.get("bb_lower", [float("nan")] * (idx + 1))
+    bb_middle = indicators.get("bb_middle", [float("nan")] * (idx + 1))
+    if idx < len(bb_upper) and not math.isnan(bb_upper[idx]) and not math.isnan(bb_lower[idx]):
+        bb_range = bb_upper[idx] - bb_lower[idx]
+        if bb_range > 0:
+            bb_pos = (closes[idx] - bb_lower[idx]) / bb_range
+            # Near lower band is bullish (oversold), near upper is bearish
+            bb_raw = max(0.0, min(1.0, 1.0 - bb_pos))
+        else:
+            bb_raw = 0.5
+    else:
+        bb_raw = 0.5
+
+    # 8. KDJ
+    k_val_list = indicators.get("kdj_k", [float("nan")] * (idx + 1))
+    d_val_list = indicators.get("kdj_d", [float("nan")] * (idx + 1))
+    j_val_list = indicators.get("kdj_j", [float("nan")] * (idx + 1))
+    if (idx < len(k_val_list) and idx >= 1
+            and not math.isnan(k_val_list[idx]) and not math.isnan(k_val_list[idx - 1])):
+        k_val = k_val_list[idx]
+        d_val = d_val_list[idx]
+        # KDJ golden cross: K crosses above D
+        if k_val > d_val and k_val_list[idx - 1] <= d_val_list[idx - 1]:
+            kdj_raw = 1.0
+        elif k_val > d_val:
+            kdj_raw = 0.6
+        elif k_val < 20:  # oversold zone
+            kdj_raw = 0.7
+        else:
+            kdj_raw = 0.2
+    else:
+        kdj_raw = 0.5
+
+    # 9. OBV trend
+    obv = indicators.get("obv_trend", [float("nan")] * (idx + 1))
+    if idx < len(obv) and not math.isnan(obv[idx]):
+        # Positive OBV trend = accumulation
+        obv_val = obv[idx]
+        if obv_val > 0.5:
+            obv_raw = 1.0
+        elif obv_val > 0:
+            obv_raw = 0.5 + obv_val
+        elif obv_val > -0.5:
+            obv_raw = 0.5 + obv_val
+        else:
+            obv_raw = 0.0
+        obv_raw = max(0.0, min(1.0, obv_raw))
+    else:
+        obv_raw = 0.5
+
+    # 10. Support/Resistance
+    support_raw = compute_support_resistance(
+        closes, indicators["high"], indicators["low"], idx
+    )
+
+    # 11. Volume Profile
+    vprofile_val = compute_volume_profile(indicators["volume"], idx)
+    # Map from [-1, 1] to [0, 1]: surge is bullish when price also rising
+    if vprofile_val > 0 and slope[idx] > 0:
+        vprofile_raw = 0.5 + vprofile_val * 0.5  # volume surge + uptrend = bullish
+    elif vprofile_val < 0 and slope[idx] > 0:
+        vprofile_raw = 0.3  # low volume pullback in uptrend can be okay
+    else:
+        vprofile_raw = 0.5 + vprofile_val * 0.25
+
+    vprofile_raw = max(0.0, min(1.0, vprofile_raw))
+
+    # Weighted sum with all 11 dimensions
     raw = (
         dna.w_momentum * momentum_raw
         + dna.w_mean_reversion * mr_raw
         + dna.w_volume * vol_raw
         + dna.w_trend * trend_raw
         + dna.w_pattern * pattern_raw
+        + dna.w_macd * macd_raw
+        + dna.w_bollinger * bb_raw
+        + dna.w_kdj * kdj_raw
+        + dna.w_obv * obv_raw
+        + dna.w_support * support_raw
+        + dna.w_volume_profile * vprofile_raw
     )
 
-    total_weight = (
-        dna.w_momentum + dna.w_mean_reversion + dna.w_volume + dna.w_trend + dna.w_pattern
-    )
+    total_weight = sum(getattr(dna, k) for k in _WEIGHT_KEYS)
     if total_weight > 0:
         raw /= total_weight
 
@@ -296,6 +750,73 @@ def compute_fitness(
     return annual_return * win_factor / dd_denom * sharpe_bonus * trade_penalty
 
 
+def filter_stock_pool(
+    data: Dict[str, Dict[str, list]],
+    min_daily_amount: float = 20_000_000.0,
+    min_price: float = 5.0,
+    max_stocks: int = 500,
+) -> Dict[str, Dict[str, list]]:
+    """Filter stock pool by quality metrics.
+
+    Criteria:
+    - Average daily turnover (volume * close proxy) > min_daily_amount
+    - Last close > min_price
+    - Stocks with recent limit-up (涨停) in last 60 days get priority
+    - Returns at most max_stocks best-quality stocks
+
+    Args:
+        data: Raw stock data dict
+        min_daily_amount: Minimum average daily turnover in CNY
+        min_price: Minimum stock price
+        max_stocks: Maximum number of stocks to keep
+
+    Returns:
+        Filtered data dict
+    """
+    scored_codes: List[Tuple[str, float]] = []
+
+    for code, sd in data.items():
+        closes = sd["close"]
+        volumes = sd["volume"]
+
+        if not closes:
+            continue
+
+        # Last close must be > min_price
+        last_close = closes[-1]
+        if last_close < min_price:
+            continue
+
+        # Average daily turnover (volume * close as proxy for amount)
+        recent_n = min(60, len(closes))
+        avg_amount = sum(
+            closes[-recent_n + i] * volumes[-recent_n + i]
+            for i in range(recent_n)
+        ) / recent_n
+
+        if avg_amount < min_daily_amount:
+            continue
+
+        # Bonus: check for limit-up in last 60 days (shows market attention)
+        limit_up_bonus = 0.0
+        for i in range(max(1, len(closes) - 60), len(closes)):
+            if closes[i - 1] > 0:
+                daily_ret = (closes[i] - closes[i - 1]) / closes[i - 1]
+                # Approximate limit-up: ≥9.5% for main board, ≥19% for ChiNext/STAR
+                if daily_ret >= 0.095:
+                    limit_up_bonus += 1.0
+
+        # Quality score: turnover + limit-up bonus
+        quality = avg_amount / 1e8 + limit_up_bonus * 0.5
+        scored_codes.append((code, quality))
+
+    # Sort by quality, keep top max_stocks
+    scored_codes.sort(key=lambda x: x[1], reverse=True)
+    keep_codes = {code for code, _ in scored_codes[:max_stocks]}
+
+    return {code: sd for code, sd in data.items() if code in keep_codes}
+
+
 class AutoEvolver:
     """Automatic strategy parameter evolution engine.
 
@@ -320,11 +841,19 @@ class AutoEvolver:
         self.rng = random.Random(seed)
         os.makedirs(results_dir, exist_ok=True)
 
-    def load_data(self) -> Dict[str, Dict[str, list]]:
+    def load_data(
+        self, quality_filter: bool = True, max_stocks: int = 500
+    ) -> Dict[str, Dict[str, list]]:
         """Load stock CSV data into memory.
 
         Returns dict: code -> {date, open, high, low, close, volume}
         Only loads stocks with enough data (>= 60 trading days).
+
+        When quality_filter=True, applies:
+        - Average daily turnover > 20M CNY (or volume*close proxy)
+        - Last close > 5 CNY
+        - Stocks with recent limit-up (涨停) get priority
+        - Max ``max_stocks`` best-quality stocks retained
         """
         data: Dict[str, Dict[str, list]] = {}
         data_path = Path(self.data_dir)
@@ -380,6 +909,9 @@ class AutoEvolver:
             except Exception:
                 continue
 
+        if quality_filter and len(data) > max_stocks:
+            data = filter_stock_pool(data, max_stocks=max_stocks)
+
         return data
 
     def mutate(self, dna: StrategyDNA) -> StrategyDNA:
@@ -406,10 +938,9 @@ class AutoEvolver:
                 d[param] = new_val
 
         # Normalize scoring weights so they sum ≈ 1.0
-        w_keys = ["w_momentum", "w_mean_reversion", "w_volume", "w_trend", "w_pattern"]
-        w_sum = sum(d[k] for k in w_keys)
+        w_sum = sum(d[k] for k in _WEIGHT_KEYS)
         if w_sum > 0:
-            for k in w_keys:
+            for k in _WEIGHT_KEYS:
                 d[k] = round(d[k] / w_sum, 4)
 
         return StrategyDNA.from_dict(d)
@@ -423,10 +954,9 @@ class AutoEvolver:
             child[key] = d1[key] if self.rng.random() < 0.5 else d2[key]
 
         # Normalize weights
-        w_keys = ["w_momentum", "w_mean_reversion", "w_volume", "w_trend", "w_pattern"]
-        w_sum = sum(child[k] for k in w_keys)
+        w_sum = sum(child[k] for k in _WEIGHT_KEYS)
         if w_sum > 0:
-            for k in w_keys:
+            for k in _WEIGHT_KEYS:
                 child[k] = round(child[k] / w_sum, 4)
 
         return StrategyDNA.from_dict(child)
@@ -473,20 +1003,49 @@ class AutoEvolver:
         if len(codes) > sample_size:
             codes = self.rng.sample(codes, sample_size)
 
-        # Pre-compute indicators per stock
-        indicators: Dict[str, Dict[str, list]] = {}
+        # Pre-compute indicators per stock (all 12 dimensions)
+        indicators: Dict[str, Dict[str, Any]] = {}
         for code in codes:
             sd = data[code]
             closes = sd["close"]
             vols = sd["volume"]
+            opens = sd["open"]
+            highs_list = sd["high"]
+            lows_list = sd["low"]
+
             rsi = compute_rsi(closes)
             r2, slope = compute_linear_regression(closes)
             vol_ratio = compute_volume_ratio(vols)
+
+            # New v2 indicators
+            macd_line, macd_signal, macd_hist = compute_macd(closes)
+            bb_upper, bb_middle, bb_lower, bb_width = compute_bollinger_bands(closes)
+            kdj_k, kdj_d, kdj_j = compute_kdj(highs_list, lows_list, closes)
+            obv = compute_obv_trend(closes, vols)
+            ma_align = compute_ma_alignment(closes)
+
             indicators[code] = {
                 "rsi": rsi,
                 "r2": r2,
                 "slope": slope,
                 "volume_ratio": vol_ratio,
+                "close": closes,
+                "open": opens,
+                "high": highs_list,
+                "low": lows_list,
+                "volume": vols,
+                # v2 indicators
+                "macd_line": macd_line,
+                "macd_signal": macd_signal,
+                "macd_hist": macd_hist,
+                "bb_upper": bb_upper,
+                "bb_middle": bb_middle,
+                "bb_lower": bb_lower,
+                "kdj_k": kdj_k,
+                "kdj_d": kdj_d,
+                "kdj_j": kdj_j,
+                "obv_trend": obv,
+                "ma_alignment": ma_align,
             }
 
         # Find common date range — use the first stock to determine day count
@@ -515,11 +1074,7 @@ class AutoEvolver:
                 ind = indicators[code]
                 s = score_stock(
                     day,
-                    ind["rsi"],
-                    ind["r2"],
-                    ind["slope"],
-                    ind["volume_ratio"],
-                    sd["close"],
+                    ind,
                     dna,
                 )
                 if s >= dna.min_score:

@@ -95,7 +95,8 @@ class TestStrategyDNA:
 
     def test_weights_sum_approximately_one(self):
         dna = StrategyDNA()
-        total = dna.w_momentum + dna.w_mean_reversion + dna.w_volume + dna.w_trend + dna.w_pattern
+        weights = [v for k, v in dna.__dict__.items() if k.startswith('w_')]
+        total = sum(weights)
         assert abs(total - 1.0) < 0.01
 
 
@@ -183,7 +184,7 @@ class TestCrossover:
         dna1 = StrategyDNA()
         dna2 = StrategyDNA(w_momentum=0.5, w_trend=0.5, w_volume=0.0, w_mean_reversion=0.0, w_pattern=0.0)
         child = evolver.crossover(dna1, dna2)
-        w_sum = child.w_momentum + child.w_mean_reversion + child.w_volume + child.w_trend + child.w_pattern
+        w_sum = sum(v for k, v in child.__dict__.items() if k.startswith("w_"))
         assert abs(w_sum - 1.0) < 0.01
 
 
@@ -281,7 +282,7 @@ class TestScoring:
         closes = [100 + i * 0.5 for i in range(100)]
         dna = StrategyDNA()
 
-        s = score_stock(50, rsi, r2, slope, vol_ratio, closes, dna)
+        indicators = {"rsi": rsi, "r2": r2, "slope": slope, "volume_ratio": vol_ratio, "close": [float(x) for x in range(100)], "high": [float(x) for x in range(100)], "low": [float(x) for x in range(100)], "open": [float(x) for x in range(100)], "volume": [1000.0]*100}; s = score_stock(50, indicators, dna)
         assert 0 <= s <= 10
 
     def test_score_nan_returns_zero(self):
@@ -293,7 +294,7 @@ class TestScoring:
         closes = [100.0] * n
         dna = StrategyDNA()
 
-        assert score_stock(25, rsi, r2, slope, vol_ratio, closes, dna) == 0.0
+        indicators2 = {"rsi": rsi, "r2": r2, "slope": slope, "volume_ratio": vol_ratio, "close": [float(x) for x in range(100)], "high": [float(x) for x in range(100)], "low": [float(x) for x in range(100)], "open": [float(x) for x in range(100)], "volume": [1000.0]*100}; assert score_stock(25, indicators2, dna) == 0.0
 
 
 # ────────────────── Evaluate tests ──────────────────
@@ -486,3 +487,6 @@ class TestEvolve:
 
         # Check that results were saved
         assert os.path.exists(os.path.join(results_dir, "latest.json"))
+
+
+
