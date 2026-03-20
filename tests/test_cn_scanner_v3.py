@@ -700,18 +700,18 @@ class TestBacktestV3:
 # ── CLI Argument Tests for V3 ────────────────────────────────────────
 
 class TestCLIArgsV3:
-    def test_scan_cn_strategy_default_is_v3(self):
-        """Default strategy for scan-cn should be v3."""
+    def test_scan_cn_strategy_default_is_v1(self):
+        """Default strategy for scan-cn should be v1."""
         from src.cli.main import build_parser
         parser = build_parser()
         args = parser.parse_args(['scan-cn'])
-        assert args.strategy == 'v3'
+        assert args.strategy == 'v1'
 
-    def test_scan_cn_strategy_v3_explicit(self):
-        """Can select v3 strategy explicitly."""
+    def test_scan_cn_backtest_strategy_v3_explicit(self):
+        """Can select v3 strategy explicitly via scan-cn-backtest."""
         from src.cli.main import build_parser
         parser = build_parser()
-        args = parser.parse_args(['scan-cn', '--strategy', 'v3'])
+        args = parser.parse_args(['scan-cn-backtest', '--strategy', 'v3'])
         assert args.strategy == 'v3'
 
     def test_scan_cn_backtest_v3(self):

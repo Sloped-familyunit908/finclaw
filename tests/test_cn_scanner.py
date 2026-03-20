@@ -63,7 +63,7 @@ class TestStockUniverse:
             'bank', 'tech', 'consumer', 'energy', 'pharma', 'manufacturing',
             'ai', 'optical', 'storage', 'chip', 'ev', 'solar',
             'military', 'liquor', 'real_estate', 'telecom',
-            'robot', 'software',
+            'robot', 'software', 'satellite',
         }
         assert set(VALID_SECTORS) == expected
 

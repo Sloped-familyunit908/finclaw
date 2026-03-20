@@ -484,11 +484,11 @@ class TestBacktestV2:
 
 class TestCLIArgsV2:
     def test_scan_cn_strategy_default(self):
-        """Default strategy for scan-cn should be v3."""
+        """Default strategy for scan-cn should be v1."""
         from src.cli.main import build_parser
         parser = build_parser()
         args = parser.parse_args(['scan-cn'])
-        assert args.strategy == 'v3'
+        assert args.strategy == 'v1'
 
     def test_scan_cn_strategy_v1(self):
         """Can select v1 strategy."""
