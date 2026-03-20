@@ -16,6 +16,8 @@ from .feature_pipeline import FeaturePipeline
 from .model_selection import ModelSelector
 from .prediction_tracker import PredictionTracker
 from .data_splitter import FinancialDataSplitter
+from .enhanced_regime_detector import EnhancedRegimeDetector, RegimeResult
+from .economic_plausibility import EconomicPlausibilityChecker, PlausibilityResult
 
 __all__ = [
     "FeatureEngine",
@@ -37,4 +39,8 @@ __all__ = [
     "ModelSelector",
     "PredictionTracker",
     "FinancialDataSplitter",
+    "EnhancedRegimeDetector",
+    "RegimeResult",
+    "EconomicPlausibilityChecker",
+    "PlausibilityResult",
 ]

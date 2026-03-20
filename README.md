@@ -172,6 +172,16 @@ finclaw optimize-strategy my_strategy.py --data AAPL --period 1y
 
 Supports: OpenAI, Anthropic, DeepSeek, Gemini, Ollama (local), Groq, Mistral, Moonshot.
 
+### 🔮 Market Regime Detection
+```bash
+finclaw regime --symbol AAPL         # Detects current market regime (stable/volatile/crash)
+finclaw check-backtest --sharpe 3.5 --win-rate 0.85 --trades 100  # Plausibility check
+```
+Inspired by latest research on adaptive regime-aware prediction ([arXiv:2603.19136](https://arxiv.org/abs/2603.19136)).
+Automatically adjusts strategy parameters based on market conditions.
+Uses economic plausibility checks inspired by ARTEMIS ([arXiv:2603.18107](https://arxiv.org/abs/2603.18107))
+to flag suspiciously good backtest results (overfitting, look-ahead bias).
+
 ### ₿🔗 BTC Metrics & Crypto Tools
 ```bash
 finclaw btc-metrics                  # On-chain dashboard (hashrate, MVRV, miner outflow)

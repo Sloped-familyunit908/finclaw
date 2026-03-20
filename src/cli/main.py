@@ -1538,6 +1538,22 @@ Examples:
     p_pr.add_argument("--skip-fetch", action="store_true", help="Skip fetching live market data")
     p_pr.add_argument("--data-dir", default=None, help="Override data directory")
 
+    # regime (enhanced regime detection)
+    p_regime = sub.add_parser("regime", help="Detect current market regime (stable/volatile/crash)")
+    p_regime.add_argument("--symbol", "-s", required=True, help="Ticker symbol (e.g. AAPL, MSFT)")
+    p_regime.add_argument("--period", "-p", default="1y", help="Data period (e.g. 6mo, 1y, 2y)")
+    p_regime.add_argument("--lookback", type=int, default=20, help="Rolling window for regime features")
+
+    # check-backtest (economic plausibility checker)
+    p_chkbt = sub.add_parser("check-backtest", help="Check backtest results for plausibility")
+    p_chkbt.add_argument("--input", "-i", default=None, help="JSON file with backtest results")
+    p_chkbt.add_argument("--sharpe", type=float, default=None, help="Sharpe ratio")
+    p_chkbt.add_argument("--win-rate", type=float, default=None, help="Win rate (0-1)")
+    p_chkbt.add_argument("--trades", type=int, default=0, help="Number of trades")
+    p_chkbt.add_argument("--max-drawdown", type=float, default=None, help="Max drawdown (e.g. -0.15)")
+    p_chkbt.add_argument("--total-return", type=float, default=None, help="Total return (e.g. 0.45)")
+    p_chkbt.add_argument("--period-days", type=int, default=252, help="Backtest period in trading days")
+
     return parser
 
 
@@ -2614,6 +2630,100 @@ def cmd_paper_report(args):
     daily_run(manager, report_date=args.date, skip_fetch=args.skip_fetch)
 
 
+def cmd_regime(args):
+    """Detect current market regime using EnhancedRegimeDetector."""
+    from src.ml.enhanced_regime_detector import EnhancedRegimeDetector
+
+    symbol = args.symbol.upper()
+    df = _fetch_data(symbol, period=args.period)
+    if df is None or len(df) < args.lookback + 2:
+        print(f"  No sufficient data for {symbol}.")
+        return
+
+    prices = df["Close"].tolist()
+    volumes = df["Volume"].tolist() if "Volume" in df.columns else None
+
+    detector = EnhancedRegimeDetector(lookback=args.lookback)
+    result = detector.detect_detailed(prices, volumes)
+    weights = detector.adaptive_weights(result.regime)
+
+    # Emoji for regime
+    regime_emoji = {"stable": "🟢", "volatile": "🟡", "crash": "🔴"}.get(result.regime, "⚪")
+
+    print(f"\n  ── Market Regime: {symbol} ──")
+    print(f"  Regime:     {regime_emoji} {result.regime.upper()}")
+    print(f"  Score:      {result.score:.4f} (0=stable, 1=extreme)")
+    print(f"  Volatility: {result.volatility:.2%} (annualised)")
+    print(f"  Mean Ret:   {result.mean_return:+.4%} (rolling)")
+    print(f"  Vol Z:      {result.vol_z:+.2f}")
+    print(f"  Return Z:   {result.ret_z:+.2f}")
+    print(f"  Recon Err:  {result.reconstruction_error:.4f}")
+    print(f"\n  Adaptive Strategy Weights:")
+    for factor, w in sorted(weights.items(), key=lambda x: -x[1]):
+        bar = "█" * int(w * 40)
+        print(f"    {factor:<16} {bar} {w:.0%}")
+    print()
+
+
+def cmd_check_backtest(args):
+    """Check backtest results for economic plausibility."""
+    from src.ml.economic_plausibility import EconomicPlausibilityChecker
+
+    checker = EconomicPlausibilityChecker()
+
+    sharpe = args.sharpe or 0.0
+    win_rate = args.win_rate or 0.0
+    trades = args.trades
+    max_drawdown = args.max_drawdown or 0.0
+    total_return = args.total_return or 0.0
+    period_days = args.period_days
+
+    # Load from JSON file if provided
+    if args.input:
+        if not os.path.exists(args.input):
+            print(f"  File not found: {args.input}")
+            return
+        with open(args.input) as f:
+            data = json.load(f)
+        sharpe = data.get("sharpe_ratio", data.get("sharpe", sharpe))
+        win_rate = data.get("win_rate", win_rate)
+        trades = data.get("total_trades", data.get("trades", trades))
+        max_drawdown = data.get("max_drawdown", max_drawdown)
+        total_return = data.get("total_return", total_return)
+        period_days = data.get("period_days", period_days)
+
+    print(f"\n  ── Backtest Plausibility Check ──")
+    print(f"  Sharpe:      {sharpe:.2f}")
+    print(f"  Win Rate:    {win_rate:.1%}")
+    print(f"  Trades:      {trades}")
+    print(f"  Max DD:      {max_drawdown:.1%}")
+    print(f"  Total Ret:   {total_return:.1%}")
+    print(f"  Period:      {period_days} days\n")
+
+    results = checker.run_all(
+        sharpe=sharpe,
+        win_rate=win_rate,
+        trades=trades,
+        max_drawdown=max_drawdown,
+        total_return=total_return,
+        period_days=period_days,
+    )
+
+    all_ok = True
+    for r in results:
+        icon = "✅" if r.ok else "⚠️"
+        if not r.ok:
+            all_ok = False
+        print(f"  {icon} [{r.check_name}] {r.message}")
+
+    print()
+    if all_ok:
+        print("  ✅ All checks passed — results look plausible.")
+    else:
+        print("  ⚠️  Some checks flagged — review your methodology.")
+    print()
+
+
 def cmd_defi_tvl(args):
     """Top DeFi protocols by TVL."""
     from src.defi.defillama import DefiLlamaClient
@@ -3470,6 +3580,10 @@ def test_signals():
             _cmd_copilot(args)
         elif args.command == "paper-report":
             cmd_paper_report(args)
+        elif args.command == "regime":
+            cmd_regime(args)
+        elif args.command == "check-backtest":
+            cmd_check_backtest(args)
         else:
             parser.print_help()
     except KeyboardInterrupt:
