@@ -43,3 +43,8 @@ engine/target/
 *.csv
 *.html
 cache.db
+
+# Local stock data (too large for git)
+data/a_shares/
+data/*.csv
+logs/

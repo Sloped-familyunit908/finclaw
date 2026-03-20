@@ -1408,6 +1408,11 @@ Examples:
     # trending
     sub.add_parser("trending", help="Show trending financial topics and WSB tickers")
 
+    # market-check (market environment filter)
+    p_mc = sub.add_parser("market-check", help="Show current broad market environment assessment")
+    p_mc.add_argument("--index", default="000001.SS", help="Market index ticker (default: 000001.SS 上证指数)")
+    p_mc.add_argument("--period", default="3mo", help="Data period (default: 3mo)")
+
     # scan-cn (A-share scanner)
     p_scan_cn = sub.add_parser("scan-cn", help="Scan A-share (China) stocks for buy signals")
     p_scan_cn.add_argument("--top", type=int, default=30, help="Number of top stocks to scan (default: 30)")
@@ -2068,6 +2073,92 @@ def cmd_reddit_buzz(args):
         for t in results[:20]:
             print(f"  ${t['ticker']:<7} {t['mentions']:>8} {t['total_engagement']:>10} {t['sentiment_score']:>+10.4f} {t['sentiment_label']}")
     print()
+
+
+def cmd_market_check(args):
+    """Show current broad market environment assessment."""
+    import numpy as np
+    from src.market_filter import MarketFilter
+
+    index_ticker = getattr(args, "index", "000001.SS")
+    period = getattr(args, "period", "3mo")
+    version = _get_version()
+
+    print(f"\n  Market Environment Check -- FinClaw v{version}")
+    print(f"  Index: {index_ticker} | Period: {period}")
+    print("  " + "=" * 60)
+
+    # Try local data first (data/a_shares/sh_000001.csv)
+    df = None
+    import os
+    local_path = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+        "data", "a_shares", "sh_000001.csv"
+    )
+    if os.path.exists(local_path):
+        try:
+            import csv
+            with open(local_path, 'r', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                rows = list(reader)
+            if rows:
+                closes = np.array([float(r['close']) for r in rows], dtype=np.float64)
+                print(f"  Data source: local ({len(closes)} bars)")
+                df = closes
+        except Exception:
+            pass
+
+    if df is None:
+        # Fallback to yfinance
+        fetched = _fetch_data(index_ticker, period=period)
+        if fetched is None or len(fetched) < 30:
+            print("  ERROR: Could not fetch index data. Try: finclaw market-check --index 000001.SS")
+            return
+        closes = np.array(fetched["Close"].tolist(), dtype=np.float64)
+        print(f"  Data source: yfinance ({len(closes)} bars)")
+        df = closes
+
+    mf = MarketFilter(df)
+
+    score = mf.market_score()
+    regime = mf.get_regime()
+    favorable = mf.is_favorable()
+
+    # Display
+    regime_emoji = {"bull": "🟢", "neutral": "🟡", "bear": "🔴"}.get(regime, "⚪")
+    fav_str = "✅ YES" if favorable else "❌ NO"
+    action = {
+        "bull": "Buy signals OK — proceed normally",
+        "neutral": "Caution — consider reducing position size",
+        "bear": "Danger — skip new buys or use minimal position",
+    }.get(regime, "Unknown")
+
+    print(f"\n  Score:      {score:.1f} / 100")
+    print(f"  Regime:     {regime_emoji} {regime.upper()}")
+    print(f"  Favorable:  {fav_str}")
+    print(f"  Action:     {action}")
+
+    # Score bar
+    bar_len = 40
+    filled = int(score / 100 * bar_len)
+    bar = "█" * filled + "░" * (bar_len - filled)
+    print(f"\n  [{bar}] {score:.0f}%")
+
+    # Price info
+    latest = float(df[-1])
+    prev = float(df[-2]) if len(df) >= 2 else latest
+    change_1d = (latest / prev - 1) * 100
+    if len(df) >= 6:
+        change_5d = (df[-1] / df[-6] - 1) * 100
+    else:
+        change_5d = 0.0
+
+    print(f"\n  Latest:     {latest:.2f}")
+    print(f"  1D Change:  {change_1d:+.2f}%")
+    print(f"  5D Change:  {change_5d:+.2f}%")
+    print()
+
+    return {"score": score, "regime": regime, "favorable": favorable}
 
 
 def cmd_scan_cn(args):
@@ -3766,6 +3857,8 @@ def test_signals():
             cmd_news(args)
         elif args.command == "trending":
             cmd_trending(args)
+        elif args.command == "market-check":
+            cmd_market_check(args)
         elif args.command == "scan-cn":
             cmd_scan_cn(args)
         elif args.command == "scan-cn-backtest":
