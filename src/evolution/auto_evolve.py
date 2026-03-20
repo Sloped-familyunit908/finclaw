@@ -71,7 +71,7 @@ _PARAM_RANGES: Dict[str, Tuple[float, float, bool]] = {
     "r2_min": (0.1, 0.95, False),
     "slope_min": (0.1, 3.0, False),
     "volume_ratio_min": (0.5, 5.0, False),
-    "hold_days": (1, 20, True),
+    "hold_days": (2, 20, True),  # A-share T+1: minimum 2 days (buy T+1, sell T+2)
     "stop_loss_pct": (0.5, 10.0, False),
     "take_profit_pct": (3.0, 50.0, False),
     "max_positions": (1, 10, True),
@@ -210,6 +210,8 @@ def score_stock(
 
     Returns score in [0, 10] range.
     """
+    if idx >= len(rsi) or idx >= len(r2) or idx >= len(slope) or idx >= len(volume_ratio):
+        return 0.0
     if any(
         math.isnan(x)
         for x in [rsi[idx], r2[idx], slope[idx], volume_ratio[idx]]
@@ -489,7 +491,7 @@ class AutoEvolver:
         gross_profit = 0.0
         gross_loss = 0.0
 
-        hold_days = max(1, dna.hold_days)
+        hold_days = max(2, dna.hold_days)  # A-share T+1: buy T+1, earliest sell T+2
         day = 30  # skip first 30 days for indicator warmup
 
         while day < total_days - hold_days - 1:
