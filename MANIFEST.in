@@ -8,7 +8,7 @@ include pyproject.toml
 
 # Include source
 recursive-include agents *.py
-recursive-include strategies *.py
+recursive-include strategies *.py *.yaml
 recursive-include src *.py
 
 # Exclude dev/scratch files

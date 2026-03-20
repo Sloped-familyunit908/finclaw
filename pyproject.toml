@@ -48,6 +48,9 @@ dev = ["pytest>=7.0", "pytest-asyncio>=0.21", "pytest-aiohttp>=1.0", "ruff"]
 [tool.setuptools.packages.find]
 include = ["src*", "agents*", "strategies*"]
 
+[tool.setuptools.package-data]
+strategies = ["builtin/*.yaml"]
+
 [tool.pytest.ini_options]
 asyncio_mode = "strict"
 markers = [
