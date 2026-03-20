@@ -20,6 +20,7 @@ from .sector_rotation import SectorRotation, SectorSignal
 from .signal_combiner import SignalCombiner, CombinedSignal
 from .regime_adaptive import RegimeAdaptive, RegimeSignal
 from .trend_discovery import TrendDiscovery, TrendCandidate
+from .golden_dip import GoldenDipStrategy, BacktestResult, BacktestTrade
 
 __all__ = [
     "MeanReversionStrategy",
@@ -40,4 +41,7 @@ __all__ = [
     "RegimeSignal",
     "TrendDiscovery",
     "TrendCandidate",
+    "GoldenDipStrategy",
+    "BacktestResult",
+    "BacktestTrade",
 ]
