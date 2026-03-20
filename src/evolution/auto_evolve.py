@@ -533,6 +533,22 @@ class AutoEvolver:
                     if entry_price <= 0:
                         continue
 
+                    # === A-SHARE LIMIT RULES ===
+                    # Check if stock is at limit-up on entry day (can't buy)
+                    if entry_day >= 1:
+                        prev_close = sd["close"][entry_day - 1]
+                        if prev_close > 0:
+                            # Determine limit % based on board type
+                            code_str = code.replace("_", ".")
+                            if code_str.startswith("sh.688") or code_str.startswith("sz.3"):
+                                limit_pct = 0.20  # 科创板/创业板 20%
+                            else:
+                                limit_pct = 0.10  # 主板 10%
+
+                            # Skip if opening at limit-up (can't buy, sealed)
+                            if entry_price >= prev_close * (1 + limit_pct - 0.005):
+                                continue
+
                     shares = per_pos / entry_price
                     exit_price = entry_price  # default
 
@@ -540,6 +556,20 @@ class AutoEvolver:
                     for d in range(entry_day, min(entry_day + hold_days, len(sd["close"]))):
                         low = sd["low"][d]
                         high = sd["high"][d]
+
+                        # Check if at limit-down (can't sell)
+                        if d >= 1:
+                            pc = sd["close"][d - 1]
+                            if pc > 0:
+                                code_str = code.replace("_", ".")
+                                if code_str.startswith("sh.688") or code_str.startswith("sz.3"):
+                                    lim = 0.20
+                                else:
+                                    lim = 0.10
+                                limit_down_price = pc * (1 - lim + 0.005)
+                                # If close is at limit-down, can't sell
+                                if sd["close"][d] <= limit_down_price and d < entry_day + hold_days - 1:
+                                    continue  # skip this day, try to sell next day
 
                         # Stop loss
                         sl_price = entry_price * (1 - dna.stop_loss_pct / 100)
