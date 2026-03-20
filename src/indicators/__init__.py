@@ -8,6 +8,9 @@ from .signals import (
     detect_golden_cross, detect_death_cross, detect_rsi_divergence,
     detect_macd_crossover, detect_bollinger_squeeze,
 )
+from .alpha_factors import (
+    beta, rsqr, corr_price_volume, aroon, trend_quality,
+)
 
 __all__ = [
     "sma", "ema", "rsi", "macd", "bollinger_bands", "atr",
@@ -15,4 +18,5 @@ __all__ = [
     "fibonacci_retracement", "supertrend",
     "detect_golden_cross", "detect_death_cross", "detect_rsi_divergence",
     "detect_macd_crossover", "detect_bollinger_squeeze",
+    "beta", "rsqr", "corr_price_volume", "aroon", "trend_quality",
 ]
