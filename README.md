@@ -66,6 +66,20 @@ $ finclaw backtest momentum --symbol NVDA --start 2023-01-01
 
 ---
 
+## 📊 Live Paper Trading
+
+We run daily paper trading with real market data to prove our strategies work.
+No cherry-picking. No hindsight bias. Just real-time results.
+
+👉 [View Results](docs/paper-trading/summary.md)
+
+```bash
+finclaw paper-report --init   # Initialize portfolios ($100K US + ¥1M CN)
+finclaw paper-report           # Generate today's report
+```
+
+---
+
 ## ⚡ Feature Comparison
 
 > **How does FinClaw stack up?** Compared against the most popular open-source quant tools.

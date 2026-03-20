@@ -1531,6 +1531,13 @@ Examples:
 
     sub.add_parser("copilot", help="Interactive AI financial assistant chat")
 
+    # paper-report (automated daily paper trading report)
+    p_pr = sub.add_parser("paper-report", help="Paper trading daily report & portfolio init")
+    p_pr.add_argument("--init", action="store_true", help="Initialize US and CN paper portfolios")
+    p_pr.add_argument("--date", default=None, help="Report date (YYYY-MM-DD), defaults to today")
+    p_pr.add_argument("--skip-fetch", action="store_true", help="Skip fetching live market data")
+    p_pr.add_argument("--data-dir", default=None, help="Override data directory")
+
     return parser
 
 
@@ -2589,6 +2596,24 @@ def _cmd_copilot(args):
     copilot.run_interactive()
 
 
+def cmd_paper_report(args):
+    """Handle: finclaw paper-report"""
+    from src.paper_report.portfolio_manager import PortfolioManager
+
+    manager = PortfolioManager(data_dir=args.data_dir)
+
+    if args.init:
+        result = manager.init_portfolios()
+        print(f"  ✅ Portfolios initialized!")
+        print(f"  US: ${result['us']['initial_capital']:,.0f}")
+        print(f"  CN: ¥{result['cn']['initial_capital']:,.0f}")
+        print(f"  Data dir: {manager.data_dir}")
+        return
+
+    from scripts.paper_trading_daily import daily_run
+    daily_run(manager, report_date=args.date, skip_fetch=args.skip_fetch)
+
+
 def cmd_defi_tvl(args):
     """Top DeFi protocols by TVL."""
     from src.defi.defillama import DefiLlamaClient
@@ -3443,6 +3468,8 @@ def test_signals():
             _cmd_optimize_strategy(args)
         elif args.command == "copilot":
             _cmd_copilot(args)
+        elif args.command == "paper-report":
+            cmd_paper_report(args)
         else:
             parser.print_help()
     except KeyboardInterrupt:
