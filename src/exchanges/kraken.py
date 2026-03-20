@@ -10,7 +10,7 @@ import hmac
 import time
 import urllib.parse
 
-from src.exchanges.base import ExchangeAdapter, handle_network_errors
+from src.exchanges.base import ExchangeAdapter, ExchangeError, handle_network_errors
 from src.exchanges.http_client import HttpClient
 
 
@@ -53,7 +53,10 @@ class KrakenAdapter(ExchangeAdapter):
         """Extract result from Kraken response, raise on error."""
         errors = data.get("error", [])
         if errors:
-            raise RuntimeError(f"Kraken API error: {errors}")
+            raise ExchangeError(
+                self.name, "api_call",
+                f"API error: {errors}",
+            )
         return data.get("result", {})
 
     # --- Public ---

@@ -73,15 +73,11 @@ class BaostockAdapter(ExchangeAdapter):
         start_date = time.strftime("%Y-%m-%d", time.gmtime(start_ts))
 
         fields = "date,open,high,low,close,volume"
-        try:
-            data = self.client.get("/api/query_history_k_data_plus", {
-                "code": code, "fields": fields,
-                "start_date": start_date, "end_date": end_date,
-                "frequency": freq, "adjustflag": "3",  # no adjust
-            })
-        except Exception:
-            # Fallback: return empty if baostock API is unavailable
-            return []
+        data = self.client.get("/api/query_history_k_data_plus", {
+            "code": code, "fields": fields,
+            "start_date": start_date, "end_date": end_date,
+            "frequency": freq, "adjustflag": "3",  # no adjust
+        })
 
         records = data if isinstance(data, list) else data.get("data", [])
         candles = []
@@ -118,20 +114,19 @@ class BaostockAdapter(ExchangeAdapter):
         """Baostock doesn't provide real-time orderbook."""
         return {"bids": [], "asks": []}
 
+    @handle_network_errors
     def get_dividends(self, symbol: str, year: str = "") -> list[dict]:
         """Fetch dividend data for a stock."""
         code = self._normalize_symbol(symbol)
         if not year:
             year = time.strftime("%Y")
-        try:
-            data = self.client.get("/api/query_dividend_data", {
-                "code": code, "year": year, "yearType": "report",
-            })
-            records = data if isinstance(data, list) else data.get("data", [])
-            return records
-        except Exception:
-            return []
+        data = self.client.get("/api/query_dividend_data", {
+            "code": code, "year": year, "yearType": "report",
+        })
+        records = data if isinstance(data, list) else data.get("data", [])
+        return records
 
+    @handle_network_errors
     def get_industry(self, symbol: str = "", date: str = "") -> list[dict]:
         """Fetch stock industry classification."""
         if not date:
@@ -139,12 +134,9 @@ class BaostockAdapter(ExchangeAdapter):
         params: dict = {"date": date}
         if symbol:
             params["code"] = self._normalize_symbol(symbol)
-        try:
-            data = self.client.get("/api/query_stock_industry", params)
-            records = data if isinstance(data, list) else data.get("data", [])
-            return records
-        except Exception:
-            return []
+        data = self.client.get("/api/query_stock_industry", params)
+        records = data if isinstance(data, list) else data.get("data", [])
+        return records
 
     # --- Trading not supported (data only) ---
 

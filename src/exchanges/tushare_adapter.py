@@ -3,7 +3,7 @@ Tushare adapter for A股 (China A-shares).
 Requires a Tushare Pro token (free registration).
 """
 
-from src.exchanges.base import ExchangeAdapter, handle_network_errors
+from src.exchanges.base import ExchangeAdapter, ExchangeError, handle_network_errors
 from src.exchanges.http_client import HttpClient
 
 
@@ -21,7 +21,10 @@ class TushareAdapter(ExchangeAdapter):
         body = {"api_name": api_name, "token": self.token, "params": params or {}, "fields": fields}
         data = self.client.post("", body=body)
         if data.get("code") != 0:
-            raise RuntimeError(f"Tushare API error: {data.get('msg', 'unknown')}")
+            raise ExchangeError(
+                self.name, api_name,
+                f"API error: {data.get('msg', 'unknown')}",
+            )
         result = data.get("data", {})
         columns = result.get("fields", [])
         items = result.get("items", [])

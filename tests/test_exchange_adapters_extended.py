@@ -212,7 +212,8 @@ class TestKrakenAdapter:
 
     def test_check_result_error(self):
         a = self._adapter()
-        with pytest.raises(RuntimeError, match="Kraken API error"):
+        from src.exchanges.base import ExchangeError
+        with pytest.raises(ExchangeError, match="API error"):
             a._check_result({"error": ["EGeneral:Invalid arguments"], "result": {}})
 
     def test_sign_generates_headers(self):
@@ -432,11 +433,13 @@ class TestBaostockAdapter:
         assert len(result) == 1
 
     @patch("src.exchanges.http_client.HttpClient.get")
-    def test_get_ohlcv_graceful_failure(self, mock_get):
-        mock_get.side_effect = Exception("connection failed")
+    def test_get_ohlcv_network_failure_raises(self, mock_get):
+        """Network errors should raise ExchangeError, not silently return []."""
+        from src.exchanges.base import ExchangeError
+        mock_get.side_effect = ExchangeError("baostock", "get_ohlcv", "connection failed")
         a = self._adapter()
-        result = a.get_ohlcv("600000")
-        assert result == []
+        with pytest.raises(ExchangeError, match="connection failed"):
+            a.get_ohlcv("600000")
 
     def test_place_order_not_supported(self):
         a = self._adapter()

@@ -498,7 +498,8 @@ class TestTushareAdapter:
     def test_api_error(self, mock_url):
         mock_url.return_value = _mock_urlopen({"code": -1, "msg": "token error"})
         adapter = self._make()
-        with pytest.raises(RuntimeError, match="token error"):
+        from src.exchanges.base import ExchangeError
+        with pytest.raises(ExchangeError, match="token error"):
             adapter.get_ohlcv("000001.SZ")
 
     def test_place_order_raises(self):
