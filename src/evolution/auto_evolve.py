@@ -352,8 +352,8 @@ def compute_obv_trend(
     closes: List[float], volumes: List[float], window: int = 10
 ) -> List[float]:
     """OBV trend direction. Returns list of slopes (positive = accumulation). NaN-padded."""
-    n = len(closes)
-    trend = [float("nan")] * n
+    n = min(len(closes), len(volumes))
+    trend = [float("nan")] * len(closes)
     if n < window + 1:
         return trend
 
@@ -1012,6 +1012,14 @@ class AutoEvolver:
             opens = sd["open"]
             highs_list = sd["high"]
             lows_list = sd["low"]
+            
+            # Ensure all lists have same length
+            min_len = min(len(closes), len(vols), len(opens), len(highs_list), len(lows_list))
+            closes = closes[:min_len]
+            vols = vols[:min_len]
+            opens = opens[:min_len]
+            highs_list = highs_list[:min_len]
+            lows_list = lows_list[:min_len]
 
             rsi = compute_rsi(closes)
             r2, slope = compute_linear_regression(closes)
