@@ -73,7 +73,7 @@ export default function Header({
               9 Strategies
             </span>
             <span className="px-2 py-0.5 bg-red-950/40 text-red-400 text-[10px] rounded border border-red-800/40">
-              A股 + Crypto
+              12+ Exchanges
             </span>
           </div>
           <span className="font-mono text-xs text-gray-500">{clock}</span>

@@ -12,6 +12,16 @@ import type {
   CNScannerResult,
 } from "@/app/types";
 
+/* ── US Stocks market data ── */
+export const US_MARKET_DATA: MarketData[] = [
+  { asset: "AAPL", price: 178.72, change24h: 1.35, rsi14: 58.4, sma20: 174.50, sma50: 171.20, sma200: 182.30, volume24h: 52.1e6, marketCap: 2.78e12, market: "US" },
+  { asset: "NVDA", price: 875.30, change24h: 3.82, rsi14: 68.9, sma20: 830.00, sma50: 780.50, sma200: 620.40, volume24h: 45.7e6, marketCap: 2.15e12, market: "US" },
+  { asset: "TSLA", price: 175.20, change24h: -1.45, rsi14: 42.3, sma20: 180.60, sma50: 195.30, sma200: 215.80, volume24h: 98.3e6, marketCap: 557e9, market: "US" },
+  { asset: "MSFT", price: 425.80, change24h: 0.92, rsi14: 55.6, sma20: 420.10, sma50: 415.30, sma200: 395.70, volume24h: 22.4e6, marketCap: 3.16e12, market: "US" },
+  { asset: "AMZN", price: 186.40, change24h: 2.15, rsi14: 61.2, sma20: 180.30, sma50: 178.90, sma200: 165.50, volume24h: 38.6e6, marketCap: 1.94e12, market: "US" },
+  { asset: "META", price: 515.60, change24h: 1.78, rsi14: 63.5, sma20: 500.20, sma50: 485.70, sma200: 420.30, volume24h: 15.2e6, marketCap: 1.32e12, market: "US" },
+];
+
 /* ── Crypto market data ── */
 export const MARKET_DATA: MarketData[] = [
   { asset: "BTC", price: 70742, change24h: -2.27, rsi14: 52.7, sma20: 68283, sma50: 71717, sma200: 94123, volume24h: 50.4e9, marketCap: 1.41e12, market: "Crypto" },

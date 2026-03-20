@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { TabId } from "@/app/types";
-import { MARKET_DATA, CN_MARKET_DATA, DEBATE } from "@/app/lib/mockData";
+import { MARKET_DATA, US_MARKET_DATA, CN_MARKET_DATA, DEBATE } from "@/app/lib/mockData";
 
 import Header from "@/app/components/Header";
 import PriceCard from "@/app/components/PriceCard";
@@ -24,10 +24,27 @@ export default function Home() {
       <main className="max-w-7xl mx-auto px-4 py-6">
         {tab === "overview" && (
           <div className="space-y-8">
+            {/* US Stocks — primary audience */}
+            <section>
+              <h2 className="text-lg font-semibold mb-4 text-gray-300">
+                🇺🇸 US Stocks
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {US_MARKET_DATA.slice(0, 3).map((m) => (
+                  <PriceCard key={m.asset} data={m} />
+                ))}
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+                {US_MARKET_DATA.slice(3).map((m) => (
+                  <PriceCard key={m.asset} data={m} />
+                ))}
+              </div>
+            </section>
+
             {/* Crypto */}
             <section>
               <h2 className="text-lg font-semibold mb-4 text-gray-300">
-                🌍 Crypto Market
+                ₿ Crypto Market
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {MARKET_DATA.map((m) => (
@@ -39,7 +56,7 @@ export default function Home() {
             {/* A-Shares */}
             <section>
               <h2 className="text-lg font-semibold mb-4 text-gray-300">
-                🇨🇳 A股市场
+                🇨🇳 A-Share Market
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {CN_MARKET_DATA.slice(0, 3).map((m) => (
