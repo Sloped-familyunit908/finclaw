@@ -21,6 +21,8 @@ from .signal_combiner import SignalCombiner, CombinedSignal
 from .regime_adaptive import RegimeAdaptive, RegimeSignal
 from .trend_discovery import TrendDiscovery, TrendCandidate
 from .golden_dip import GoldenDipStrategy, BacktestResult, BacktestTrade
+from .limit_up_pullback import LimitUpPullback, LimitUpSignal
+from .reversal_patterns import UShapeReversal, UShapeSignal, VShapeReversal, VShapeSignal
 
 __all__ = [
     "MeanReversionStrategy",
@@ -44,4 +46,10 @@ __all__ = [
     "GoldenDipStrategy",
     "BacktestResult",
     "BacktestTrade",
+    "LimitUpPullback",
+    "LimitUpSignal",
+    "UShapeReversal",
+    "UShapeSignal",
+    "VShapeReversal",
+    "VShapeSignal",
 ]
