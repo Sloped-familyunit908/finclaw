@@ -31,7 +31,7 @@ def ensure_index_data():
     """Download sh.000001 (上证指数) via BaoStock if not present."""
     if os.path.exists(INDEX_FILE):
         return True
-    print("Downloading 上证指数 (sh.000001) via BaoStock...")
+    print("Downloading sh.000001 index via BaoStock...")
     try:
         import baostock as bs
         lg = bs.login()
