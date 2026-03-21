@@ -10,7 +10,7 @@
   <a href="https://github.com/NeuZhou/finclaw/stargazers"><img src="https://img.shields.io/github/stars/NeuZhou/finclaw?style=social" alt="GitHub Stars"></a>
 </p>
 
-<img src="https://raw.githubusercontent.com/NeuZhou/finclaw-data/main/blog/finclaw-hero.jpg" alt="FinClaw Architecture" />
+<img src="docs/images/hero.jpg" alt="FinClaw Architecture" />
 
 > FinClaw is an open-source quantitative finance engine that uses genetic algorithms to continuously evolve trading strategies across 41 factor dimensions — technical, fundamental, and quality — without human intervention.
 
@@ -72,7 +72,7 @@ npm install && npm run dev
 
 ## Dashboard
 
-<img src="https://raw.githubusercontent.com/NeuZhou/finclaw-data/main/blog/dashboard-v6-homepage.jpg" alt="FinClaw Dashboard" />
+<img src="docs/images/dashboard.jpg" alt="FinClaw Dashboard" />
 
 - Real-time prices (US, Crypto, A-Shares)
 - TradingView professional charts
