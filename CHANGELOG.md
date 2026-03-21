@@ -1,6 +1,28 @@
 # Changelog
 
-All notable changes to FinClaw are documented here.
+All notable changes to this project will be documented in this file.
+Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+
+## [5.1.0] - 2026-03-21
+
+### Added
+- Real-time dashboard with live market data (US, CN, Crypto)
+- Stock detail pages with TradingView charts and technical indicators
+- Strategy evolution engine with genetic algorithm optimization
+- Walk-forward validation and Monte Carlo simulation
+- Multi-agent debate system for consensus-based analysis
+- A2A (Agent-to-Agent) protocol support
+- MCP server for AI agent integration
+
+### Changed
+- Dashboard redesigned with professional UI (no emoji, data-dense layout)
+- All market data now fetched from real APIs (Yahoo Finance, Sina, CoinGecko)
+- README cleaned up for professional open-source presentation
+
+### Fixed
+- Exchange adapters now handle network errors with retry and rate limiting
+- Flaky timestamp test in snapshot manager
+- SMA values on homepage cards were showing stale mock data
 
 ## [0.1.0] - 2026-03-17
 
