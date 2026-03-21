@@ -88,6 +88,48 @@ body {
 }
 .chat-markdown a.chat-link:hover { color: #99f6e4; }
 
+/* Chat headings */
+.chat-markdown .chat-h3 {
+  font-size: 1em;
+  font-weight: 700;
+  color: #e4e4ef;
+  margin: 0.75em 0 0.25em;
+  border-bottom: 1px solid #1e1e2e;
+  padding-bottom: 0.25em;
+}
+.chat-markdown .chat-h4 {
+  font-size: 0.9em;
+  font-weight: 600;
+  color: #d1d5db;
+  margin: 0.5em 0 0.25em;
+}
+.chat-markdown .chat-h5 {
+  font-size: 0.85em;
+  font-weight: 600;
+  color: #9ca3af;
+  margin: 0.5em 0 0.25em;
+}
+
+/* Chat lists */
+.chat-markdown .chat-list {
+  margin: 0.25em 0 0.5em;
+  padding-left: 1.25em;
+}
+.chat-markdown .chat-list li {
+  margin-bottom: 0.15em;
+  color: #d1d5db;
+  font-size: 0.9em;
+}
+.chat-markdown ul.chat-list { list-style-type: disc; }
+.chat-markdown ol.chat-list { list-style-type: decimal; }
+
+/* Chat horizontal rule */
+.chat-markdown .chat-hr {
+  border: none;
+  border-top: 1px solid #1e1e2e;
+  margin: 0.75em 0;
+}
+
 /* Code blocks */
 .chat-code-block {
   display: block;

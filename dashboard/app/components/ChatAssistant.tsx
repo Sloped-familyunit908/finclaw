@@ -50,6 +50,42 @@ function renderMarkdown(text: string): string {
   // Italic
   html = html.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, "<em>$1</em>");
 
+  // Headers (## → h3, ### → h4, limit to h3-h5 for chat context)
+  html = html.replace(/^#{4,}\s+(.+)$/gm, '<h5 class="chat-h5">$1</h5>');
+  html = html.replace(/^###\s+(.+)$/gm, '<h4 class="chat-h4">$1</h4>');
+  html = html.replace(/^##\s+(.+)$/gm, '<h3 class="chat-h3">$1</h3>');
+
+  // Unordered lists (- item or * item)
+  html = html.replace(
+    /((?:^[\t ]*[-*]\s+.+$\n?)+)/gm,
+    (match) => {
+      const items = match
+        .trim()
+        .split('\n')
+        .map((line) => line.replace(/^[\t ]*[-*]\s+/, ''))
+        .map((item) => `<li>${item}</li>`)
+        .join('');
+      return `<ul class="chat-list">${items}</ul>`;
+    }
+  );
+
+  // Ordered lists (1. item, 2. item)
+  html = html.replace(
+    /((?:^\d+\.\s+.+$\n?)+)/gm,
+    (match) => {
+      const items = match
+        .trim()
+        .split('\n')
+        .map((line) => line.replace(/^\d+\.\s+/, ''))
+        .map((item) => `<li>${item}</li>`)
+        .join('');
+      return `<ol class="chat-list">${items}</ol>`;
+    }
+  );
+
+  // Horizontal rule
+  html = html.replace(/^---$/gm, '<hr class="chat-hr"/>');
+
   // Links
   html = html.replace(
     /\[([^\]]+)\]\(([^)]+)\)/g,
