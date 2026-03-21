@@ -1,10 +1,10 @@
 // finclaw.config.ts — User configuration
-// Copy finclaw.config.example.ts and customize
+// See finclaw.config.example.ts for all options and supported providers
 
 export default {
   llm: {
     provider: 'openai' as const,
-    model: 'gpt-4o-mini',
+    model: 'gpt-4.1-mini',
     baseUrl: 'https://api.openai.com/v1',
     // API key should be in .env.local: FINCLAW_LLM_API_KEY=sk-xxx
   },

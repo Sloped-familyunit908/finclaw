@@ -107,10 +107,11 @@ function SetupInstructions() {
             Supported Providers
           </p>
           <ul className="space-y-1 text-gray-500 text-xs">
-            <li>OpenAI (gpt-4o, gpt-4o-mini)</li>
-            <li>Anthropic (claude-3.5-sonnet)</li>
-            <li>DeepSeek (deepseek-chat)</li>
-            <li>Any OpenAI-compatible API</li>
+            <li>OpenAI (gpt-4.1, gpt-4.1-mini)</li>
+            <li>Anthropic (claude-sonnet-4)</li>
+            <li>DeepSeek (deepseek-chat, deepseek-reasoner)</li>
+            <li>Google Gemini (gemini-2.5-pro)</li>
+            <li>Groq, Ollama, any OpenAI-compatible API</li>
           </ul>
         </div>
 
