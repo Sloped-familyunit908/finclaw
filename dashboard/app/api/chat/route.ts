@@ -59,8 +59,8 @@ export async function POST(req: NextRequest) {
   }
 
   const config = getConfig();
-  const baseUrl = config.llm?.baseUrl || 'https://api.openai.com/v1';
-  const model = config.llm?.model || 'gpt-4o-mini';
+  const baseUrl = process.env.FINCLAW_LLM_BASE_URL || config.llm?.baseUrl || 'https://api.openai.com/v1';
+  const model = process.env.FINCLAW_LLM_MODEL || config.llm?.model || 'gpt-4.1-mini';
 
   try {
     const response = await fetch(`${baseUrl}/chat/completions`, {
