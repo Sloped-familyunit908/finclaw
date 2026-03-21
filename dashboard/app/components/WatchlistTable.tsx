@@ -9,7 +9,7 @@ import { fmt } from "@/app/lib/utils";
 
 /* ── Constants ── */
 const STORAGE_KEY = "finclaw_watchlist";
-const DEFAULT_WATCHLIST = ["AAPL", "NVDA", "TSLA", "MSFT", "GOOGL", "BTC", "ETH", "AMZN"];
+const DEFAULT_WATCHLIST = ["AAPL", "NVDA", "TSLA", "MSFT", "GOOGL", "AMZN", "BTC", "ETH"];
 
 /* ── Sort config ── */
 type SortField = "ticker" | "name" | "price" | "change" | "volume" | "marketCap";

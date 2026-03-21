@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import type { MarketData } from "@/app/types";
 import {
   US_TICKERS,
-  CN_TICKERS,
   CRYPTO_TICKERS,
 } from "@/app/lib/fallbackData";
 
@@ -24,14 +23,13 @@ export default function TopMovers() {
 
     async function fetchAll() {
       setLoading(true);
-      const [us, cn, crypto] = await Promise.all([
+      const [us, crypto] = await Promise.all([
         fetch("/api/prices?market=us").then((r) => r.json()).catch(() => US_TICKERS),
-        fetch("/api/prices?market=cn").then((r) => r.json()).catch(() => CN_TICKERS),
         fetch("/api/prices?market=crypto").then((r) => r.json()).catch(() => CRYPTO_TICKERS),
       ]);
 
       if (!cancelled) {
-        const combined = [...us, ...cn, ...crypto].filter(
+        const combined = [...us, ...crypto].filter(
           (d: MarketData) => d && d.price > 0
         );
         setAllData(combined);
