@@ -12,6 +12,8 @@ import WatchlistTable from "@/app/components/WatchlistTable";
 import EvolutionStatus from "@/app/components/EvolutionStatus";
 import TopMovers from "@/app/components/TopMovers";
 import NewsPanel from "@/app/components/NewsPanel";
+import SectorHeatmap from "@/app/components/SectorHeatmap";
+import EconomicCalendar from "@/app/components/EconomicCalendar";
 
 export default function Home() {
   const [tab, setTab] = useState<TabId>("overview");
@@ -34,12 +36,14 @@ export default function Home() {
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
               {/* Left Column (60%) */}
               <div className="lg:col-span-3 space-y-6">
+                <SectorHeatmap />
                 <WatchlistTable />
               </div>
 
               {/* Right Column (40%) */}
               <div className="lg:col-span-2 space-y-4">
                 <EvolutionStatus />
+                <EconomicCalendar />
                 <TopMovers />
                 <NewsPanel ticker="market" maxItems={5} compact />
               </div>

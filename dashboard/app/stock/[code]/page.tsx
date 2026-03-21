@@ -15,6 +15,7 @@ import {
 import { fmt } from "@/app/lib/utils";
 import { findTicker } from "@/app/lib/tickers";
 import TimeRangeSelector, { type TimeRange } from "@/app/components/TimeRangeSelector";
+import FundamentalsPanel from "@/app/components/FundamentalsPanel";
 
 /* -- Helpers -- */
 function isCN(code: string) {
@@ -674,6 +675,9 @@ export default function StockDetailPage() {
               <h2 className="text-sm font-semibold text-gray-400 mb-4">MACD</h2>
               <div ref={macdChartContainerRef} />
             </section>
+
+            {/* -- Fundamentals Panel (US stocks only) -- */}
+            {!crypto && <FundamentalsPanel code={code} />}
 
             {/* -- Technical Analysis Summary -- */}
             {analysis && (
