@@ -102,7 +102,7 @@ export default function EvolutionStatus() {
           <div className="flex justify-between text-sm">
             <span className="text-gray-500">Win Rate</span>
             <span className="font-mono text-gray-200">
-              {(data.winRate * 100).toFixed(1)}%
+              {data.winRate > 1 ? data.winRate.toFixed(1) : (data.winRate * 100).toFixed(1)}%
             </span>
           </div>
           <div className="flex justify-between text-sm">

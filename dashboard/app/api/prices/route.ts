@@ -156,6 +156,18 @@ async function fetchUSPrices(): Promise<MarketData[]> {
         }
       }
 
+      // If still null, estimate from shares outstanding (approximate, updated periodically)
+      if (!marketCap) {
+        const SHARES_OUTSTANDING: Record<string, number> = {
+          AAPL: 15.115e9, MSFT: 7.432e9, GOOGL: 5.882e9, GOOG: 5.882e9,
+          AMZN: 10.494e9, NVDA: 24.490e9, META: 2.533e9, TSLA: 3.211e9,
+        };
+        const shares = SHARES_OUTSTANDING[symbol];
+        if (shares && price) {
+          marketCap = Math.round(shares * price);
+        }
+      }
+
       results.push({
         asset: symbol,
         price,
