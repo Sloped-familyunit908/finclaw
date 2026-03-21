@@ -1,6 +1,7 @@
 /* ════════════════════════════════════════════════════════════════
    API ROUTE — /api/history  — FinClaw
    Returns OHLCV price history for a given stock/crypto
+   Supports ?range= param: 1w, 1m, 3m, 6m, 1y, all
    ════════════════════════════════════════════════════════════════ */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -14,12 +15,52 @@ export interface HistoryBar {
   volume: number;
 }
 
+/* ── Range to days mapping ── */
+function rangeToDays(range: string | null): number {
+  switch (range?.toLowerCase()) {
+    case "1w": return 7;
+    case "1m": return 30;
+    case "3m": return 90;
+    case "6m": return 180;
+    case "1y": return 365;
+    case "all": return 9999;
+    default: return 30;
+  }
+}
+
+/* ── Range to Yahoo Finance range param ── */
+function rangeToYahoo(range: string | null): string {
+  switch (range?.toLowerCase()) {
+    case "1w": return "5d";
+    case "1m": return "1mo";
+    case "3m": return "3mo";
+    case "6m": return "6mo";
+    case "1y": return "1y";
+    case "all": return "max";
+    default: return "1mo";
+  }
+}
+
+/* ── Range to Eastmoney lmt param ── */
+function rangeToEastmoneyLmt(range: string | null): number {
+  switch (range?.toLowerCase()) {
+    case "1w": return 5;
+    case "1m": return 22;
+    case "3m": return 66;
+    case "6m": return 132;
+    case "1y": return 250;
+    case "all": return 500;
+    default: return 22;
+  }
+}
+
 /* ── A-share: Eastmoney kline API ── */
-async function fetchCNHistory(code: string, days: number): Promise<HistoryBar[]> {
+async function fetchCNHistory(code: string, range: string | null): Promise<HistoryBar[]> {
   const num = code.replace(/\.(SH|SZ)$/i, "");
   const secid = num.startsWith("6") ? `1.${num}` : `0.${num}`;
+  const lmt = rangeToEastmoneyLmt(range);
 
-  const url = `https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=${secid}&fields1=f1,f2,f3&fields2=f51,f52,f53,f54,f55,f56&klt=101&fqt=1&lmt=${days}&end=20990101`;
+  const url = `https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=${secid}&fields1=f1,f2,f3&fields2=f51,f52,f53,f54,f55,f56&klt=101&fqt=1&lmt=${lmt}&end=20990101`;
 
   const resp = await fetch(url, {
     headers: {
@@ -44,9 +85,9 @@ async function fetchCNHistory(code: string, days: number): Promise<HistoryBar[]>
 }
 
 /* ── US stocks: Yahoo Finance chart API ── */
-async function fetchUSHistory(symbol: string, days: number): Promise<HistoryBar[]> {
-  const range = days <= 5 ? "5d" : days <= 30 ? "1mo" : days <= 90 ? "3mo" : "6mo";
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=${range}`;
+async function fetchUSHistory(symbol: string, range: string | null): Promise<HistoryBar[]> {
+  const yahooRange = rangeToYahoo(range);
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=${yahooRange}`;
 
   const resp = await fetch(url, {
     headers: {
@@ -83,7 +124,7 @@ async function fetchUSHistory(symbol: string, days: number): Promise<HistoryBar[
     });
   }
 
-  return bars.slice(-days);
+  return bars;
 }
 
 /* ── Crypto: CoinGecko OHLC ── */
@@ -93,11 +134,14 @@ const CRYPTO_IDS: Record<string, string> = {
   SOL: "solana",
 };
 
-async function fetchCryptoHistory(symbol: string, days: number): Promise<HistoryBar[]> {
+async function fetchCryptoHistory(symbol: string, range: string | null): Promise<HistoryBar[]> {
   const id = CRYPTO_IDS[symbol.toUpperCase()];
   if (!id) return [];
 
-  const url = `https://api.coingecko.com/api/v3/coins/${id}/ohlc?vs_currency=usd&days=${days}`;
+  const days = rangeToDays(range);
+  const cgDays = days > 365 ? 365 : days; // CoinGecko free tier caps at 365
+
+  const url = `https://api.coingecko.com/api/v3/coins/${id}/ohlc?vs_currency=usd&days=${cgDays}`;
   const resp = await fetch(url, {
     headers: { "User-Agent": "FinClaw/1.0" },
   });
@@ -111,7 +155,7 @@ async function fetchCryptoHistory(symbol: string, days: number): Promise<History
     high,
     low,
     close,
-    volume: 0, // CoinGecko OHLC doesn't include volume
+    volume: 0,
   }));
 }
 
@@ -125,11 +169,16 @@ function detectMarket(code: string): "cn" | "us" | "crypto" {
 /* ── Route handler ── */
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
-  const days = Math.min(parseInt(request.nextUrl.searchParams.get("days") ?? "30"), 365);
+  const range = request.nextUrl.searchParams.get("range");
+  // Legacy: also support ?days= for backward compatibility
+  const daysParam = request.nextUrl.searchParams.get("days");
 
   if (!code) {
     return NextResponse.json({ error: "Missing ?code= parameter" }, { status: 400 });
   }
+
+  // If legacy days param is used and no range, convert
+  const effectiveRange = range || (daysParam ? null : "1m");
 
   try {
     const market = detectMarket(code);
@@ -137,14 +186,20 @@ export async function GET(request: NextRequest) {
 
     switch (market) {
       case "cn":
-        history = await fetchCNHistory(code, days);
+        history = await fetchCNHistory(code, effectiveRange);
         break;
       case "us":
-        history = await fetchUSHistory(code, days);
+        history = await fetchUSHistory(code, effectiveRange);
         break;
       case "crypto":
-        history = await fetchCryptoHistory(code, days);
+        history = await fetchCryptoHistory(code, effectiveRange);
         break;
+    }
+
+    // If legacy days param, slice
+    if (daysParam && !range) {
+      const days = Math.min(parseInt(daysParam), 365);
+      history = history.slice(-days);
     }
 
     return NextResponse.json(history);

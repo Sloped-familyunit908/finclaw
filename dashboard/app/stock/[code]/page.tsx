@@ -21,7 +21,8 @@ import {
   calcKDJ,
 } from "@/app/lib/indicators";
 import { fmt } from "@/app/lib/utils";
-import NewsPanel from "@/app/components/NewsPanel";
+import { findTicker } from "@/app/lib/tickers";
+import TimeRangeSelector, { type TimeRange } from "@/app/components/TimeRangeSelector";
 
 /* -- Helpers -- */
 function isCN(code: string) {
@@ -84,9 +85,9 @@ function generateAnalysis(
 
   const signalText = score >= 7 ? "Bullish" : score <= 3 ? "Bearish" : "Neutral";
   const stopLoss = price * 0.92;
-  const currency = cn ? "¥" : "$";
+  const currency = cn ? "\u00a5" : "$";
 
-  return `Technical Analysis Summary — ${name} (${code})
+  return `Technical Analysis Summary \u2014 ${name} (${code})
 
 Technicals: RSI(14) at ${rsi.toFixed(1)}, ${rsiInterp} zone. MACD ${macdSignal}. ${maAnalysis}.
 
@@ -106,15 +107,17 @@ export default function StockDetailPage() {
   const [history, setHistory] = useState<HistoryBar[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [timeRange, setTimeRange] = useState<TimeRange>("1m");
 
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const macdChartContainerRef = useRef<HTMLDivElement>(null);
 
+  // Fetch history when code or timeRange changes
   useEffect(() => {
     setLoading(true);
     setError(null);
 
-    fetch(`/api/history?code=${encodeURIComponent(code)}&days=60`)
+    fetch(`/api/history?code=${encodeURIComponent(code)}&range=${timeRange}`)
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
@@ -128,7 +131,7 @@ export default function StockDetailPage() {
       })
       .catch((e) => setError(String(e)))
       .finally(() => setLoading(false));
-  }, [code]);
+  }, [code, timeRange]);
 
   /* -- Compute indicators -- */
   const indicators = useMemo(() => {
@@ -168,7 +171,6 @@ export default function StockDetailPage() {
       rightPriceScale: { borderColor: '#374151' },
     });
 
-    // Candlestick series
     const candleSeries = chart.addSeries(CandlestickSeries, {
       upColor: '#22c55e',
       downColor: '#ef4444',
@@ -187,7 +189,6 @@ export default function StockDetailPage() {
       }))
     );
 
-    // SMA(20) overlay
     const sma20Series = chart.addSeries(LineSeries, {
       color: '#5eead4',
       lineWidth: 1,
@@ -201,7 +202,6 @@ export default function StockDetailPage() {
       .filter((d) => !isNaN(d.value));
     sma20Series.setData(sma20Data);
 
-    // SMA(50) overlay
     const sma50Series = chart.addSeries(LineSeries, {
       color: '#94a3b8',
       lineWidth: 1,
@@ -215,7 +215,6 @@ export default function StockDetailPage() {
       .filter((d) => !isNaN(d.value));
     sma50Series.setData(sma50Data);
 
-    // Volume histogram
     const volumeSeries = chart.addSeries(HistogramSeries, {
       priceFormat: { type: 'volume' },
       priceScaleId: 'volume',
@@ -246,7 +245,7 @@ export default function StockDetailPage() {
     };
   }, [history, indicators]);
 
-  /* -- MACD Chart using lightweight-charts -- */
+  /* -- MACD Chart -- */
   useEffect(() => {
     if (!macdChartContainerRef.current || !history.length || !indicators) return;
 
@@ -266,7 +265,6 @@ export default function StockDetailPage() {
       rightPriceScale: { borderColor: '#374151' },
     });
 
-    // MACD histogram
     const histSeries = chart.addSeries(HistogramSeries, {
       priceFormat: { type: 'price', precision: 4, minMove: 0.0001 },
     });
@@ -280,7 +278,6 @@ export default function StockDetailPage() {
         .filter((d) => !isNaN(d.value))
     );
 
-    // MACD line
     const macdLine = chart.addSeries(LineSeries, {
       color: '#5eead4',
       lineWidth: 1,
@@ -295,7 +292,6 @@ export default function StockDetailPage() {
         .filter((d) => !isNaN(d.value))
     );
 
-    // Signal line
     const signalLine = chart.addSeries(LineSeries, {
       color: '#94a3b8',
       lineWidth: 1,
@@ -346,7 +342,8 @@ export default function StockDetailPage() {
   const currentJ = indicators ? lastNum(indicators.kdj.j) : NaN;
 
   /* -- Determine stock name -- */
-  const stockName = code;
+  const tickerInfo = findTicker(code);
+  const stockName = tickerInfo?.nameCn || tickerInfo?.name || code;
 
   /* -- Analysis text -- */
   const analysisText = useMemo(() => {
@@ -373,11 +370,14 @@ export default function StockDetailPage() {
             href="/"
             className="text-gray-400 hover:text-white transition-colors text-sm"
           >
-            Back to Overview
+            Back to Dashboard
           </Link>
           <div className="w-px h-5 bg-gray-700" />
           <div className="flex items-center gap-3">
             <h1 className="text-xl font-bold text-white">{stockName}</h1>
+            {tickerInfo?.nameCn && (
+              <span className="text-sm text-gray-500 font-mono">{code}</span>
+            )}
             <span className="px-2 py-0.5 text-xs rounded bg-gray-800/60 text-gray-400">
               {cn ? "A-Share" : crypto ? "Crypto" : "US"}
             </span>
@@ -397,7 +397,7 @@ export default function StockDetailPage() {
           <div className="text-center py-20">
             <p className="text-red-400 text-lg">{error}</p>
             <Link href="/" className="text-gray-400 text-sm mt-4 inline-block hover:text-white">
-              Back to Overview
+              Back to Dashboard
             </Link>
           </div>
         )}
@@ -412,7 +412,7 @@ export default function StockDetailPage() {
                     {fmtP(price, cn)}
                   </p>
                   <span
-                    className={`text-lg font-bold font-mono ${isUp ? "text-green-400" : "text-red-400"}`}
+                    className={`text-lg font-bold font-mono ${isUp ? "text-[#22c55e]" : "text-[#ef4444]"}`}
                   >
                     {isUp ? "+" : ""}{Math.abs(change).toFixed(2)}%
                   </span>
@@ -437,18 +437,21 @@ export default function StockDetailPage() {
                         ? cn
                           ? fmt.compactCn(currentBar.volume)
                           : fmt.compact(currentBar.volume)
-                        : "—"}
+                        : "\u2014"}
                     </p>
                   </div>
                 </div>
               </div>
             </section>
 
-            {/* -- TradingView Price Chart -- */}
+            {/* -- TradingView Price Chart + Time Range -- */}
             <section className="rounded border border-gray-800/60 bg-[#13131a] p-6">
-              <h2 className="text-sm font-semibold text-gray-400 mb-4">
-                Price ({history.length}d)
-              </h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-sm font-semibold text-gray-400">
+                  Price ({history.length}d)
+                </h2>
+                <TimeRangeSelector selected={timeRange} onChange={setTimeRange} />
+              </div>
               <div ref={chartContainerRef} />
             </section>
 
@@ -460,13 +463,13 @@ export default function StockDetailPage() {
                 <p
                   className={`text-3xl font-mono font-bold ${
                     currentRSI > 70
-                      ? "text-red-400"
+                      ? "text-[#ef4444]"
                       : currentRSI < 30
-                        ? "text-green-400"
+                        ? "text-[#22c55e]"
                         : "text-gray-200"
                   }`}
                 >
-                  {isNaN(currentRSI) ? "—" : currentRSI.toFixed(1)}
+                  {isNaN(currentRSI) ? "\u2014" : currentRSI.toFixed(1)}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
                   {currentRSI > 70
@@ -488,23 +491,23 @@ export default function StockDetailPage() {
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">MACD</span>
                     <span className="font-mono text-gray-300">
-                      {isNaN(currentMACD) ? "—" : currentMACD.toFixed(3)}
+                      {isNaN(currentMACD) ? "\u2014" : currentMACD.toFixed(3)}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Signal</span>
                     <span className="font-mono text-gray-300">
-                      {isNaN(currentSignal) ? "—" : currentSignal.toFixed(3)}
+                      {isNaN(currentSignal) ? "\u2014" : currentSignal.toFixed(3)}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Histogram</span>
                     <span
                       className={`font-mono font-bold ${
-                        currentHist > 0 ? "text-green-400" : "text-red-400"
+                        currentHist > 0 ? "text-[#22c55e]" : "text-[#ef4444]"
                       }`}
                     >
-                      {isNaN(currentHist) ? "—" : currentHist.toFixed(3)}
+                      {isNaN(currentHist) ? "\u2014" : currentHist.toFixed(3)}
                     </span>
                   </div>
                 </div>
@@ -520,19 +523,19 @@ export default function StockDetailPage() {
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Upper</span>
                     <span className="font-mono text-gray-300">
-                      {isNaN(currentBBUpper) ? "—" : fmtP(currentBBUpper, cn)}
+                      {isNaN(currentBBUpper) ? "\u2014" : fmtP(currentBBUpper, cn)}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Middle</span>
                     <span className="font-mono text-gray-300">
-                      {isNaN(currentSMA20) ? "—" : fmtP(currentSMA20, cn)}
+                      {isNaN(currentSMA20) ? "\u2014" : fmtP(currentSMA20, cn)}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Lower</span>
                     <span className="font-mono text-gray-300">
-                      {isNaN(currentBBLower) ? "—" : fmtP(currentBBLower, cn)}
+                      {isNaN(currentBBLower) ? "\u2014" : fmtP(currentBBLower, cn)}
                     </span>
                   </div>
                 </div>
@@ -552,23 +555,23 @@ export default function StockDetailPage() {
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">K</span>
                     <span className="font-mono text-gray-300">
-                      {isNaN(currentK) ? "—" : currentK.toFixed(1)}
+                      {isNaN(currentK) ? "\u2014" : currentK.toFixed(1)}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">D</span>
                     <span className="font-mono text-gray-300">
-                      {isNaN(currentD) ? "—" : currentD.toFixed(1)}
+                      {isNaN(currentD) ? "\u2014" : currentD.toFixed(1)}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">J</span>
                     <span
                       className={`font-mono ${
-                        currentJ > 100 ? "text-red-400" : currentJ < 0 ? "text-green-400" : "text-gray-300"
+                        currentJ > 100 ? "text-[#ef4444]" : currentJ < 0 ? "text-[#22c55e]" : "text-gray-300"
                       }`}
                     >
-                      {isNaN(currentJ) ? "—" : currentJ.toFixed(1)}
+                      {isNaN(currentJ) ? "\u2014" : currentJ.toFixed(1)}
                     </span>
                   </div>
                 </div>
@@ -585,13 +588,13 @@ export default function StockDetailPage() {
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">SMA(20)</span>
                     <span className="font-mono text-gray-300">
-                      {isNaN(currentSMA20) ? "—" : fmtP(currentSMA20, cn)}
+                      {isNaN(currentSMA20) ? "\u2014" : fmtP(currentSMA20, cn)}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">SMA(50)</span>
                     <span className="font-mono text-gray-300">
-                      {isNaN(currentSMA50) ? "—" : fmtP(currentSMA50, cn)}
+                      {isNaN(currentSMA50) ? "\u2014" : fmtP(currentSMA50, cn)}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
@@ -618,7 +621,7 @@ export default function StockDetailPage() {
                         ? cn
                           ? fmt.compactCn(currentBar.volume)
                           : fmt.compact(currentBar.volume)
-                        : "—"}
+                        : "\u2014"}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
@@ -649,9 +652,6 @@ export default function StockDetailPage() {
                 </p>
               </section>
             )}
-
-            {/* -- News Panel -- */}
-            <NewsPanel ticker={code} />
           </>
         )}
       </main>
@@ -660,7 +660,7 @@ export default function StockDetailPage() {
       <footer className="border-t border-gray-800/30 py-6 mt-12">
         <div className="max-w-7xl mx-auto px-4 text-center">
           <p className="text-xs text-gray-600">
-            FinClaw &copy; {new Date().getFullYear()}
+            FinClaw &middot; Open-source quantitative research platform
           </p>
         </div>
       </footer>
