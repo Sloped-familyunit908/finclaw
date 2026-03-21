@@ -2,6 +2,7 @@
 OKX WebSocket streams — ticker, kline, orderbook, trades.
 """
 
+import asyncio
 import json
 import logging
 from typing import Callable
@@ -21,11 +22,19 @@ class OKXWebSocket(WebSocketClient):
 
     async def _send_subscribe(self, channel: str, symbol: str, params: dict) -> None:
         args = self._build_args(channel, symbol, params)
-        await self.send({"op": "subscribe", "args": [args]})
+        try:
+            await self.send({"op": "subscribe", "args": [args]})
+        except (ConnectionError, OSError, asyncio.TimeoutError) as e:
+            logger.error("OKX subscribe failed for %s/%s: %s", channel, symbol, e)
+            raise
 
     async def _send_unsubscribe(self, channel: str, symbol: str) -> None:
         args = self._build_args(channel, symbol, {})
-        await self.send({"op": "unsubscribe", "args": [args]})
+        try:
+            await self.send({"op": "unsubscribe", "args": [args]})
+        except (ConnectionError, OSError, asyncio.TimeoutError) as e:
+            logger.error("OKX unsubscribe failed for %s/%s: %s", channel, symbol, e)
+            raise
 
     def _build_args(self, channel: str, symbol: str, params: dict) -> dict:
         channel_map = {
@@ -50,36 +59,44 @@ class OKXWebSocket(WebSocketClient):
 
     @staticmethod
     def parse_ticker(data: dict) -> dict | None:
-        if "arg" not in data or data.get("arg", {}).get("channel") != "tickers":
+        try:
+            if "arg" not in data or data.get("arg", {}).get("channel") != "tickers":
+                return None
+            if not data.get("data"):
+                return None
+            d = data["data"][0]
+            return {
+                "exchange": "okx",
+                "symbol": d["instId"],
+                "last": float(d["last"]),
+                "bid": float(d.get("bidPx", 0)),
+                "ask": float(d.get("askPx", 0)),
+                "high": float(d.get("high24h", 0)),
+                "low": float(d.get("low24h", 0)),
+                "volume": float(d.get("vol24h", 0)),
+                "timestamp": int(d.get("ts", 0)),
+            }
+        except (KeyError, ValueError, TypeError, IndexError) as e:
+            logger.warning("Failed to parse OKX ticker: %s", e)
             return None
-        if not data.get("data"):
-            return None
-        d = data["data"][0]
-        return {
-            "exchange": "okx",
-            "symbol": d["instId"],
-            "last": float(d["last"]),
-            "bid": float(d.get("bidPx", 0)),
-            "ask": float(d.get("askPx", 0)),
-            "high": float(d.get("high24h", 0)),
-            "low": float(d.get("low24h", 0)),
-            "volume": float(d.get("vol24h", 0)),
-            "timestamp": int(d.get("ts", 0)),
-        }
 
     @staticmethod
     def parse_trade(data: dict) -> dict | None:
-        if "arg" not in data or data.get("arg", {}).get("channel") != "trades":
+        try:
+            if "arg" not in data or data.get("arg", {}).get("channel") != "trades":
+                return None
+            if not data.get("data"):
+                return None
+            d = data["data"][0]
+            return {
+                "exchange": "okx",
+                "symbol": d["instId"],
+                "price": float(d["px"]),
+                "quantity": float(d["sz"]),
+                "side": d["side"],
+                "timestamp": int(d["ts"]),
+                "trade_id": d.get("tradeId", ""),
+            }
+        except (KeyError, ValueError, TypeError, IndexError) as e:
+            logger.warning("Failed to parse OKX trade: %s", e)
             return None
-        if not data.get("data"):
-            return None
-        d = data["data"][0]
-        return {
-            "exchange": "okx",
-            "symbol": d["instId"],
-            "price": float(d["px"]),
-            "quantity": float(d["sz"]),
-            "side": d["side"],
-            "timestamp": int(d["ts"]),
-            "trade_id": d.get("tradeId", ""),
-        }

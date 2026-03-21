@@ -2,6 +2,7 @@
 Bybit WebSocket streams — ticker, kline, orderbook, trades.
 """
 
+import asyncio
 import json
 import logging
 from typing import Callable
@@ -28,11 +29,19 @@ class BybitWebSocket(WebSocketClient):
 
     async def _send_subscribe(self, channel: str, symbol: str, params: dict) -> None:
         topic = self._build_topic(channel, symbol, params)
-        await self.send({"req_id": self._next_req_id(), "op": "subscribe", "args": [topic]})
+        try:
+            await self.send({"req_id": self._next_req_id(), "op": "subscribe", "args": [topic]})
+        except (ConnectionError, OSError, asyncio.TimeoutError) as e:
+            logger.error("Bybit subscribe failed for %s/%s: %s", channel, symbol, e)
+            raise
 
     async def _send_unsubscribe(self, channel: str, symbol: str) -> None:
         topic = self._build_topic(channel, symbol, {})
-        await self.send({"req_id": self._next_req_id(), "op": "unsubscribe", "args": [topic]})
+        try:
+            await self.send({"req_id": self._next_req_id(), "op": "unsubscribe", "args": [topic]})
+        except (ConnectionError, OSError, asyncio.TimeoutError) as e:
+            logger.error("Bybit unsubscribe failed for %s/%s: %s", channel, symbol, e)
+            raise
 
     def _build_topic(self, channel: str, symbol: str, params: dict) -> str:
         if channel == "ticker":
@@ -65,35 +74,41 @@ class BybitWebSocket(WebSocketClient):
 
     @staticmethod
     def parse_ticker(data: dict) -> dict | None:
-        if data.get("topic", "").startswith("tickers.") and "data" in data:
-            d = data["data"]
-            return {
-                "exchange": "bybit",
-                "symbol": d.get("symbol", ""),
-                "last": float(d.get("lastPrice", 0)),
-                "bid": float(d.get("bid1Price", 0)),
-                "ask": float(d.get("ask1Price", 0)),
-                "high": float(d.get("highPrice24h", 0)),
-                "low": float(d.get("lowPrice24h", 0)),
-                "volume": float(d.get("volume24h", 0)),
-                "timestamp": int(data.get("ts", 0)),
-            }
+        try:
+            if data.get("topic", "").startswith("tickers.") and "data" in data:
+                d = data["data"]
+                return {
+                    "exchange": "bybit",
+                    "symbol": d.get("symbol", ""),
+                    "last": float(d.get("lastPrice", 0)),
+                    "bid": float(d.get("bid1Price", 0)),
+                    "ask": float(d.get("ask1Price", 0)),
+                    "high": float(d.get("highPrice24h", 0)),
+                    "low": float(d.get("lowPrice24h", 0)),
+                    "volume": float(d.get("volume24h", 0)),
+                    "timestamp": int(data.get("ts", 0)),
+                }
+        except (KeyError, ValueError, TypeError) as e:
+            logger.warning("Failed to parse Bybit ticker: %s", e)
         return None
 
     @staticmethod
     def parse_trade(data: dict) -> dict | None:
-        if data.get("topic", "").startswith("publicTrade.") and "data" in data:
-            trades = data["data"]
-            if not trades:
-                return None
-            d = trades[0]
-            return {
-                "exchange": "bybit",
-                "symbol": d.get("s", ""),
-                "price": float(d.get("p", 0)),
-                "quantity": float(d.get("v", 0)),
-                "side": d.get("S", "").lower(),
-                "timestamp": int(d.get("T", 0)),
-                "trade_id": d.get("i", ""),
-            }
+        try:
+            if data.get("topic", "").startswith("publicTrade.") and "data" in data:
+                trades = data["data"]
+                if not trades:
+                    return None
+                d = trades[0]
+                return {
+                    "exchange": "bybit",
+                    "symbol": d.get("s", ""),
+                    "price": float(d.get("p", 0)),
+                    "quantity": float(d.get("v", 0)),
+                    "side": d.get("S", "").lower(),
+                    "timestamp": int(d.get("T", 0)),
+                    "trade_id": d.get("i", ""),
+                }
+        except (KeyError, ValueError, TypeError, IndexError) as e:
+            logger.warning("Failed to parse Bybit trade: %s", e)
         return None

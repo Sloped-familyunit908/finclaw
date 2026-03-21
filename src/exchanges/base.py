@@ -3,12 +3,13 @@ Base exchange adapter interface.
 All exchange adapters must implement this ABC.
 """
 
+import asyncio
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from functools import wraps
 from typing import Any
 
-from src.exchanges.http_client import ExchangeAPIError, ExchangeConnectionError
+from src.exchanges.http_client import ExchangeAPIError, ExchangeConnectionError, ExchangeRateLimitError
 
 
 class ExchangeError(Exception):
@@ -22,44 +23,108 @@ class ExchangeError(Exception):
 
 
 def handle_network_errors(func: Callable) -> Callable:
-    """Decorator that catches network/HTTP errors and re-raises as user-friendly ExchangeError."""
+    """Decorator that catches network/HTTP errors and re-raises as user-friendly ExchangeError.
 
-    @wraps(func)
-    def wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
-        try:
-            return func(self, *args, **kwargs)
-        except ExchangeAPIError as e:
-            raise ExchangeError(
-                self.name, func.__name__,
-                f"HTTP {e.status} error — {e.body[:200]}",
-                original=e,
-            ) from e
-        except ExchangeConnectionError as e:
-            raise ExchangeError(
-                self.name, func.__name__,
-                f"Connection failed — {e.reason}. Check your network or try again later.",
-                original=e,
-            ) from e
-        except TimeoutError as e:
-            raise ExchangeError(
-                self.name, func.__name__,
-                "Request timed out. The exchange may be slow or unreachable.",
-                original=e,
-            ) from e
-        except (OSError, ConnectionError) as e:
-            raise ExchangeError(
-                self.name, func.__name__,
-                f"Network error — {e}",
-                original=e,
-            ) from e
-        except (KeyError, IndexError, TypeError, ValueError) as e:
-            raise ExchangeError(
-                self.name, func.__name__,
-                f"Unexpected response format — {type(e).__name__}: {e}",
-                original=e,
-            ) from e
+    Supports both sync and async functions. Handles:
+    - ExchangeAPIError (HTTP errors including 429 rate limits)
+    - ExchangeConnectionError (DNS, connection refused, etc.)
+    - ExchangeRateLimitError (HTTP 429 with Retry-After)
+    - TimeoutError, asyncio.TimeoutError
+    - OSError, ConnectionError (network-level errors)
+    - KeyError, IndexError, TypeError, ValueError (unexpected response format)
+    """
+    if asyncio.iscoroutinefunction(func):
+        @wraps(func)
+        async def async_wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
+            try:
+                return await func(self, *args, **kwargs)
+            except ExchangeRateLimitError as e:
+                raise ExchangeError(
+                    self.name, func.__name__,
+                    f"Rate limited (HTTP 429) — retry after {e.retry_after:.1f}s",
+                    original=e,
+                ) from e
+            except ExchangeAPIError as e:
+                raise ExchangeError(
+                    self.name, func.__name__,
+                    f"HTTP {e.status} error — {e.body[:200]}",
+                    original=e,
+                ) from e
+            except ExchangeConnectionError as e:
+                raise ExchangeError(
+                    self.name, func.__name__,
+                    f"Connection failed — {e.reason}. Check your network or try again later.",
+                    original=e,
+                ) from e
+            except asyncio.TimeoutError as e:
+                raise ExchangeError(
+                    self.name, func.__name__,
+                    "Async request timed out. The exchange may be slow or unreachable.",
+                    original=e,
+                ) from e
+            except TimeoutError as e:
+                raise ExchangeError(
+                    self.name, func.__name__,
+                    "Request timed out. The exchange may be slow or unreachable.",
+                    original=e,
+                ) from e
+            except (OSError, ConnectionError) as e:
+                raise ExchangeError(
+                    self.name, func.__name__,
+                    f"Network error — {e}",
+                    original=e,
+                ) from e
+            except (KeyError, IndexError, TypeError, ValueError) as e:
+                raise ExchangeError(
+                    self.name, func.__name__,
+                    f"Unexpected response format — {type(e).__name__}: {e}",
+                    original=e,
+                ) from e
 
-    return wrapper
+        return async_wrapper
+    else:
+        @wraps(func)
+        def wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
+            try:
+                return func(self, *args, **kwargs)
+            except ExchangeRateLimitError as e:
+                raise ExchangeError(
+                    self.name, func.__name__,
+                    f"Rate limited (HTTP 429) — retry after {e.retry_after:.1f}s",
+                    original=e,
+                ) from e
+            except ExchangeAPIError as e:
+                raise ExchangeError(
+                    self.name, func.__name__,
+                    f"HTTP {e.status} error — {e.body[:200]}",
+                    original=e,
+                ) from e
+            except ExchangeConnectionError as e:
+                raise ExchangeError(
+                    self.name, func.__name__,
+                    f"Connection failed — {e.reason}. Check your network or try again later.",
+                    original=e,
+                ) from e
+            except TimeoutError as e:
+                raise ExchangeError(
+                    self.name, func.__name__,
+                    "Request timed out. The exchange may be slow or unreachable.",
+                    original=e,
+                ) from e
+            except (OSError, ConnectionError) as e:
+                raise ExchangeError(
+                    self.name, func.__name__,
+                    f"Network error — {e}",
+                    original=e,
+                ) from e
+            except (KeyError, IndexError, TypeError, ValueError) as e:
+                raise ExchangeError(
+                    self.name, func.__name__,
+                    f"Unexpected response format — {type(e).__name__}: {e}",
+                    original=e,
+                ) from e
+
+        return wrapper
 
 
 class ExchangeAdapter(ABC):

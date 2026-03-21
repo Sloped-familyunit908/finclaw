@@ -3,6 +3,7 @@ Binance WebSocket streams — ticker, kline, orderbook, trades.
 Supports spot (stream.binance.com) and futures (fstream.binance.com).
 """
 
+import asyncio
 import json
 import logging
 from typing import Callable
@@ -30,11 +31,19 @@ class BinanceWebSocket(WebSocketClient):
 
     async def _send_subscribe(self, channel: str, symbol: str, params: dict) -> None:
         stream = self._build_stream(channel, symbol, params)
-        await self.send({"method": "SUBSCRIBE", "params": [stream], "id": self._next_id()})
+        try:
+            await self.send({"method": "SUBSCRIBE", "params": [stream], "id": self._next_id()})
+        except (ConnectionError, OSError, asyncio.TimeoutError) as e:
+            logger.error("Binance subscribe failed for %s/%s: %s", channel, symbol, e)
+            raise
 
     async def _send_unsubscribe(self, channel: str, symbol: str) -> None:
         stream = self._build_stream(channel, symbol, {})
-        await self.send({"method": "UNSUBSCRIBE", "params": [stream], "id": self._next_id()})
+        try:
+            await self.send({"method": "UNSUBSCRIBE", "params": [stream], "id": self._next_id()})
+        except (ConnectionError, OSError, asyncio.TimeoutError) as e:
+            logger.error("Binance unsubscribe failed for %s/%s: %s", channel, symbol, e)
+            raise
 
     def _build_stream(self, channel: str, symbol: str, params: dict) -> str:
         s = symbol.lower()
@@ -74,51 +83,63 @@ class BinanceWebSocket(WebSocketClient):
     @staticmethod
     def parse_ticker(data: dict) -> dict | None:
         """Parse Binance ticker message into normalized format."""
-        if "e" not in data or data["e"] != "24hrTicker":
+        try:
+            if "e" not in data or data["e"] != "24hrTicker":
+                return None
+            return {
+                "exchange": "binance",
+                "symbol": data["s"],
+                "last": float(data["c"]),
+                "bid": float(data["b"]),
+                "ask": float(data["a"]),
+                "high": float(data["h"]),
+                "low": float(data["l"]),
+                "volume": float(data["v"]),
+                "change_pct": float(data["P"]),
+                "timestamp": data["E"],
+            }
+        except (KeyError, ValueError, TypeError) as e:
+            logger.warning("Failed to parse Binance ticker: %s", e)
             return None
-        return {
-            "exchange": "binance",
-            "symbol": data["s"],
-            "last": float(data["c"]),
-            "bid": float(data["b"]),
-            "ask": float(data["a"]),
-            "high": float(data["h"]),
-            "low": float(data["l"]),
-            "volume": float(data["v"]),
-            "change_pct": float(data["P"]),
-            "timestamp": data["E"],
-        }
 
     @staticmethod
     def parse_kline(data: dict) -> dict | None:
         """Parse Binance kline message into normalized OHLCV."""
-        if "e" not in data or data["e"] != "kline":
+        try:
+            if "e" not in data or data["e"] != "kline":
+                return None
+            k = data["k"]
+            return {
+                "exchange": "binance",
+                "symbol": k["s"],
+                "interval": k["i"],
+                "open": float(k["o"]),
+                "high": float(k["h"]),
+                "low": float(k["l"]),
+                "close": float(k["c"]),
+                "volume": float(k["v"]),
+                "timestamp": k["t"],
+                "closed": k["x"],
+            }
+        except (KeyError, ValueError, TypeError) as e:
+            logger.warning("Failed to parse Binance kline: %s", e)
             return None
-        k = data["k"]
-        return {
-            "exchange": "binance",
-            "symbol": k["s"],
-            "interval": k["i"],
-            "open": float(k["o"]),
-            "high": float(k["h"]),
-            "low": float(k["l"]),
-            "close": float(k["c"]),
-            "volume": float(k["v"]),
-            "timestamp": k["t"],
-            "closed": k["x"],
-        }
 
     @staticmethod
     def parse_trade(data: dict) -> dict | None:
         """Parse Binance trade message."""
-        if "e" not in data or data["e"] != "trade":
+        try:
+            if "e" not in data or data["e"] != "trade":
+                return None
+            return {
+                "exchange": "binance",
+                "symbol": data["s"],
+                "price": float(data["p"]),
+                "quantity": float(data["q"]),
+                "side": "sell" if data["m"] else "buy",
+                "timestamp": data["T"],
+                "trade_id": data["t"],
+            }
+        except (KeyError, ValueError, TypeError) as e:
+            logger.warning("Failed to parse Binance trade: %s", e)
             return None
-        return {
-            "exchange": "binance",
-            "symbol": data["s"],
-            "price": float(data["p"]),
-            "quantity": float(data["q"]),
-            "side": "sell" if data["m"] else "buy",
-            "timestamp": data["T"],
-            "trade_id": data["t"],
-        }
