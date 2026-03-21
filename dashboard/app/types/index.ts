@@ -64,4 +64,4 @@ export interface RiskConstitution {
   maxLeverage: number;
 }
 
-export type TabId = "overview" | "arena" | "backtest" | "strategies" | "agents" | "risk" | "cn-scanner";
+export type TabId = "overview";

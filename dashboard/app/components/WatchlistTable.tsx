@@ -8,14 +8,21 @@ import { searchTickers, findTicker, type TickerInfo } from "@/app/lib/tickers";
 import { fmt } from "@/app/lib/utils";
 
 /* ── Constants ── */
-const STORAGE_KEY = "finclaw_watchlist";
-const DEFAULT_WATCHLIST = ["AAPL", "NVDA", "TSLA", "MSFT", "GOOGL", "AMZN", "BTC", "ETH"];
+const STORAGE_KEY = "finclaw_watchlist"; // legacy compat
+const MULTI_STORAGE_KEY = "finclaw_watchlists";
+const ACTIVE_WATCHLIST_KEY = "finclaw_active_watchlist";
+const DEFAULT_WATCHLIST_NAME = "Default";
+const DEFAULT_TICKERS = ["AAPL", "NVDA", "TSLA", "MSFT", "GOOGL", "AMZN", "BTC", "ETH"];
 
-/* ── Sort config ── */
+/* ── Types ── */
 type SortField = "ticker" | "name" | "price" | "change" | "volume" | "marketCap";
 type SortDir = "asc" | "desc";
 
-/* ── Helper: detect market ── */
+interface WatchlistStore {
+  [name: string]: string[];
+}
+
+/* ── Helpers ── */
 function getMarketLabel(symbol: string): string {
   if (/\.(SH|SZ)$/i.test(symbol)) return "CN";
   if (["BTC", "ETH", "SOL", "BNB", "XRP", "ADA", "DOGE", "DOT", "AVAX", "LINK"].includes(symbol.toUpperCase())) return "Crypto";
@@ -24,6 +31,53 @@ function getMarketLabel(symbol: string): string {
 
 function isCnSymbol(symbol: string): boolean {
   return /\.(SH|SZ)$/i.test(symbol);
+}
+
+/* ── Load watchlists (with legacy migration) ── */
+function loadWatchlists(): { store: WatchlistStore; active: string } {
+  try {
+    const multiRaw = localStorage.getItem(MULTI_STORAGE_KEY);
+    if (multiRaw) {
+      const store = JSON.parse(multiRaw) as WatchlistStore;
+      const active = localStorage.getItem(ACTIVE_WATCHLIST_KEY) || DEFAULT_WATCHLIST_NAME;
+      // Ensure active watchlist exists
+      if (!store[active]) {
+        const first = Object.keys(store)[0] || DEFAULT_WATCHLIST_NAME;
+        if (!store[first]) store[first] = DEFAULT_TICKERS;
+        return { store, active: first };
+      }
+      return { store, active };
+    }
+
+    // Migrate from legacy single watchlist
+    const legacyRaw = localStorage.getItem(STORAGE_KEY);
+    if (legacyRaw) {
+      const parsed = JSON.parse(legacyRaw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const store: WatchlistStore = { [DEFAULT_WATCHLIST_NAME]: parsed };
+        return { store, active: DEFAULT_WATCHLIST_NAME };
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return {
+    store: { [DEFAULT_WATCHLIST_NAME]: DEFAULT_TICKERS },
+    active: DEFAULT_WATCHLIST_NAME,
+  };
+}
+
+function saveWatchlists(store: WatchlistStore, active: string) {
+  try {
+    localStorage.setItem(MULTI_STORAGE_KEY, JSON.stringify(store));
+    localStorage.setItem(ACTIVE_WATCHLIST_KEY, active);
+    // Also keep legacy key in sync for compatibility
+    if (store[active]) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(store[active]));
+    }
+  } catch {
+    // ignore
+  }
 }
 
 /* ── Sortable header ── */
@@ -51,7 +105,7 @@ function SortHeader({
       <span className="inline-flex items-center gap-1">
         {label}
         {isActive && (
-          <span className="text-[10px]">{currentDir === "asc" ? "▲" : "▼"}</span>
+          <span className="text-[10px]">{currentDir === "asc" ? "\u25B2" : "\u25BC"}</span>
         )}
       </span>
     </th>
@@ -78,7 +132,6 @@ function AddTickerInput({ onAdd }: { onAdd: (symbol: string) => void }) {
     }
   }, [query]);
 
-  // Close on outside click
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -99,7 +152,6 @@ function AddTickerInput({ onAdd }: { onAdd: (symbol: string) => void }) {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!open || results.length === 0) {
       if (e.key === "Enter" && query.trim()) {
-        // Allow adding arbitrary tickers
         onAdd(query.trim().toUpperCase());
         setQuery("");
         setOpen(false);
@@ -175,54 +227,129 @@ function AddTickerInput({ onAdd }: { onAdd: (symbol: string) => void }) {
   );
 }
 
+/* ── New Watchlist Dialog ── */
+function NewWatchlistDialog({
+  onAdd,
+  onClose,
+}: {
+  onAdd: (name: string) => void;
+  onClose: () => void;
+}) {
+  const [name, setName] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = name.trim();
+    if (trimmed) {
+      onAdd(trimmed);
+      onClose();
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100]"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="bg-[#13131a] border border-gray-800/60 rounded-lg p-5 w-full max-w-sm animate-fade-in">
+        <h3 className="text-sm font-semibold text-gray-300 mb-3">
+          New Watchlist
+        </h3>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <input
+            ref={inputRef}
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Watchlist name..."
+            className="w-full px-3 py-2 text-sm bg-gray-900/60 border border-gray-700/50 rounded text-gray-200 placeholder-gray-600 focus:outline-none focus:border-slate-500/60"
+            required
+          />
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-3 py-1.5 text-xs text-gray-400 hover:text-gray-200 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-3 py-1.5 text-xs bg-slate-700/60 border border-slate-600/50 rounded text-white hover:bg-slate-700/80 transition-colors"
+            >
+              Create
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 /* ════════════════════════════════════════════════════════════════
    WATCHLIST TABLE COMPONENT
    ════════════════════════════════════════════════════════════════ */
 export default function WatchlistTable() {
   const router = useRouter();
-  const [watchlist, setWatchlist] = useState<string[]>([]);
+  const [watchlistStore, setWatchlistStore] = useState<WatchlistStore>({});
+  const [activeWatchlist, setActiveWatchlist] = useState(DEFAULT_WATCHLIST_NAME);
   const [priceData, setPriceData] = useState<Map<string, MarketData>>(new Map());
   const [loading, setLoading] = useState(true);
   const [sortField, setSortField] = useState<SortField>("change");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [showNewWatchlist, setShowNewWatchlist] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Load watchlist from localStorage
+  const watchlist = watchlistStore[activeWatchlist] || [];
+  const watchlistNames = Object.keys(watchlistStore);
+
+  // Load watchlists from localStorage
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setWatchlist(parsed);
-          return;
-        }
+    const { store, active } = loadWatchlists();
+    setWatchlistStore(store);
+    setActiveWatchlist(active);
+  }, []);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
       }
-    } catch {
-      // ignore
     }
-    setWatchlist(DEFAULT_WATCHLIST);
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  // Persist watchlist
-  const persistWatchlist = useCallback((list: string[]) => {
-    setWatchlist(list);
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-    } catch {
-      // ignore
-    }
-  }, []);
+  // Persist helper
+  const persistStore = useCallback(
+    (newStore: WatchlistStore, active?: string) => {
+      const act = active ?? activeWatchlist;
+      setWatchlistStore(newStore);
+      if (active !== undefined) setActiveWatchlist(act);
+      saveWatchlists(newStore, act);
+    },
+    [activeWatchlist]
+  );
 
-  // Fetch prices for all watchlist items
+  // Fetch prices for current watchlist items
   useEffect(() => {
-    if (watchlist.length === 0) return;
+    if (watchlist.length === 0) {
+      setLoading(false);
+      return;
+    }
 
     let cancelled = false;
 
     async function fetchPrices() {
       setLoading(true);
 
-      // Group by market
       const us: string[] = [];
       const cn: string[] = [];
       const crypto: string[] = [];
@@ -258,7 +385,6 @@ export default function WatchlistTable() {
         }
       }
 
-      // Find tickers NOT covered by the market endpoints
       const missing = watchlist.filter((sym) => !map.has(sym));
       if (missing.length > 0) {
         try {
@@ -360,11 +486,43 @@ export default function WatchlistTable() {
 
   const handleAdd = (symbol: string) => {
     if (watchlist.some((s) => s.toLowerCase() === symbol.toLowerCase())) return;
-    persistWatchlist([...watchlist, symbol]);
+    const newStore = {
+      ...watchlistStore,
+      [activeWatchlist]: [...watchlist, symbol],
+    };
+    persistStore(newStore);
   };
 
   const handleRemove = (symbol: string) => {
-    persistWatchlist(watchlist.filter((s) => s !== symbol));
+    const newStore = {
+      ...watchlistStore,
+      [activeWatchlist]: watchlist.filter((s) => s !== symbol),
+    };
+    persistStore(newStore);
+  };
+
+  const handleNewWatchlist = (name: string) => {
+    if (watchlistStore[name]) return; // Already exists
+    const newStore = { ...watchlistStore, [name]: [] };
+    persistStore(newStore, name);
+  };
+
+  const handleSwitchWatchlist = (name: string) => {
+    setActiveWatchlist(name);
+    saveWatchlists(watchlistStore, name);
+    setShowDropdown(false);
+  };
+
+  const handleDeleteWatchlist = (name: string) => {
+    if (name === DEFAULT_WATCHLIST_NAME) return; // Can't delete default
+    if (watchlistNames.length <= 1) return; // Must have at least one
+    const newStore = { ...watchlistStore };
+    delete newStore[name];
+    const newActive = name === activeWatchlist
+      ? Object.keys(newStore)[0] || DEFAULT_WATCHLIST_NAME
+      : activeWatchlist;
+    if (!newStore[newActive]) newStore[newActive] = [];
+    persistStore(newStore, newActive);
   };
 
   const handleRowClick = (symbol: string) => {
@@ -374,9 +532,71 @@ export default function WatchlistTable() {
   return (
     <section>
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
-          Watchlist
-        </h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
+            Watchlist
+          </h2>
+
+          {/* Watchlist selector dropdown */}
+          <div ref={dropdownRef} className="relative">
+            <button
+              onClick={() => setShowDropdown(!showDropdown)}
+              className="px-2 py-1 text-xs bg-gray-800/60 border border-gray-700/50 rounded text-gray-300 hover:bg-gray-800/80 transition-colors flex items-center gap-1"
+            >
+              {activeWatchlist}
+              <span className="text-[10px] text-gray-500">
+                {showDropdown ? "\u25B2" : "\u25BC"}
+              </span>
+            </button>
+
+            {showDropdown && (
+              <div className="absolute top-full left-0 mt-1 w-48 bg-[#13131a] border border-gray-700/60 rounded shadow-xl z-50">
+                {watchlistNames.map((name) => (
+                  <div
+                    key={name}
+                    className={`flex items-center justify-between px-3 py-2 text-xs hover:bg-gray-800/60 transition-colors cursor-pointer ${
+                      name === activeWatchlist ? "text-white bg-gray-800/40" : "text-gray-400"
+                    }`}
+                  >
+                    <button
+                      className="flex-1 text-left"
+                      onClick={() => handleSwitchWatchlist(name)}
+                    >
+                      {name}
+                      <span className="text-[10px] text-gray-600 ml-1">
+                        ({(watchlistStore[name] || []).length})
+                      </span>
+                    </button>
+                    {name !== DEFAULT_WATCHLIST_NAME && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteWatchlist(name);
+                        }}
+                        className="text-gray-600 hover:text-red-400 transition-colors ml-2"
+                        title="Delete watchlist"
+                      >
+                        X
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <div className="border-t border-gray-800/40">
+                  <button
+                    onClick={() => {
+                      setShowDropdown(false);
+                      setShowNewWatchlist(true);
+                    }}
+                    className="w-full text-left px-3 py-2 text-xs text-gray-500 hover:text-gray-300 hover:bg-gray-800/60 transition-colors"
+                  >
+                    + New Watchlist
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
         <AddTickerInput onAdd={handleAdd} />
       </div>
 
@@ -395,7 +615,7 @@ export default function WatchlistTable() {
           </thead>
           <tbody>
             {loading && rows.length === 0 ? (
-              Array.from({ length: DEFAULT_WATCHLIST.length }).map((_, i) => (
+              Array.from({ length: DEFAULT_TICKERS.length }).map((_, i) => (
                 <tr key={i} className="border-t border-gray-800/30 animate-pulse">
                   <td className="py-2.5 px-4"><div className="h-4 w-16 bg-gray-800 rounded" /></td>
                   <td className="py-2.5 px-3 hidden lg:table-cell"><div className="h-4 w-24 bg-gray-800 rounded" /></td>
@@ -481,6 +701,14 @@ export default function WatchlistTable() {
           </tbody>
         </table>
       </div>
+
+      {/* New Watchlist Dialog */}
+      {showNewWatchlist && (
+        <NewWatchlistDialog
+          onAdd={handleNewWatchlist}
+          onClose={() => setShowNewWatchlist(false)}
+        />
+      )}
     </section>
   );
 }

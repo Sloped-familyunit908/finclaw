@@ -16,6 +16,7 @@ import { fmt } from "@/app/lib/utils";
 import { findTicker } from "@/app/lib/tickers";
 import TimeRangeSelector, { type TimeRange } from "@/app/components/TimeRangeSelector";
 import FundamentalsPanel from "@/app/components/FundamentalsPanel";
+import { SetAlertModal } from "@/app/components/PriceAlerts";
 
 /* -- Helpers -- */
 function isCN(code: string) {
@@ -96,6 +97,7 @@ export default function StockDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<TimeRange>("1m");
   const [watchlistState, setWatchlistState] = useState<"idle" | "added" | "exists">("idle");
+  const [showAlertModal, setShowAlertModal] = useState(false);
 
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const macdChartContainerRef = useRef<HTMLDivElement>(null);
@@ -444,6 +446,12 @@ export default function StockDetailPage() {
             </span>
           </div>
           <div className="ml-auto flex items-center gap-2">
+            <button
+              onClick={() => setShowAlertModal(true)}
+              className="px-3 py-1.5 text-xs rounded border border-gray-700/50 text-gray-400 hover:text-white hover:border-gray-600 transition-colors"
+            >
+              Set Alert
+            </button>
             <Link
               href={`/compare?a=${encodeURIComponent(code)}&b=`}
               className="px-3 py-1.5 text-xs rounded border border-gray-700/50 text-gray-400 hover:text-white hover:border-gray-600 transition-colors"
@@ -787,6 +795,15 @@ export default function StockDetailPage() {
           </>
         )}
       </main>
+
+      {/* Price Alert Modal */}
+      {showAlertModal && (
+        <SetAlertModal
+          ticker={code}
+          currentPrice={price}
+          onClose={() => setShowAlertModal(false)}
+        />
+      )}
 
       {/* Footer */}
       <footer className="border-t border-gray-800/30 py-6 mt-12">

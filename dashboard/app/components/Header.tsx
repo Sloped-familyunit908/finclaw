@@ -3,25 +3,9 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import type { TabId } from "@/app/types";
 import { searchTickers, type TickerInfo } from "@/app/lib/tickers";
-
-function NavTab({ id, label, active, onClick }: {
-  id: TabId; label: string; active: boolean; onClick: (id: TabId) => void;
-}) {
-  return (
-    <button
-      onClick={() => onClick(id)}
-      className={`px-3 py-2 text-sm font-medium rounded transition-all whitespace-nowrap ${
-        active
-          ? "bg-slate-700/40 text-white border border-slate-600/50"
-          : "text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
-      }`}
-    >
-      {label}
-    </button>
-  );
-}
+import DataFreshnessIndicator from "@/app/components/DataFreshnessIndicator";
+import { AlertsBadge } from "@/app/components/PriceAlerts";
 
 /* ── Search Component ── */
 function SearchBox() {
@@ -141,15 +125,7 @@ function SearchBox() {
   );
 }
 
-export default function Header({
-  tab,
-  setTab,
-}: {
-  tab: TabId;
-  setTab: (id: TabId) => void;
-  searchQuery?: string;
-  onSearchChange?: (query: string) => void;
-}) {
+export default function Header() {
   const [clock, setClock] = useState("");
 
   useEffect(() => {
@@ -159,12 +135,6 @@ export default function Header({
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, []);
-
-  const tabs: { id: TabId; label: string }[] = [
-    { id: "overview", label: "Dashboard" },
-    { id: "cn-scanner", label: "CN Scanner" },
-    { id: "backtest", label: "Backtest" },
-  ];
 
   return (
     <header className="border-b border-gray-800/50 bg-[#0a0a0f]/80 backdrop-blur-sm sticky top-0 z-50">
@@ -180,19 +150,31 @@ export default function Header({
           </div>
         </div>
         <div className="flex items-center gap-4">
+          <DataFreshnessIndicator />
+          <AlertsBadge />
           <SearchBox />
           <span className="font-mono text-xs text-gray-500">{clock}</span>
         </div>
       </div>
       <div className="max-w-7xl mx-auto px-4 pb-2 flex gap-1 overflow-x-auto scrollbar-hide">
-        {tabs.map((t) => (
-          <NavTab
-            key={t.id}
-            {...t}
-            active={tab === t.id}
-            onClick={setTab}
-          />
-        ))}
+        <Link
+          href="/"
+          className="px-3 py-2 text-sm font-medium rounded transition-all whitespace-nowrap text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
+        >
+          Dashboard
+        </Link>
+        <Link
+          href="/evolution"
+          className="px-3 py-2 text-sm font-medium rounded transition-all whitespace-nowrap text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
+        >
+          Evolution
+        </Link>
+        <Link
+          href="/portfolio"
+          className="px-3 py-2 text-sm font-medium rounded transition-all whitespace-nowrap text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
+        >
+          Portfolio
+        </Link>
         <Link
           href="/screener"
           className="px-3 py-2 text-sm font-medium rounded transition-all whitespace-nowrap text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
