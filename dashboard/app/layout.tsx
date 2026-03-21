@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import ChatAssistant from "@/app/components/ChatAssistant";
 
 export const metadata: Metadata = {
   title: "FinClaw — Quantitative Research Platform",
@@ -26,6 +27,7 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className="min-h-screen bg-[#0a0a0f] antialiased">
         {children}
+        <ChatAssistant />
       </body>
     </html>
   );
