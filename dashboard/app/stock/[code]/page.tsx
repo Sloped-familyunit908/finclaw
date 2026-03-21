@@ -95,9 +95,18 @@ export default function StockDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<TimeRange>("1m");
+  const [watchlistState, setWatchlistState] = useState<"idle" | "added" | "exists">("idle");
 
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const macdChartContainerRef = useRef<HTMLDivElement>(null);
+
+  // Check watchlist on mount
+  useEffect(() => {
+    try {
+      const wl = JSON.parse(localStorage.getItem("finclaw_watchlist") || "[]") as string[];
+      if (wl.includes(code)) setWatchlistState("exists");
+    } catch { /* ignore */ }
+  }, [code]);
 
   // Fetch history when code or timeRange changes
   useEffect(() => {
@@ -369,6 +378,21 @@ export default function StockDetailPage() {
   const tickerInfo = findTicker(code);
   const stockName = tickerInfo?.nameCn || tickerInfo?.name || code;
 
+  /* -- Add to watchlist handler -- */
+  const addToWatchlist = () => {
+    try {
+      const wl = JSON.parse(localStorage.getItem("finclaw_watchlist") || "[]") as string[];
+      if (wl.includes(code)) {
+        setWatchlistState("exists");
+        return;
+      }
+      wl.push(code);
+      localStorage.setItem("finclaw_watchlist", JSON.stringify(wl));
+      setWatchlistState("added");
+      setTimeout(() => setWatchlistState("exists"), 2000);
+    } catch { /* ignore */ }
+  };
+
   /* -- Analysis data -- */
   const analysis = useMemo(() => {
     if (!indicators || isNaN(currentRSI)) return null;
@@ -405,6 +429,31 @@ export default function StockDetailPage() {
             <span className="px-2 py-0.5 text-xs rounded bg-gray-800/60 text-gray-400">
               {cn ? "A-Share" : crypto ? "Crypto" : "US"}
             </span>
+          </div>
+          <div className="ml-auto flex items-center gap-2">
+            <Link
+              href={`/compare?a=${encodeURIComponent(code)}&b=`}
+              className="px-3 py-1.5 text-xs rounded border border-gray-700/50 text-gray-400 hover:text-white hover:border-gray-600 transition-colors"
+            >
+              Compare
+            </Link>
+            <button
+              onClick={addToWatchlist}
+              disabled={watchlistState === "exists"}
+              className={`px-3 py-1.5 text-xs rounded border transition-colors ${
+                watchlistState === "exists"
+                  ? "border-gray-700/30 text-gray-600 cursor-default"
+                  : watchlistState === "added"
+                    ? "border-green-800/50 text-[#22c55e]"
+                    : "border-gray-700/50 text-gray-400 hover:text-white hover:border-gray-600"
+              }`}
+            >
+              {watchlistState === "exists"
+                ? "In Watchlist"
+                : watchlistState === "added"
+                  ? "Added"
+                  : "Add to Watchlist"}
+            </button>
           </div>
         </div>
       </header>
