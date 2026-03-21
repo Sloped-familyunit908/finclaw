@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { MarketData } from "@/app/types";
 import { CN_MARKET_DATA, US_MARKET_DATA, MARKET_DATA } from "@/app/lib/fallbackData";
+import { fetchQuoteSummary } from "@/app/lib/yahooCrumb";
 
 /* ── Simple in-memory cache (60 s) ── */
 const cache: Record<string, { data: MarketData[]; ts: number }> = {};
@@ -138,19 +139,15 @@ async function fetchUSPrices(): Promise<MarketData[]> {
       // Try to get market cap from chart meta first
       let marketCap = meta.marketCap ?? null;
 
-      // If chart API doesn't provide marketCap, try quoteSummary
+      // If chart API doesn't provide marketCap, try quoteSummary with crumb auth
       if (!marketCap) {
         try {
-          const summaryResp = await fetch(
-            `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${symbol}?modules=price`,
-            {
-              headers: {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-              },
-            },
-          );
-          const summaryJson = await summaryResp.json();
-          marketCap = summaryJson?.quoteSummary?.result?.[0]?.price?.marketCap?.raw ?? null;
+          const summaryResult = await fetchQuoteSummary(symbol, ["price"]);
+          const priceModule = summaryResult?.price as Record<string, unknown> | undefined;
+          const mcRaw = priceModule?.marketCap as { raw?: number } | undefined;
+          if (mcRaw && typeof mcRaw === "object" && typeof mcRaw.raw === "number") {
+            marketCap = mcRaw.raw;
+          }
         } catch {
           // Ignore — marketCap stays null
         }
@@ -251,19 +248,15 @@ async function fetchSingleUSPrice(symbol: string): Promise<MarketData | null> {
     // Try to get market cap from chart meta
     let marketCap = meta.marketCap ?? null;
 
-    // If chart API doesn't provide marketCap, try quoteSummary
+    // If chart API doesn't provide marketCap, try quoteSummary with crumb auth
     if (!marketCap) {
       try {
-        const summaryResp = await fetch(
-          `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${symbol}?modules=price`,
-          {
-            headers: {
-              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-            },
-          },
-        );
-        const summaryJson = await summaryResp.json();
-        marketCap = summaryJson?.quoteSummary?.result?.[0]?.price?.marketCap?.raw ?? null;
+        const summaryResult = await fetchQuoteSummary(symbol, ["price"]);
+        const priceModule = summaryResult?.price as Record<string, unknown> | undefined;
+        const mcRaw = priceModule?.marketCap as { raw?: number } | undefined;
+        if (mcRaw && typeof mcRaw === "object" && typeof mcRaw.raw === "number") {
+          marketCap = mcRaw.raw;
+        }
       } catch {
         // Ignore — marketCap remains null
       }

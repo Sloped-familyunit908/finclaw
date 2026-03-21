@@ -502,6 +502,12 @@ function CompareContent() {
                   {metrics.map((m) => {
                     const valA = getVal("a", m.key);
                     const valB = getVal("b", m.key);
+
+                    // Skip fundamental rows where both values are null (graceful degradation)
+                    if (valA === null && valB === null && m.key !== "price" && m.key !== "change") {
+                      return null;
+                    }
+
                     const winner = determineWinner(valA, valB, m.direction);
 
                     return (
@@ -535,6 +541,11 @@ function CompareContent() {
             </div>
             <p className="text-[9px] text-gray-700 mt-3 pt-2 border-t border-gray-800/30">
               Data from Yahoo Finance. Delayed. Not investment advice.
+              {(!dataA.fundamentals && !dataB.fundamentals) && (
+                <span className="block mt-1 text-yellow-700">
+                  Fundamental data temporarily unavailable. Showing price data only.
+                </span>
+              )}
             </p>
           </section>
         )}

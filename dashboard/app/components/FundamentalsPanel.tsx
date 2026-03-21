@@ -86,15 +86,25 @@ export default function FundamentalsPanel({ code }: { code: string }) {
       .then((r) => r.json())
       .then((json) => {
         if (json && typeof json === "object" && json.peRatio !== undefined) {
+          // Check if at least one field has real data
+          const keys: (keyof FundamentalsData)[] = [
+            "peRatio", "forwardPE", "pegRatio", "priceToBook", "priceToSales",
+            "evToEbitda", "marketCap", "enterpriseValue", "totalRevenue",
+            "profitMargin", "returnOnEquity", "revenueGrowth", "earningsGrowth",
+            "dividendYield", "beta", "fiftyTwoWeekChange", "targetMeanPrice",
+          ];
+          const hasAnyValue = keys.some(
+            (k) => json[k] !== null && json[k] !== undefined && !isNaN(json[k]),
+          );
           setData(json);
-          setHasData(true);
+          setHasData(hasAnyValue);
         }
       })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [code]);
 
-  // Don't render for crypto or when no data
+  // Don't render for crypto or when ALL fields are null (graceful degradation)
   if (!loading && !hasData) return null;
 
   if (loading) {

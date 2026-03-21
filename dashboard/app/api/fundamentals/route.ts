@@ -1,9 +1,11 @@
 /* ════════════════════════════════════════════════════════════════
    API ROUTE — /api/fundamentals  — FinClaw
    Fetches fundamental data from Yahoo Finance quoteSummary
+   Uses crumb authentication for Yahoo v10 API
    ════════════════════════════════════════════════════════════════ */
 
 import { NextRequest, NextResponse } from "next/server";
+import { fetchQuoteSummary } from "@/app/lib/yahooCrumb";
 
 export interface FundamentalsData {
   // Valuation
@@ -51,24 +53,17 @@ function extractRaw(obj: Record<string, unknown> | undefined | null, key: string
 
 async function fetchUSFundamentals(symbol: string): Promise<FundamentalsData | null> {
   try {
-    const resp = await fetch(
-      `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${symbol}?modules=defaultKeyStatistics,financialData`,
-      {
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        },
-      },
-    );
+    const result = await fetchQuoteSummary(symbol, [
+      "defaultKeyStatistics",
+      "financialData",
+      "price",
+    ]);
 
-    if (!resp.ok) return null;
-
-    const json = await resp.json();
-    const result = json?.quoteSummary?.result?.[0];
     if (!result) return null;
 
     const stats = result.defaultKeyStatistics as Record<string, unknown> | undefined;
     const fin = result.financialData as Record<string, unknown> | undefined;
+    const price = result.price as Record<string, unknown> | undefined;
 
     return {
       peRatio: extractRaw(stats, "trailingPE") ?? extractRaw(fin, "trailingPE"),
@@ -77,7 +72,7 @@ async function fetchUSFundamentals(symbol: string): Promise<FundamentalsData | n
       priceToBook: extractRaw(stats, "priceToBook"),
       priceToSales: extractRaw(stats, "priceToSalesTrailing12Months"),
       evToEbitda: extractRaw(stats, "enterpriseToEbitda"),
-      marketCap: extractRaw(stats, "marketCap") ?? extractRaw(fin, "marketCap"),
+      marketCap: extractRaw(price, "marketCap") ?? extractRaw(stats, "marketCap") ?? extractRaw(fin, "marketCap"),
       enterpriseValue: extractRaw(stats, "enterpriseValue"),
       totalRevenue: extractRaw(fin, "totalRevenue"),
       profitMargin: extractRaw(fin, "profitMargins"),
