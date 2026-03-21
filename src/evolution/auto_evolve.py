@@ -803,13 +803,15 @@ def filter_stock_pool(
     """Filter stock pool by quality metrics.
 
     Criteria:
-    - Average daily turnover (volume * close proxy) > min_daily_amount
-    - Last close > min_price
-    - Stocks with recent limit-up (涨停) in last 60 days get priority
+    - Exclude ST / *ST stocks (delisting risk)
+    - Exclude bank stocks (low volatility, drag on evolution)
+    - Exclude stocks with price < min_price
+    - Average daily turnover > min_daily_amount
+    - Stocks with recent limit-up get priority bonus
     - Returns at most max_stocks best-quality stocks
 
     Args:
-        data: Raw stock data dict
+        data: Raw stock data dict (code -> {date, open, high, low, close, volume})
         min_daily_amount: Minimum average daily turnover in CNY
         min_price: Minimum stock price
         max_stocks: Maximum number of stocks to keep
@@ -817,6 +819,38 @@ def filter_stock_pool(
     Returns:
         Filtered data dict
     """
+    # Bank stock codes (major A-share banks — low volatility, not useful for evolution)
+    _BANK_CODES = {
+        "sh_601398",  # 工商银行
+        "sh_601288",  # 农业银行
+        "sh_601988",  # 中国银行
+        "sh_601939",  # 建设银行
+        "sh_601328",  # 交通银行
+        "sh_600036",  # 招商银行
+        "sh_601166",  # 兴业银行
+        "sh_600016",  # 民生银行
+        "sh_600000",  # 浦发银行
+        "sh_601818",  # 光大银行
+        "sh_600015",  # 华夏银行
+        "sh_601998",  # 中信银行
+        "sh_600919",  # 江苏银行
+        "sh_601009",  # 南京银行
+        "sh_601169",  # 北京银行
+        "sz_000001",  # 平安银行
+        "sz_002142",  # 宁波银行
+        "sh_601838",  # 成都银行
+        "sh_600926",  # 杭州银行
+        "sh_601077",  # 渝农商行
+        "sh_600908",  # 无锡银行
+        "sz_002839",  # 张家港行
+        "sz_002936",  # 郑州银行
+        "sz_002948",  # 青岛银行
+        "sh_601528",  # 瑞丰银行
+        "sh_601860",  # 紫金银行
+        "sz_002807",  # 江阴银行
+        "sz_002966",  # 苏州银行
+    }
+
     scored_codes: List[Tuple[str, float]] = []
 
     for code, sd in data.items():
@@ -826,13 +860,35 @@ def filter_stock_pool(
         if not closes:
             continue
 
+        # --- Exclusion filters ---
+
+        # Skip bank stocks
+        if code in _BANK_CODES:
+            continue
+
+        # Skip ST stocks — they have "ST" in the data or erratic price patterns
+        # ST stocks typically have 5% daily limit instead of 10%
+        # Heuristic: if max daily change in last 60 days never exceeds 5.5%, likely ST
+        recent_n = min(60, len(closes))
+        if recent_n > 5:
+            max_daily_change = 0.0
+            for i in range(len(closes) - recent_n + 1, len(closes)):
+                if closes[i - 1] > 0:
+                    change = abs(closes[i] - closes[i - 1]) / closes[i - 1]
+                    max_daily_change = max(max_daily_change, change)
+            # ST stocks have 5% limit; normal stocks have 10%+
+            # If max change in 60 days is under 5.5%, very likely ST
+            if max_daily_change < 0.055 and max_daily_change > 0:
+                continue
+
         # Last close must be > min_price
         last_close = closes[-1]
         if last_close < min_price:
             continue
 
+        # --- Quality scoring ---
+
         # Average daily turnover (volume * close as proxy for amount)
-        recent_n = min(60, len(closes))
         avg_amount = sum(
             closes[-recent_n + i] * volumes[-recent_n + i]
             for i in range(recent_n)
@@ -846,7 +902,7 @@ def filter_stock_pool(
         for i in range(max(1, len(closes) - 60), len(closes)):
             if closes[i - 1] > 0:
                 daily_ret = (closes[i] - closes[i - 1]) / closes[i - 1]
-                # Approximate limit-up: ≥9.5% for main board, ≥19% for ChiNext/STAR
+                # Approximate limit-up: >=9.5% for main board, >=19% for ChiNext/STAR
                 if daily_ret >= 0.095:
                     limit_up_bonus += 1.0
 
