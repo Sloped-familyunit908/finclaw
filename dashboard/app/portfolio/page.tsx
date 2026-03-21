@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { searchTickers, findTicker, type TickerInfo } from "@/app/lib/tickers";
 import { fmt } from "@/app/lib/utils";
 import LoadingCard, { LoadingTable } from "@/app/components/LoadingCard";
+import CorrelationMatrix from "@/app/components/CorrelationMatrix";
+import RiskMetrics from "@/app/components/RiskMetrics";
 import { useRef } from "react";
 
 /* ════════════════════════════════════════════════════════════════
@@ -596,6 +598,18 @@ export default function PortfolioPage() {
                 </table>
               </div>
             )}
+
+            {/* Correlation Matrix */}
+            <CorrelationMatrix tickers={positions.map((p) => p.ticker)} />
+
+            {/* Risk Metrics */}
+            <RiskMetrics
+              holdings={rows.map((r) => ({
+                ticker: r.ticker,
+                shares: r.shares,
+                currentPrice: r.currentPrice,
+              }))}
+            />
           </>
         )}
       </main>

@@ -185,6 +185,27 @@ test.describe('Screener Page', () => {
   });
 });
 
+test.describe('Evolution Page', () => {
+  test('loads without errors', async ({ page }) => {
+    await page.goto('/evolution');
+    await expect(page.locator('body')).not.toContainText('Application error');
+  });
+});
+
+test.describe('Portfolio Page', () => {
+  test('loads without errors', async ({ page }) => {
+    await page.goto('/portfolio');
+    await expect(page.locator('body')).not.toContainText('Application error');
+  });
+});
+
+test.describe('Backtest Page', () => {
+  test('loads without errors', async ({ page }) => {
+    await page.goto('/backtest');
+    await expect(page.locator('body')).not.toContainText('Application error');
+  });
+});
+
 test.describe('404 / Not Found', () => {
   test('unknown page shows not-found', async ({ page }) => {
     await page.goto('/this-page-does-not-exist');
