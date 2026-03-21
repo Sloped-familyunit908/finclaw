@@ -49,29 +49,22 @@ function generateAnalysis(
 ) {
   const rsiInterp =
     rsi > 70 ? "overbought" : rsi < 30 ? "oversold" : rsi > 60 ? "above-neutral" : rsi < 40 ? "below-neutral" : "neutral";
-  const macdSignal = macdHist > 0 ? "bullish crossover" : "bearish crossover";
+  const macdSignal = macdHist > 0 ? "bullish" : "bearish";
   const maAbove20 = price > sma20;
   const maAbove50 = price > sma50;
-  const maAnalysis = maAbove20 && maAbove50
-    ? "Price above both MA20 and MA50; bullish alignment"
-    : !maAbove20 && !maAbove50
-      ? "Price below both MA20 and MA50; bearish alignment"
-      : maAbove20
-        ? "Price above MA20 but below MA50; mixed"
-        : "Price below MA20, near MA50 support";
 
   let score = 5;
   const factors: string[] = [];
 
-  if (rsi > 40 && rsi < 60) { score += 1; factors.push("RSI neutral range (+1)"); }
-  else if (rsi < 30) { score += 2; factors.push("RSI oversold opportunity (+2)"); }
-  else if (rsi > 70) { score -= 1; factors.push("RSI overbought risk (-1)"); }
+  if (rsi > 40 && rsi < 60) { score += 1; factors.push("RSI neutral (+1)"); }
+  else if (rsi < 30) { score += 2; factors.push("RSI oversold (+2)"); }
+  else if (rsi > 70) { score -= 1; factors.push("RSI overbought (-1)"); }
 
-  if (macdHist > 0) { score += 1; factors.push("MACD bullish crossover (+1)"); }
-  else { score -= 1; factors.push("MACD bearish crossover (-1)"); }
+  if (macdHist > 0) { score += 1; factors.push("MACD bullish (+1)"); }
+  else { score -= 1; factors.push("MACD bearish (-1)"); }
 
-  if (maAbove20 && maAbove50) { score += 2; factors.push("Bullish MA alignment (+2)"); }
-  else if (!maAbove20 && !maAbove50) { score -= 1; factors.push("Bearish MA alignment (-1)"); }
+  if (maAbove20 && maAbove50) { score += 2; factors.push("MA alignment bullish (+2)"); }
+  else if (!maAbove20 && !maAbove50) { score -= 1; factors.push("MA alignment bearish (-1)"); }
 
   score = Math.max(1, Math.min(10, score));
 
@@ -79,14 +72,14 @@ function generateAnalysis(
   const stopLoss = price * 0.92;
   const currency = cn ? "\u00a5" : "$";
 
-  return `Technical Analysis Summary \u2014 ${name} (${code})
-
-Technicals: RSI(14) at ${rsi.toFixed(1)}, ${rsiInterp} zone. MACD ${macdSignal}. ${maAnalysis}.
-
-Composite Score: ${score}/10 (${signalText})
-Score Factors: ${factors.join("; ")}
-
-Risk Note: This analysis is derived from technical indicators only and does not constitute investment advice. Suggested stop-loss: ${currency}${stopLoss.toFixed(2)} (-8%).`;
+  return {
+    score,
+    signalText,
+    rsiInterp,
+    macdSignal,
+    factors,
+    stopLoss: `${currency}${stopLoss.toFixed(2)}`,
+  };
 }
 
 /* ================================================================ */
@@ -97,6 +90,7 @@ export default function StockDetailPage() {
   const crypto = isCrypto(code);
 
   const [history, setHistory] = useState<HistoryBar[]>([]);
+  const [yearHistory, setYearHistory] = useState<HistoryBar[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<TimeRange>("1m");
@@ -124,6 +118,31 @@ export default function StockDetailPage() {
       .catch((e) => setError(String(e)))
       .finally(() => setLoading(false));
   }, [code, timeRange]);
+
+  // Fetch 1Y history for 52-week high/low
+  useEffect(() => {
+    fetch(`/api/history?code=${encodeURIComponent(code)}&range=1y`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setYearHistory(data);
+        }
+      })
+      .catch(() => {
+        // silent — 52w data is supplementary
+      });
+  }, [code]);
+
+  // Compute 52-week high/low
+  const week52 = useMemo(() => {
+    if (yearHistory.length === 0) return null;
+    const highs = yearHistory.map((b) => b.high);
+    const lows = yearHistory.map((b) => b.low);
+    return {
+      high: Math.max(...highs),
+      low: Math.min(...lows),
+    };
+  }, [yearHistory]);
 
   /* -- Compute indicators -- */
   const indicators = useMemo(() => {
@@ -349,8 +368,8 @@ export default function StockDetailPage() {
   const tickerInfo = findTicker(code);
   const stockName = tickerInfo?.nameCn || tickerInfo?.name || code;
 
-  /* -- Analysis text -- */
-  const analysisText = useMemo(() => {
+  /* -- Analysis data -- */
+  const analysis = useMemo(() => {
     if (!indicators || isNaN(currentRSI)) return null;
     return generateAnalysis(
       code,
@@ -408,9 +427,9 @@ export default function StockDetailPage() {
 
         {!loading && !error && currentBar && (
           <>
-            {/* -- Hero: Price & Change -- */}
+            {/* -- Hero: Price & Stats Grid -- */}
             <section className="rounded border border-gray-800/60 bg-[#13131a] p-6">
-              <div className="flex flex-wrap items-end gap-6">
+              <div className="flex flex-wrap items-end gap-6 mb-4">
                 <div>
                   <p className="text-4xl font-mono font-bold text-white">
                     {fmtP(price, cn)}
@@ -421,30 +440,44 @@ export default function StockDetailPage() {
                     {isUp ? "+" : ""}{Math.abs(change).toFixed(2)}%
                   </span>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-8 gap-y-2 text-sm">
-                  <div>
-                    <span className="text-gray-500">Open</span>
-                    <p className="font-mono text-gray-300">{fmtP(currentBar.open, cn)}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">High</span>
-                    <p className="font-mono text-gray-300">{fmtP(currentBar.high, cn)}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Low</span>
-                    <p className="font-mono text-gray-300">{fmtP(currentBar.low, cn)}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Volume</span>
-                    <p className="font-mono text-gray-300">
-                      {currentBar.volume > 0
-                        ? cn
-                          ? fmt.compactCn(currentBar.volume)
-                          : fmt.compact(currentBar.volume)
-                        : "\u2014"}
-                    </p>
-                  </div>
+              </div>
+
+              {/* Stats Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-6 gap-y-3 text-sm border-t border-gray-800/40 pt-4">
+                <div>
+                  <span className="text-gray-500 text-xs">Open</span>
+                  <p className="font-mono text-gray-300">{fmtP(currentBar.open, cn)}</p>
                 </div>
+                <div>
+                  <span className="text-gray-500 text-xs">High</span>
+                  <p className="font-mono text-gray-300">{fmtP(currentBar.high, cn)}</p>
+                </div>
+                <div>
+                  <span className="text-gray-500 text-xs">Low</span>
+                  <p className="font-mono text-gray-300">{fmtP(currentBar.low, cn)}</p>
+                </div>
+                <div>
+                  <span className="text-gray-500 text-xs">Volume</span>
+                  <p className="font-mono text-gray-300">
+                    {currentBar.volume > 0
+                      ? cn
+                        ? fmt.compactCn(currentBar.volume)
+                        : fmt.compact(currentBar.volume)
+                      : "\u2014"}
+                  </p>
+                </div>
+                {week52 && (
+                  <>
+                    <div>
+                      <span className="text-gray-500 text-xs">52w High</span>
+                      <p className="font-mono text-gray-300">{fmtP(week52.high, cn)}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 text-xs">52w Low</span>
+                      <p className="font-mono text-gray-300">{fmtP(week52.low, cn)}</p>
+                    </div>
+                  </>
+                )}
               </div>
             </section>
 
@@ -642,17 +675,46 @@ export default function StockDetailPage() {
               <div ref={macdChartContainerRef} />
             </section>
 
-            {/* -- Technical Analysis -- */}
-            {analysisText && (
+            {/* -- Technical Analysis Summary -- */}
+            {analysis && (
               <section className="rounded border border-gray-700/40 bg-[#13131a] p-6">
-                <h2 className="text-sm font-semibold text-gray-400 mb-4">
-                  Technical Analysis Summary
-                </h2>
-                <pre className="whitespace-pre-wrap text-sm text-gray-300 font-mono leading-relaxed">
-                  {analysisText}
-                </pre>
-                <p className="text-[10px] text-gray-600 mt-4 border-t border-gray-800/50 pt-3">
-                  This analysis is auto-generated from technical indicators and is provided for informational purposes only. Not investment advice.
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-sm font-semibold text-gray-400">
+                    Technical Analysis
+                  </h2>
+                  <span
+                    className={`px-2 py-1 rounded text-xs font-mono font-bold ${
+                      analysis.score >= 7
+                        ? "bg-green-950/60 text-[#22c55e] border border-green-800/40"
+                        : analysis.score <= 3
+                          ? "bg-red-950/60 text-[#ef4444] border border-red-800/40"
+                          : "bg-gray-800/60 text-gray-300 border border-gray-700/40"
+                    }`}
+                  >
+                    {analysis.score}/10 {analysis.signalText}
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-500 text-xs">RSI</span>
+                    <p className="font-mono text-gray-300">{analysis.rsiInterp}</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-500 text-xs">MACD</span>
+                    <p className="font-mono text-gray-300">{analysis.macdSignal}</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-500 text-xs">Stop-loss (-8%)</span>
+                    <p className="font-mono text-gray-300">{analysis.stopLoss}</p>
+                  </div>
+                </div>
+                <div className="mt-3 pt-3 border-t border-gray-800/40">
+                  <p className="text-[10px] text-gray-600">
+                    {analysis.factors.join(" / ")}
+                  </p>
+                </div>
+                <p className="text-[10px] text-gray-600 mt-2">
+                  Auto-generated from technical indicators. Not investment advice.
                 </p>
               </section>
             )}

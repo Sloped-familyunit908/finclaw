@@ -7,8 +7,11 @@ import Header from "@/app/components/Header";
 import BacktestTable from "@/app/components/BacktestTable";
 import CNScanner from "@/app/components/CNScanner";
 import MarketIndexBanner from "@/app/components/MarketIndexBanner";
+import FeaturedCards from "@/app/components/FeaturedCards";
 import WatchlistTable from "@/app/components/WatchlistTable";
+import EvolutionStatus from "@/app/components/EvolutionStatus";
 import TopMovers from "@/app/components/TopMovers";
+import NewsPanel from "@/app/components/NewsPanel";
 
 export default function Home() {
   const [tab, setTab] = useState<TabId>("overview");
@@ -23,13 +26,25 @@ export default function Home() {
       {/* Content */}
       <main className="max-w-7xl mx-auto px-4 py-6">
         {tab === "overview" && (
-          <div className="space-y-8">
-            {/* Watchlist — main content */}
-            <WatchlistTable />
+          <>
+            {/* Featured Ticker Cards — full width */}
+            <FeaturedCards />
 
-            {/* Top Movers — below watchlist */}
-            <TopMovers />
-          </div>
+            {/* Two-column layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+              {/* Left Column (60%) */}
+              <div className="lg:col-span-3 space-y-6">
+                <WatchlistTable />
+              </div>
+
+              {/* Right Column (40%) */}
+              <div className="lg:col-span-2 space-y-4">
+                <EvolutionStatus />
+                <TopMovers />
+                <NewsPanel ticker="market" maxItems={5} compact />
+              </div>
+            </div>
+          </>
         )}
         {tab === "backtest" && <BacktestTable />}
         {tab === "cn-scanner" && <CNScanner />}

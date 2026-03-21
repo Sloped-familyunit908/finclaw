@@ -10,7 +10,7 @@ import {
 
 /* ════════════════════════════════════════════════════════════════
    TOP MOVERS WIDGET — Gainers & Losers
-   Shows top 5 gainers and top 5 losers from all market data.
+   Shows top 5 gainers and top 5 losers with mini change bars.
    ════════════════════════════════════════════════════════════════ */
 
 export default function TopMovers() {
@@ -45,22 +45,23 @@ export default function TopMovers() {
     };
   }, []);
 
-  const { gainers, losers } = useMemo(() => {
+  const { gainers, losers, maxAbsChange } = useMemo(() => {
     const sorted = [...allData].sort((a, b) => b.change24h - a.change24h);
-    return {
-      gainers: sorted.slice(0, 5),
-      losers: sorted.slice(-5).reverse(),
-    };
+    const g = sorted.slice(0, 5);
+    const l = sorted.slice(-5).reverse();
+    const all = [...g, ...l];
+    const maxAbs = all.reduce((m, d) => Math.max(m, Math.abs(d.change24h)), 1);
+    return { gainers: g, losers: l, maxAbsChange: maxAbs };
   }, [allData]);
 
   const handleClick = (symbol: string) => {
     router.push(`/stock/${encodeURIComponent(symbol)}`);
   };
 
-  const renderList = (items: MarketData[], isGainer: boolean) => {
+  const renderList = (items: MarketData[]) => {
     if (loading) {
       return Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className="flex justify-between items-center py-1 animate-pulse">
+        <div key={i} className="flex justify-between items-center py-1.5 animate-pulse">
           <div className="h-3 w-16 bg-gray-800 rounded" />
           <div className="h-3 w-12 bg-gray-800 rounded" />
         </div>
@@ -75,18 +76,29 @@ export default function TopMovers() {
 
     return items.map((item) => {
       const isUp = item.change24h >= 0;
-      const displayName = item.nameCn || item.asset;
+      const barWidth = Math.min(
+        (Math.abs(item.change24h) / maxAbsChange) * 100,
+        100
+      );
       return (
         <button
           key={item.asset}
-          className="flex justify-between items-center py-1 w-full text-left hover:bg-gray-800/40 rounded px-1 -mx-1 transition-colors"
+          className="flex items-center py-1.5 w-full text-left hover:bg-gray-800/40 rounded px-1 -mx-1 transition-colors group"
           onClick={() => handleClick(item.asset)}
         >
-          <span className="text-xs text-gray-300 truncate mr-2 font-mono">
-            {displayName}
+          <span className="text-xs text-gray-400 group-hover:text-gray-200 truncate mr-2 font-mono w-14 shrink-0">
+            {item.asset}
           </span>
+          <div className="flex-1 mx-2 h-3 bg-gray-900/60 rounded-sm overflow-hidden relative">
+            <div
+              className={`h-full rounded-sm transition-all ${
+                isUp ? "bg-[#22c55e]/30" : "bg-[#ef4444]/30"
+              }`}
+              style={{ width: `${barWidth}%` }}
+            />
+          </div>
           <span
-            className={`text-xs font-mono font-bold shrink-0 ${
+            className={`text-xs font-mono font-bold shrink-0 w-16 text-right ${
               isUp ? "text-[#22c55e]" : "text-[#ef4444]"
             }`}
           >
@@ -98,31 +110,31 @@ export default function TopMovers() {
   };
 
   return (
-    <section>
-      <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">
+    <div className="rounded border border-gray-800/60 bg-[#13131a] p-4">
+      <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
         Top Movers
-      </h2>
-      <div className="grid grid-cols-2 gap-4">
+      </h3>
+      <div className="space-y-4">
         {/* Gainers */}
-        <div className="rounded border border-gray-800/60 bg-[#13131a] p-3">
-          <h3 className="text-[10px] font-semibold text-[#22c55e] uppercase tracking-wider mb-2 border-b border-gray-800/40 pb-1.5">
-            Top Gainers
-          </h3>
-          <div className="space-y-0.5">
-            {renderList(gainers, true)}
+        <div>
+          <h4 className="text-[10px] font-semibold text-[#22c55e] uppercase tracking-wider mb-1.5 border-b border-gray-800/40 pb-1">
+            Gainers
+          </h4>
+          <div className="space-y-0">
+            {renderList(gainers)}
           </div>
         </div>
 
         {/* Losers */}
-        <div className="rounded border border-gray-800/60 bg-[#13131a] p-3">
-          <h3 className="text-[10px] font-semibold text-[#ef4444] uppercase tracking-wider mb-2 border-b border-gray-800/40 pb-1.5">
-            Top Losers
-          </h3>
-          <div className="space-y-0.5">
-            {renderList(losers, false)}
+        <div>
+          <h4 className="text-[10px] font-semibold text-[#ef4444] uppercase tracking-wider mb-1.5 border-b border-gray-800/40 pb-1">
+            Losers
+          </h4>
+          <div className="space-y-0">
+            {renderList(losers)}
           </div>
         </div>
       </div>
-    </section>
+    </div>
   );
 }

@@ -403,10 +403,10 @@ export default function WatchlistTable() {
                   : "--";
                 const fmtVol = row.volume
                   ? row.isCn ? fmt.compactCn(row.volume) : fmt.compact(row.volume)
-                  : "--";
+                  : "N/A";
                 const fmtCap = row.marketCap
                   ? row.isCn ? fmt.compactCn(row.marketCap) : fmt.compact(row.marketCap)
-                  : "--";
+                  : "N/A";
 
                 return (
                   <tr
