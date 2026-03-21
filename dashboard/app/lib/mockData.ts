@@ -12,53 +12,47 @@ import type {
   CNScannerResult,
 } from "@/app/types";
 
-/* ── US Stocks market data ── */
+/* ── US Stocks market data (fallback — real prices fetched from Yahoo Finance) ── */
 export const US_MARKET_DATA: MarketData[] = [
-  { asset: "AAPL", price: 178.72, change24h: 1.35, rsi14: 58.4, sma20: 174.50, sma50: 171.20, sma200: 182.30, volume24h: 52.1e6, marketCap: 2.78e12, market: "US" },
-  { asset: "NVDA", price: 875.30, change24h: 3.82, rsi14: 68.9, sma20: 830.00, sma50: 780.50, sma200: 620.40, volume24h: 45.7e6, marketCap: 2.15e12, market: "US" },
-  { asset: "TSLA", price: 175.20, change24h: -1.45, rsi14: 42.3, sma20: 180.60, sma50: 195.30, sma200: 215.80, volume24h: 98.3e6, marketCap: 557e9, market: "US" },
-  { asset: "MSFT", price: 425.80, change24h: 0.92, rsi14: 55.6, sma20: 420.10, sma50: 415.30, sma200: 395.70, volume24h: 22.4e6, marketCap: 3.16e12, market: "US" },
-  { asset: "AMZN", price: 186.40, change24h: 2.15, rsi14: 61.2, sma20: 180.30, sma50: 178.90, sma200: 165.50, volume24h: 38.6e6, marketCap: 1.94e12, market: "US" },
-  { asset: "META", price: 515.60, change24h: 1.78, rsi14: 63.5, sma20: 500.20, sma50: 485.70, sma200: 420.30, volume24h: 15.2e6, marketCap: 1.32e12, market: "US" },
+  { asset: "AAPL", price: 178.72, change24h: 1.35, volume24h: 52.1e6, marketCap: 2.78e12, market: "US" },
+  { asset: "NVDA", price: 875.30, change24h: 3.82, volume24h: 45.7e6, marketCap: 2.15e12, market: "US" },
+  { asset: "TSLA", price: 175.20, change24h: -1.45, volume24h: 98.3e6, marketCap: 557e9, market: "US" },
+  { asset: "MSFT", price: 425.80, change24h: 0.92, volume24h: 22.4e6, marketCap: 3.16e12, market: "US" },
+  { asset: "AMZN", price: 186.40, change24h: 2.15, volume24h: 38.6e6, marketCap: 1.94e12, market: "US" },
+  { asset: "META", price: 515.60, change24h: 1.78, volume24h: 15.2e6, marketCap: 1.32e12, market: "US" },
 ];
 
-/* ── Crypto market data ── */
+/* ── Crypto market data (fallback — real prices fetched from CoinGecko) ── */
 export const MARKET_DATA: MarketData[] = [
-  { asset: "BTC", price: 70742, change24h: -2.27, rsi14: 52.7, sma20: 68283, sma50: 71717, sma200: 94123, volume24h: 50.4e9, marketCap: 1.41e12, market: "Crypto" },
-  { asset: "ETH", price: 2075, change24h: -2.56, rsi14: 51.1, sma20: 2002, sma50: 2150, sma200: 3247, volume24h: 18.2e9, marketCap: 250e9, market: "Crypto" },
-  { asset: "SOL", price: 87.02, change24h: -3.62, rsi14: 49.2, sma20: 85.16, sma50: 92.5, sma200: 150.09, volume24h: 4.1e9, marketCap: 42e9, market: "Crypto" },
+  { asset: "BTC", price: 70742, change24h: -2.27, volume24h: 50.4e9, marketCap: 1.41e12, market: "Crypto" },
+  { asset: "ETH", price: 2075, change24h: -2.56, volume24h: 18.2e9, marketCap: 250e9, market: "Crypto" },
+  { asset: "SOL", price: 87.02, change24h: -3.62, volume24h: 4.1e9, marketCap: 42e9, market: "Crypto" },
 ];
 
-/* ── A-share market data ── */
+/* ── A-share market data (fallback — real prices fetched from Sina) ── */
 export const CN_MARKET_DATA: MarketData[] = [
   {
     asset: "600438.SH", nameCn: "通威股份", price: 25.68, change24h: 2.15,
-    rsi14: 58.3, sma20: 24.50, sma50: 23.80, sma200: 28.10,
     volume24h: 3.2e9, marketCap: 115.6e9, market: "A股",
   },
   {
     asset: "000988.SZ", nameCn: "华工科技", price: 32.45, change24h: -1.32,
-    rsi14: 44.7, sma20: 33.10, sma50: 34.50, sma200: 36.20,
     volume24h: 1.1e9, marketCap: 32.5e9, market: "A股",
   },
   {
     asset: "002415.SZ", nameCn: "海康威视", price: 35.12, change24h: 0.85,
-    rsi14: 55.2, sma20: 34.20, sma50: 33.80, sma200: 37.50,
     volume24h: 4.5e9, marketCap: 328e9, market: "A股",
   },
   {
     asset: "300750.SZ", nameCn: "宁德时代", price: 218.50, change24h: -0.45,
-    rsi14: 47.8, sma20: 220.30, sma50: 225.60, sma200: 195.40,
     volume24h: 8.9e9, marketCap: 964e9, market: "A股",
   },
   {
     asset: "600519.SH", nameCn: "贵州茅台", price: 1528.00, change24h: 0.32,
-    rsi14: 52.1, sma20: 1510.00, sma50: 1495.00, sma200: 1580.00,
     volume24h: 3.8e9, marketCap: 1.92e12, market: "A股",
   },
   {
     asset: "000625.SZ", nameCn: "长安汽车", price: 14.85, change24h: 3.42,
-    rsi14: 65.8, sma20: 13.90, sma50: 13.20, sma200: 14.50,
     volume24h: 5.6e9, marketCap: 147e9, market: "A股",
   },
 ];

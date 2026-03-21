@@ -21,22 +21,18 @@ import CNScanner from "@/app/components/CNScanner";
 /* -- Loading skeleton for price cards -- */
 function PriceCardSkeleton() {
   return (
-    <div className="rounded border border-gray-800/60 bg-[#13131a] p-4 animate-pulse">
-      <div className="flex justify-between items-start mb-3">
+    <div className="rounded border border-gray-800/60 bg-[#13131a] px-3 py-2.5 animate-pulse">
+      <div className="flex justify-between items-start mb-1.5">
         <div className="flex-1">
-          <div className="h-4 w-24 bg-gray-800 rounded mb-2" />
-          <div className="h-7 w-32 bg-gray-800 rounded" />
+          <div className="h-4 w-24 bg-gray-800 rounded mb-1" />
+          <div className="h-3 w-16 bg-gray-800/60 rounded" />
         </div>
-        <div className="h-7 w-20 bg-gray-800 rounded" />
+        <div className="h-6 w-18 bg-gray-800 rounded" />
       </div>
-      <div className="h-8 bg-gray-800/30 rounded mb-3" />
-      <div className="grid grid-cols-2 gap-y-1.5 gap-x-4">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="flex justify-between">
-            <div className="h-3 w-12 bg-gray-800/60 rounded" />
-            <div className="h-3 w-16 bg-gray-800/60 rounded" />
-          </div>
-        ))}
+      <div className="h-7 w-28 bg-gray-800 rounded mb-2" />
+      <div className="flex justify-between">
+        <div className="h-3 w-20 bg-gray-800/60 rounded" />
+        <div className="h-3 w-20 bg-gray-800/60 rounded" />
       </div>
     </div>
   );
@@ -142,7 +138,7 @@ export default function Home() {
               <h2 className="text-lg font-semibold mb-4 text-gray-300">
                 China A-Shares
               </h2>
-              {loading ? renderSkeletons(3) : renderCards(cnData.slice(0, 3))}
+              {loading ? renderSkeletons(6) : renderCards(cnData)}
             </section>
 
             <BacktestTable />

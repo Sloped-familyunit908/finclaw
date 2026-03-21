@@ -6,10 +6,11 @@ export interface MarketData {
   asset: string;
   price: number;
   change24h: number;
-  rsi14: number | null;
-  sma20: number | null;
-  sma50: number | null;
-  sma200: number | null;
+  /** Technical indicators — only populated on detail page with real historical data */
+  rsi14?: number | null;
+  sma20?: number | null;
+  sma50?: number | null;
+  sma200?: number | null;
   volume24h: number | null;
   marketCap: number | null;
   /** Optional: exchange market (e.g. "US", "CN") */
