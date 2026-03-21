@@ -3,14 +3,6 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import {
-  createChart,
-  ColorType,
-  CrosshairMode,
-  CandlestickSeries,
-  LineSeries,
-  HistogramSeries,
-} from "lightweight-charts";
 import type { IChartApi } from "lightweight-charts";
 import type { HistoryBar } from "@/app/api/history/route";
 import {
@@ -155,93 +147,99 @@ export default function StockDetailPage() {
   useEffect(() => {
     if (!chartContainerRef.current || !history.length || !indicators) return;
 
-    const chart: IChartApi = createChart(chartContainerRef.current, {
-      width: chartContainerRef.current.clientWidth,
-      height: 400,
-      layout: {
-        background: { type: ColorType.Solid, color: '#0a0a0f' },
-        textColor: '#9ca3af',
-      },
-      grid: {
-        vertLines: { color: '#1f2937' },
-        horzLines: { color: '#1f2937' },
-      },
-      crosshair: { mode: CrosshairMode.Normal },
-      timeScale: { borderColor: '#374151' },
-      rightPriceScale: { borderColor: '#374151' },
-    });
+    let chart: IChartApi | null = null;
+    let handleResize: (() => void) | null = null;
 
-    const candleSeries = chart.addSeries(CandlestickSeries, {
-      upColor: '#22c55e',
-      downColor: '#ef4444',
-      borderUpColor: '#22c55e',
-      borderDownColor: '#ef4444',
-      wickUpColor: '#22c55e',
-      wickDownColor: '#ef4444',
-    });
-    candleSeries.setData(
-      history.map((d) => ({
-        time: d.date as string,
-        open: d.open,
-        high: d.high,
-        low: d.low,
-        close: d.close,
-      }))
-    );
+    (async () => {
+      const lc = await import("lightweight-charts");
+      if (!chartContainerRef.current) return;
 
-    const sma20Series = chart.addSeries(LineSeries, {
-      color: '#5eead4',
-      lineWidth: 1,
-      title: 'SMA20',
-    });
-    const sma20Data = history
-      .map((d, i) => ({
-        time: d.date as string,
-        value: indicators.sma20[i],
-      }))
-      .filter((d) => !isNaN(d.value));
-    sma20Series.setData(sma20Data);
+      chart = lc.createChart(chartContainerRef.current, {
+        width: chartContainerRef.current.clientWidth,
+        height: 400,
+        layout: {
+          background: { type: lc.ColorType.Solid, color: '#0a0a0f' },
+          textColor: '#9ca3af',
+        },
+        grid: {
+          vertLines: { color: '#1f2937' },
+          horzLines: { color: '#1f2937' },
+        },
+        crosshair: { mode: lc.CrosshairMode.Normal },
+        timeScale: { borderColor: '#374151' },
+        rightPriceScale: { borderColor: '#374151' },
+      });
 
-    const sma50Series = chart.addSeries(LineSeries, {
-      color: '#94a3b8',
-      lineWidth: 1,
-      title: 'SMA50',
-    });
-    const sma50Data = history
-      .map((d, i) => ({
-        time: d.date as string,
-        value: indicators.sma50[i],
-      }))
-      .filter((d) => !isNaN(d.value));
-    sma50Series.setData(sma50Data);
+      const candleSeries = chart.addSeries(lc.CandlestickSeries, {
+        upColor: '#22c55e',
+        downColor: '#ef4444',
+        borderUpColor: '#22c55e',
+        borderDownColor: '#ef4444',
+        wickUpColor: '#22c55e',
+        wickDownColor: '#ef4444',
+      });
+      candleSeries.setData(
+        history.map((d) => ({
+          time: d.date as string,
+          open: d.open,
+          high: d.high,
+          low: d.low,
+          close: d.close,
+        }))
+      );
 
-    const volumeSeries = chart.addSeries(HistogramSeries, {
-      priceFormat: { type: 'volume' },
-      priceScaleId: 'volume',
-    });
-    chart.priceScale('volume').applyOptions({
-      scaleMargins: { top: 0.8, bottom: 0 },
-    });
-    volumeSeries.setData(
-      history.map((d) => ({
-        time: d.date as string,
-        value: d.volume,
-        color: d.close >= d.open ? '#22c55e40' : '#ef444440',
-      }))
-    );
+      const sma20Series = chart.addSeries(lc.LineSeries, {
+        color: '#5eead4',
+        lineWidth: 1,
+        title: 'SMA20',
+      });
+      const sma20Data = history
+        .map((d, i) => ({
+          time: d.date as string,
+          value: indicators.sma20[i],
+        }))
+        .filter((d) => !isNaN(d.value));
+      sma20Series.setData(sma20Data);
 
-    chart.timeScale().fitContent();
+      const sma50Series = chart.addSeries(lc.LineSeries, {
+        color: '#94a3b8',
+        lineWidth: 1,
+        title: 'SMA50',
+      });
+      const sma50Data = history
+        .map((d, i) => ({
+          time: d.date as string,
+          value: indicators.sma50[i],
+        }))
+        .filter((d) => !isNaN(d.value));
+      sma50Series.setData(sma50Data);
 
-    const handleResize = () => {
-      if (chartContainerRef.current) {
-        chart.applyOptions({ width: chartContainerRef.current.clientWidth });
-      }
-    };
-    window.addEventListener('resize', handleResize);
+      const volumeSeries = chart.addSeries(lc.HistogramSeries, {
+        priceFormat: { type: 'volume' },
+        priceScaleId: 'volume',
+      });
+      chart.priceScale('volume').applyOptions({
+        scaleMargins: { top: 0.8, bottom: 0 },
+      });
+      volumeSeries.setData(
+        history.map((d) => ({
+          time: d.date as string,
+          value: d.volume,
+          color: d.close >= d.open ? '#22c55e40' : '#ef444440',
+        }))
+      );
+
+      chart.timeScale().fitContent();
+
+      handleResize = () => {
+        chart?.applyOptions({ width: chartContainerRef.current!.clientWidth });
+      };
+      window.addEventListener('resize', handleResize);
+    })();
 
     return () => {
-      window.removeEventListener('resize', handleResize);
-      chart.remove();
+      if (handleResize) window.removeEventListener('resize', handleResize);
+      chart?.remove();
     };
   }, [history, indicators]);
 
@@ -249,75 +247,81 @@ export default function StockDetailPage() {
   useEffect(() => {
     if (!macdChartContainerRef.current || !history.length || !indicators) return;
 
-    const chart: IChartApi = createChart(macdChartContainerRef.current, {
-      width: macdChartContainerRef.current.clientWidth,
-      height: 200,
-      layout: {
-        background: { type: ColorType.Solid, color: '#0a0a0f' },
-        textColor: '#9ca3af',
-      },
-      grid: {
-        vertLines: { color: '#1f2937' },
-        horzLines: { color: '#1f2937' },
-      },
-      crosshair: { mode: CrosshairMode.Normal },
-      timeScale: { borderColor: '#374151' },
-      rightPriceScale: { borderColor: '#374151' },
-    });
+    let chart: IChartApi | null = null;
+    let handleResize: (() => void) | null = null;
 
-    const histSeries = chart.addSeries(HistogramSeries, {
-      priceFormat: { type: 'price', precision: 4, minMove: 0.0001 },
-    });
-    histSeries.setData(
-      history
-        .map((d, i) => ({
-          time: d.date as string,
-          value: indicators.macd.histogram[i],
-          color: indicators.macd.histogram[i] >= 0 ? '#22c55e' : '#ef4444',
-        }))
-        .filter((d) => !isNaN(d.value))
-    );
+    (async () => {
+      const lc = await import("lightweight-charts");
+      if (!macdChartContainerRef.current) return;
 
-    const macdLine = chart.addSeries(LineSeries, {
-      color: '#5eead4',
-      lineWidth: 1,
-      title: 'MACD',
-    });
-    macdLine.setData(
-      history
-        .map((d, i) => ({
-          time: d.date as string,
-          value: indicators.macd.macd[i],
-        }))
-        .filter((d) => !isNaN(d.value))
-    );
+      chart = lc.createChart(macdChartContainerRef.current, {
+        width: macdChartContainerRef.current.clientWidth,
+        height: 200,
+        layout: {
+          background: { type: lc.ColorType.Solid, color: '#0a0a0f' },
+          textColor: '#9ca3af',
+        },
+        grid: {
+          vertLines: { color: '#1f2937' },
+          horzLines: { color: '#1f2937' },
+        },
+        crosshair: { mode: lc.CrosshairMode.Normal },
+        timeScale: { borderColor: '#374151' },
+        rightPriceScale: { borderColor: '#374151' },
+      });
 
-    const signalLine = chart.addSeries(LineSeries, {
-      color: '#94a3b8',
-      lineWidth: 1,
-      title: 'Signal',
-    });
-    signalLine.setData(
-      history
-        .map((d, i) => ({
-          time: d.date as string,
-          value: indicators.macd.signal[i],
-        }))
-        .filter((d) => !isNaN(d.value))
-    );
+      const histSeries = chart.addSeries(lc.HistogramSeries, {
+        priceFormat: { type: 'price', precision: 4, minMove: 0.0001 },
+      });
+      histSeries.setData(
+        history
+          .map((d, i) => ({
+            time: d.date as string,
+            value: indicators.macd.histogram[i],
+            color: indicators.macd.histogram[i] >= 0 ? '#22c55e' : '#ef4444',
+          }))
+          .filter((d) => !isNaN(d.value))
+      );
 
-    chart.timeScale().fitContent();
+      const macdLine = chart.addSeries(lc.LineSeries, {
+        color: '#5eead4',
+        lineWidth: 1,
+        title: 'MACD',
+      });
+      macdLine.setData(
+        history
+          .map((d, i) => ({
+            time: d.date as string,
+            value: indicators.macd.macd[i],
+          }))
+          .filter((d) => !isNaN(d.value))
+      );
 
-    const handleResize = () => {
-      if (macdChartContainerRef.current) {
-        chart.applyOptions({ width: macdChartContainerRef.current.clientWidth });
-      }
-    };
-    window.addEventListener('resize', handleResize);
+      const signalLine = chart.addSeries(lc.LineSeries, {
+        color: '#94a3b8',
+        lineWidth: 1,
+        title: 'Signal',
+      });
+      signalLine.setData(
+        history
+          .map((d, i) => ({
+            time: d.date as string,
+            value: indicators.macd.signal[i],
+          }))
+          .filter((d) => !isNaN(d.value))
+      );
+
+      chart.timeScale().fitContent();
+
+      handleResize = () => {
+        chart?.applyOptions({ width: macdChartContainerRef.current!.clientWidth });
+      };
+      window.addEventListener('resize', handleResize);
+    })();
 
     return () => {
-      window.removeEventListener('resize', handleResize);
-      chart.remove();
+      if (handleResize) window.removeEventListener('resize', handleResize);
+      chart?.remove();
     };
   }, [history, indicators]);
 
