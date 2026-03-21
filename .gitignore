@@ -48,3 +48,6 @@ cache.db
 data/a_shares/
 data/*.csv
 logs/
+
+# Local secret patterns (personal, not tracked)
+.secret-patterns.local
