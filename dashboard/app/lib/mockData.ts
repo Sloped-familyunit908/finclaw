@@ -1,5 +1,5 @@
 /* ════════════════════════════════════════════════════════════════
-   MOCK DATA — FinClaw 🦀📈
+   MOCK DATA — FinClaw
    Will be replaced by API / WebSocket in production
    ════════════════════════════════════════════════════════════════ */
 
@@ -65,11 +65,11 @@ export const CN_MARKET_DATA: MarketData[] = [
 
 /* ── Agent reputations ── */
 export const AGENT_REPUTATIONS: AgentReputation[] = [
-  { name: "George", avatar: "🌍", elo: 1321, accuracy: 1.0, totalPredictions: 9, correctPredictions: 9, debateWeight: 0.77, specialty: "Macro trends" },
-  { name: "Sentinel", avatar: "📡", elo: 1286, accuracy: 1.0, totalPredictions: 6, correctPredictions: 6, debateWeight: 0.70, specialty: "Sentiment" },
-  { name: "Guardian", avatar: "🛡️", elo: 1246, accuracy: 1.0, totalPredictions: 3, correctPredictions: 3, debateWeight: 0.61, specialty: "Risk" },
-  { name: "Warren", avatar: "🧓", elo: 1112, accuracy: 0.405, totalPredictions: 37, correctPredictions: 15, debateWeight: 0.29, specialty: "Value" },
-  { name: "Ada", avatar: "📐", elo: 1112, accuracy: 0.405, totalPredictions: 37, correctPredictions: 15, debateWeight: 0.29, specialty: "Quant" },
+  { name: "George", avatar: "G", elo: 1321, accuracy: 1.0, totalPredictions: 9, correctPredictions: 9, debateWeight: 0.77, specialty: "Macro trends" },
+  { name: "Sentinel", avatar: "S", elo: 1286, accuracy: 1.0, totalPredictions: 6, correctPredictions: 6, debateWeight: 0.70, specialty: "Sentiment" },
+  { name: "Guardian", avatar: "R", elo: 1246, accuracy: 1.0, totalPredictions: 3, correctPredictions: 3, debateWeight: 0.61, specialty: "Risk" },
+  { name: "Warren", avatar: "W", elo: 1112, accuracy: 0.405, totalPredictions: 37, correctPredictions: 15, debateWeight: 0.29, specialty: "Value" },
+  { name: "Ada", avatar: "A", elo: 1112, accuracy: 0.405, totalPredictions: 37, correctPredictions: 15, debateWeight: 0.29, specialty: "Quant" },
 ];
 
 /* ── Debate result ── */

@@ -4,7 +4,7 @@ export default function StrategyGallery() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h2 className="text-xl font-bold">📦 Strategy Marketplace</h2>
+        <h2 className="text-lg font-semibold text-gray-200">Strategy Library</h2>
         <span className="text-xs text-gray-500">
           {STRATEGIES.length} strategies available
         </span>
@@ -48,12 +48,12 @@ export default function StrategyGallery() {
             "multi-timeframe-trend": {
               diff: "Advanced",
               color:
-                "text-orange-400 bg-orange-950/40 border-orange-800/40",
+                "text-slate-300 bg-slate-800/40 border-slate-600/40",
             },
             "volume-profile-breakout": {
               diff: "Advanced",
               color:
-                "text-orange-400 bg-orange-950/40 border-orange-800/40",
+                "text-slate-300 bg-slate-800/40 border-slate-600/40",
             },
             "ai-sentiment-reversal": {
               diff: "Expert",
@@ -74,7 +74,7 @@ export default function StrategyGallery() {
           return (
             <div
               key={name}
-              className="p-4 rounded-xl border border-gray-800/50 bg-[#13131a] hover:border-orange-800/40 transition-all group cursor-pointer"
+              className="p-4 rounded border border-gray-800/50 bg-[#13131a] hover:border-slate-600/50 transition-all group cursor-pointer"
             >
               <div className="flex items-center justify-between mb-2">
                 <span className="font-medium text-sm text-gray-200">
@@ -97,8 +97,8 @@ export default function StrategyGallery() {
                   YAML
                 </span>
               </div>
-              <div className="mt-3 text-xs text-orange-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                finclaw install {name} →
+              <div className="mt-3 text-xs text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                finclaw install {name}
               </div>
             </div>
           );

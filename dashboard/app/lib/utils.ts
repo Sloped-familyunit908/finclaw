@@ -1,5 +1,5 @@
 /* ════════════════════════════════════════════════════════════════
-   UTILITY FUNCTIONS — FinClaw 🦀📈
+   UTILITY FUNCTIONS — FinClaw
    ════════════════════════════════════════════════════════════════ */
 
 export const fmt = {
@@ -29,14 +29,14 @@ export const fmt = {
   },
 };
 
-/* Agent visual config */
+/* Agent visual config — professional, no emoji */
 export const AGENTS: Record<string, { avatar: string; color: string; bg: string; gradient: string }> = {
-  Warren:   { avatar: "🧓", color: "text-green-400",  bg: "bg-green-950/40 border-green-800/60",   gradient: "from-green-600 to-emerald-600" },
-  George:   { avatar: "🌍", color: "text-blue-400",   bg: "bg-blue-950/40 border-blue-800/60",     gradient: "from-blue-600 to-cyan-600" },
-  Ada:      { avatar: "📐", color: "text-purple-400", bg: "bg-purple-950/40 border-purple-800/60",  gradient: "from-purple-600 to-violet-600" },
-  Sentinel: { avatar: "📡", color: "text-yellow-400", bg: "bg-yellow-950/40 border-yellow-800/60",  gradient: "from-yellow-600 to-amber-600" },
-  Guardian: { avatar: "🛡️", color: "text-red-400",    bg: "bg-red-950/40 border-red-800/60",        gradient: "from-red-600 to-rose-600" },
-  "Arena Moderator": { avatar: "⚖️", color: "text-cyan-400", bg: "bg-cyan-950/40 border-cyan-800/60", gradient: "from-cyan-600 to-sky-600" },
+  Warren:   { avatar: "W", color: "text-green-400",  bg: "bg-green-950/40 border-green-800/60",   gradient: "from-green-600 to-emerald-600" },
+  George:   { avatar: "G", color: "text-blue-400",   bg: "bg-blue-950/40 border-blue-800/60",     gradient: "from-blue-600 to-cyan-600" },
+  Ada:      { avatar: "A", color: "text-purple-400", bg: "bg-purple-950/40 border-purple-800/60",  gradient: "from-purple-600 to-violet-600" },
+  Sentinel: { avatar: "S", color: "text-yellow-400", bg: "bg-yellow-950/40 border-yellow-800/60",  gradient: "from-yellow-600 to-amber-600" },
+  Guardian: { avatar: "R", color: "text-red-400",    bg: "bg-red-950/40 border-red-800/60",        gradient: "from-red-600 to-rose-600" },
+  "Arena Moderator": { avatar: "M", color: "text-cyan-400", bg: "bg-cyan-950/40 border-cyan-800/60", gradient: "from-cyan-600 to-sky-600" },
 };
 
 export const SIGNAL_STYLES: Record<string, { text: string; bg: string; border: string }> = {

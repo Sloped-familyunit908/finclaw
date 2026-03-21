@@ -16,9 +16,9 @@ import {
 
 function EquityCurve() {
   return (
-    <div className="rounded-xl border border-gray-800/60 bg-[#13131a] p-4 sm:p-5">
-      <h3 className="text-sm font-semibold text-gray-300 mb-4">
-        📊 Strategy Equity Curves (200-day Bear Market)
+    <div className="rounded border border-gray-800/60 bg-[#13131a] p-4 sm:p-5">
+      <h3 className="text-sm font-semibold text-gray-400 mb-4">
+        Strategy Equity Curves (200-day Bear Market)
       </h3>
       <div className="h-64 sm:h-72">
         <ResponsiveContainer width="100%" height="100%">
@@ -50,7 +50,7 @@ function EquityCurve() {
               contentStyle={{
                 background: "#13131a",
                 border: "1px solid #2a2a3a",
-                borderRadius: "8px",
+                borderRadius: "4px",
                 fontSize: 12,
               }}
               itemStyle={{ color: "#e4e4ef" }}
@@ -64,7 +64,7 @@ function EquityCurve() {
             <Line
               type="monotone"
               dataKey="debate3"
-              stroke="#f97316"
+              stroke="#5eead4"
               strokeWidth={2}
               dot={false}
               name="3-Agent Debate"
@@ -72,7 +72,7 @@ function EquityCurve() {
             <Line
               type="monotone"
               dataKey="debate2"
-              stroke="#a855f7"
+              stroke="#94a3b8"
               strokeWidth={2}
               dot={false}
               name="2-Agent Debate"
@@ -102,15 +102,15 @@ export default function BacktestTable() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h2 className="text-xl font-bold">📈 Backtest Performance</h2>
+        <h2 className="text-lg font-semibold text-gray-200">Backtest Performance</h2>
         <span className="text-xs text-gray-500">
-          200 days · Bear market · BTC/ETH/SOL
+          200 days, bear market, BTC/ETH/SOL
         </span>
       </div>
 
       <EquityCurve />
 
-      <div className="overflow-x-auto rounded-xl border border-gray-800/60">
+      <div className="overflow-x-auto rounded border border-gray-800/60">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-gray-900/50 text-gray-400 text-xs uppercase tracking-wider">
@@ -136,12 +136,11 @@ export default function BacktestTable() {
                 key={`${r.strategy}-${r.asset}`}
                 className={`border-t border-gray-800/30 ${
                   i === 0
-                    ? "bg-orange-950/10"
+                    ? "bg-gray-800/20"
                     : "hover:bg-gray-900/30"
                 }`}
               >
                 <td className="py-2.5 px-4 font-medium text-gray-200">
-                  {i === 0 && "🏆 "}
                   {r.strategy}
                 </td>
                 <td className="py-2.5 px-3 text-gray-400">{r.asset}</td>
@@ -168,16 +167,16 @@ export default function BacktestTable() {
                 <td className="py-2.5 px-3 text-right font-mono text-gray-400 hidden md:table-cell">
                   {r.trades}
                 </td>
-                <td className="py-2.5 px-3 text-center hidden md:table-cell">
-                  {r.isSignificant ? "✅" : "—"}
+                <td className="py-2.5 px-3 text-center hidden md:table-cell text-gray-400">
+                  {r.isSignificant ? "Yes" : "—"}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <div className="p-3 bg-orange-950/15 border border-orange-800/30 rounded-lg text-xs text-orange-400">
-        💡 3-Agent Debate preserved capital (−1.0% avg) vs Buy &amp; Hold (−50%
+      <div className="p-3 bg-gray-800/20 border border-gray-700/30 rounded text-xs text-gray-500">
+        3-Agent Debate preserved capital (-1.0% avg) vs Buy &amp; Hold (-50%
         avg) in a 200-day bear market. Alpha: +38% to +61%. Note: Low trade
         count — needs more data for statistical significance.
       </div>

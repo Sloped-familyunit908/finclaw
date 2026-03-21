@@ -12,11 +12,11 @@ export default function PriceCard({ data }: { data: MarketData }) {
 
   return (
     <Link href={`/stock/${encodeURIComponent(data.asset)}`} className="block">
-      <div className="group rounded-xl border border-gray-800/60 bg-[#13131a] p-4 sm:p-5 hover:border-orange-800/40 transition-all hover:shadow-lg hover:shadow-orange-950/10 cursor-pointer">
-        <div className="flex justify-between items-start mb-4">
+      <div className="group rounded border border-gray-800/60 bg-[#13131a] p-4 hover:border-slate-600/50 transition-all cursor-pointer">
+        <div className="flex justify-between items-start mb-3">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <h3 className="text-lg font-bold text-gray-100 truncate">
+              <h3 className="text-sm font-semibold text-gray-100 truncate">
                 {data.nameCn || data.asset}
               </h3>
               {data.market && (
@@ -26,24 +26,35 @@ export default function PriceCard({ data }: { data: MarketData }) {
               )}
             </div>
             {data.nameCn && (
-              <p className="text-xs text-gray-500 mt-0.5">{data.asset}</p>
+              <p className="text-xs text-gray-500 mt-0.5 font-mono">{data.asset}</p>
             )}
-            <p className="text-2xl font-mono font-bold mt-1 text-white">
+            <p className="text-xl font-mono font-bold mt-1 text-white">
               {fmtPrice}
             </p>
           </div>
           <span
-            className={`px-3 py-1.5 rounded-lg text-sm font-bold shrink-0 ${
+            className={`px-2.5 py-1 rounded text-sm font-bold font-mono shrink-0 ${
               isUp
                 ? "bg-green-950/60 text-green-400 border border-green-800/40"
                 : "bg-red-950/60 text-red-400 border border-red-800/40"
             }`}
           >
-            {isUp ? "▲" : "▼"} {Math.abs(data.change24h).toFixed(2)}%
+            {isUp ? "+" : ""}{data.change24h.toFixed(2)}%
           </span>
         </div>
 
-        <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-xs">
+        {/* Mini sparkline placeholder */}
+        <div className="h-8 mb-3 rounded bg-gray-800/30 flex items-end px-1 gap-px">
+          {Array.from({ length: 20 }).map((_, i) => (
+            <div
+              key={i}
+              className="flex-1 bg-gray-700/40 rounded-t"
+              style={{ height: `${20 + Math.sin(i * 0.7 + (data.price % 5)) * 40 + 40}%` }}
+            />
+          ))}
+        </div>
+
+        <div className="grid grid-cols-2 gap-y-1.5 gap-x-4 text-xs">
           <div className="flex justify-between">
             <span className="text-gray-500">RSI(14)</span>
             <span
@@ -106,7 +117,7 @@ export default function PriceCard({ data }: { data: MarketData }) {
                   ? "text-red-400"
                   : priceVsSma200 !== null && priceVsSma200 > 0
                     ? "text-green-400"
-                    : "text-orange-400"
+                    : "text-gray-400"
               }`}
             >
               {priceVsSma200 !== null ? fmt.pctRaw(priceVsSma200, 1) : "—"}
@@ -115,9 +126,11 @@ export default function PriceCard({ data }: { data: MarketData }) {
         </div>
 
         {data.marketCap && (
-          <div className="mt-3 pt-3 border-t border-gray-800/50 text-xs text-gray-500">
-            Market Cap:{" "}
-            {isCn ? fmt.compactCn(data.marketCap) : fmt.compact(data.marketCap)}
+          <div className="mt-2.5 pt-2.5 border-t border-gray-800/50 text-xs text-gray-500">
+            Mkt Cap:{" "}
+            <span className="font-mono text-gray-400">
+              {isCn ? fmt.compactCn(data.marketCap) : fmt.compact(data.marketCap)}
+            </span>
           </div>
         )}
       </div>

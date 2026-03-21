@@ -3,19 +3,19 @@
 import { useState, useEffect } from "react";
 import type { TabId } from "@/app/types";
 
-function NavTab({ id, label, icon, active, onClick }: {
-  id: TabId; label: string; icon: string; active: boolean; onClick: (id: TabId) => void;
+function NavTab({ id, label, active, onClick }: {
+  id: TabId; label: string; active: boolean; onClick: (id: TabId) => void;
 }) {
   return (
     <button
       onClick={() => onClick(id)}
-      className={`px-3 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
+      className={`px-3 py-2 text-sm font-medium rounded transition-all whitespace-nowrap ${
         active
-          ? "bg-orange-600/20 text-orange-400 border border-orange-700/50"
+          ? "bg-slate-700/40 text-white border border-slate-600/50"
           : "text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
       }`}
     >
-      <span className="mr-1.5">{icon}</span>{label}
+      {label}
     </button>
   );
 }
@@ -37,43 +37,44 @@ export default function Header({
     return () => clearInterval(id);
   }, []);
 
-  const tabs: { id: TabId; label: string; icon: string }[] = [
-    { id: "overview", label: "Overview", icon: "📊" },
-    { id: "arena", label: "Arena", icon: "🏟️" },
-    { id: "backtest", label: "Backtest", icon: "📈" },
-    { id: "cn-scanner", label: "CN Scanner", icon: "🇨🇳" },
-    { id: "strategies", label: "Strategies", icon: "📦" },
-    { id: "agents", label: "Agents", icon: "🤖" },
-    { id: "risk", label: "Risk", icon: "🛡️" },
+  const tabs: { id: TabId; label: string }[] = [
+    { id: "overview", label: "Overview" },
+    { id: "arena", label: "Analysis" },
+    { id: "cn-scanner", label: "Scanner" },
+    { id: "strategies", label: "Strategies" },
+    { id: "backtest", label: "Backtest" },
+    { id: "agents", label: "Agents" },
+    { id: "risk", label: "Risk" },
   ];
 
   return (
     <header className="border-b border-gray-800/50 bg-[#0a0a0f]/80 backdrop-blur-sm sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className="text-3xl">🦀</span>
           <div>
-            <h1 className="text-xl font-bold bg-gradient-to-r from-orange-400 via-red-400 to-amber-400 bg-clip-text text-transparent">
+            <h1 className="text-xl font-bold text-white tracking-tight">
               FinClaw
             </h1>
             <p className="text-[10px] text-gray-500 tracking-wider uppercase">
-              AI Quantitative Trading Engine 📈
+              Quantitative Research Platform
             </p>
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <div className="hidden md:flex items-center gap-1.5">
-            <span className="px-2 py-0.5 bg-orange-950/40 text-orange-400 text-[10px] rounded border border-orange-800/40">
-              Python ✓
-            </span>
-            <span className="px-2 py-0.5 bg-purple-950/40 text-purple-400 text-[10px] rounded border border-purple-800/40">
+          {/* Search input — UI placeholder */}
+          <div className="hidden md:flex items-center">
+            <input
+              type="text"
+              placeholder="Search ticker..."
+              className="w-48 px-3 py-1.5 text-xs bg-gray-900/60 border border-gray-700/50 rounded text-gray-300 placeholder-gray-600 focus:outline-none focus:border-slate-500/60"
+            />
+          </div>
+          <div className="hidden md:flex items-center gap-1.5 text-[10px]">
+            <span className="px-2 py-0.5 bg-gray-800/40 text-gray-500 rounded border border-gray-700/30">
               5 Agents
             </span>
-            <span className="px-2 py-0.5 bg-blue-950/40 text-blue-400 text-[10px] rounded border border-blue-800/40">
+            <span className="px-2 py-0.5 bg-gray-800/40 text-gray-500 rounded border border-gray-700/30">
               9 Strategies
-            </span>
-            <span className="px-2 py-0.5 bg-red-950/40 text-red-400 text-[10px] rounded border border-red-800/40">
-              12+ Exchanges
             </span>
           </div>
           <span className="font-mono text-xs text-gray-500">{clock}</span>

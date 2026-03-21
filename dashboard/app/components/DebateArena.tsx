@@ -6,26 +6,28 @@ import { AGENTS, SIGNAL_STYLES } from "@/app/lib/utils";
 
 function DebateCard({ stmt, idx }: { stmt: DebateStatement; idx: number }) {
   const a = AGENTS[stmt.agent] ?? {
-    avatar: "🤖",
+    avatar: "?",
     color: "text-gray-400",
     bg: "bg-gray-900 border-gray-700",
   };
   const s = SIGNAL_STYLES[stmt.signal] ?? SIGNAL_STYLES.hold;
-  const phaseIcon: Record<string, string> = {
-    position: "📋",
-    challenge: "⚔️",
-    defense: "🛡️",
-    consensus: "⚖️",
+  const phaseLabel: Record<string, string> = {
+    position: "POSITION",
+    challenge: "CHALLENGE",
+    defense: "DEFENSE",
+    consensus: "CONSENSUS",
   };
 
   return (
     <div
-      className={`rounded-xl border p-4 ${a.bg} transition-all`}
+      className={`rounded border p-4 ${a.bg} transition-all`}
       style={{ animationDelay: `${idx * 120}ms` }}
     >
       <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
         <div className="flex items-center gap-2">
-          <span className="text-xl">{a.avatar}</span>
+          <span className={`w-7 h-7 rounded flex items-center justify-center text-xs font-bold bg-gray-800/60 ${a.color}`}>
+            {a.avatar}
+          </span>
           <span className={`font-bold text-sm ${a.color}`}>{stmt.agent}</span>
           <span className="text-[10px] text-gray-500 uppercase tracking-wider hidden sm:inline">
             {stmt.role}
@@ -44,11 +46,11 @@ function DebateCard({ stmt, idx }: { stmt: DebateStatement; idx: number }) {
       </div>
       {stmt.target && (
         <div className="text-[10px] text-gray-600 mb-1">
-          ↩ Responding to {stmt.target}
+          Re: {stmt.target}
         </div>
       )}
-      <div className="text-[10px] text-gray-500 mb-1.5">
-        {phaseIcon[stmt.phase] ?? ""} {stmt.phase.toUpperCase()}
+      <div className="text-[10px] text-gray-500 mb-1.5 uppercase tracking-wider">
+        {phaseLabel[stmt.phase] ?? stmt.phase.toUpperCase()}
       </div>
       <p className="text-sm text-gray-300 leading-relaxed">{stmt.content}</p>
     </div>
@@ -74,15 +76,14 @@ export default function DebateArena({ debate }: { debate: DebateResult }) {
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h2 className="text-xl font-bold flex items-center gap-2">
-            🏟️ Debate Arena{" "}
-            <span className="text-sm font-normal text-gray-500">
-              — {debate.asset}
+          <h2 className="text-lg font-semibold text-gray-200">
+            Multi-Agent Analysis
+            <span className="text-sm font-normal text-gray-500 ml-2">
+              {debate.asset}
             </span>
           </h2>
           <p className="text-xs text-gray-500 mt-0.5">
-            {debate.participants.length} agents · {debate.rounds.length} rounds ·
-            Real AI debate
+            {debate.participants.length} agents, {debate.rounds.length} rounds
           </p>
         </div>
         <div className="flex gap-2">
@@ -91,15 +92,15 @@ export default function DebateArena({ debate }: { debate: DebateResult }) {
               setRound(0);
               setPlaying(true);
             }}
-            className="px-3 py-1.5 bg-orange-600 hover:bg-orange-500 rounded-lg text-xs font-semibold transition-colors"
+            className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded text-xs font-medium transition-colors"
           >
-            ▶ Replay
+            Replay
           </button>
           <button
             onClick={() => setRound(debate.rounds.length - 1)}
-            className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg text-xs transition-colors"
+            className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-xs transition-colors"
           >
-            ⏭ Verdict
+            Skip to Verdict
           </button>
         </div>
       </div>
@@ -107,23 +108,23 @@ export default function DebateArena({ debate }: { debate: DebateResult }) {
       <div className="flex gap-2 flex-wrap">
         {debate.participants.map((name) => {
           const cfg = AGENTS[name] ?? {
-            avatar: "🤖",
+            avatar: "?",
             color: "text-gray-400",
           };
           const dissent = debate.dissenters.includes(name);
           return (
             <div
               key={name}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs ${
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs ${
                 dissent
-                  ? "bg-orange-950/40 border border-orange-800/50"
+                  ? "bg-gray-800/60 border border-gray-600/50"
                   : "bg-gray-800/40 border border-gray-700/50"
               }`}
             >
-              <span>{cfg.avatar}</span>
+              <span className={`font-bold ${cfg.color}`}>{cfg.avatar}</span>
               <span className={cfg.color}>{name}</span>
               {dissent && (
-                <span className="text-orange-400 text-[10px]">dissent</span>
+                <span className="text-gray-400 text-[10px]">dissent</span>
               )}
             </div>
           );
@@ -141,18 +142,18 @@ export default function DebateArena({ debate }: { debate: DebateResult }) {
       </div>
 
       {round >= debate.rounds.length - 1 && (
-        <div className="p-5 rounded-xl bg-gradient-to-r from-orange-950/30 to-red-950/30 border border-orange-800/40">
+        <div className="p-5 rounded border border-gray-700/50 bg-[#13131a]">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-xs text-orange-400 font-semibold tracking-wider uppercase">
-                Consensus
+              <div className="text-xs text-gray-500 font-semibold tracking-wider uppercase">
+                Consensus Signal
               </div>
-              <div className={`text-3xl font-bold mt-1 ${s.text}`}>
+              <div className={`text-2xl font-bold mt-1 ${s.text}`}>
                 {debate.signal.toUpperCase().replace("_", " ")}
               </div>
             </div>
             <div className="text-right">
-              <div className="text-4xl font-bold font-mono text-white">
+              <div className="text-3xl font-bold font-mono text-white">
                 {(debate.confidence * 100).toFixed(0)}%
               </div>
               <div className="text-[10px] text-gray-500 uppercase">

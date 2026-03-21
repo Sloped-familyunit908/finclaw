@@ -1,5 +1,5 @@
 /* ════════════════════════════════════════════════════════════════
-   TYPE DEFINITIONS — FinClaw 🦀📈
+   TYPE DEFINITIONS — FinClaw
    ════════════════════════════════════════════════════════════════ */
 
 export interface MarketData {

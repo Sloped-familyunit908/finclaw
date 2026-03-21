@@ -18,18 +18,19 @@ import StrategyGallery from "@/app/components/StrategyGallery";
 import RiskPanel from "@/app/components/RiskPanel";
 import CNScanner from "@/app/components/CNScanner";
 
-/* ── Loading skeleton for price cards ── */
+/* -- Loading skeleton for price cards -- */
 function PriceCardSkeleton() {
   return (
-    <div className="rounded-xl border border-gray-800/60 bg-[#13131a] p-4 sm:p-5 animate-pulse">
-      <div className="flex justify-between items-start mb-4">
+    <div className="rounded border border-gray-800/60 bg-[#13131a] p-4 animate-pulse">
+      <div className="flex justify-between items-start mb-3">
         <div className="flex-1">
-          <div className="h-5 w-24 bg-gray-800 rounded mb-2" />
-          <div className="h-8 w-32 bg-gray-800 rounded" />
+          <div className="h-4 w-24 bg-gray-800 rounded mb-2" />
+          <div className="h-7 w-32 bg-gray-800 rounded" />
         </div>
-        <div className="h-8 w-20 bg-gray-800 rounded-lg" />
+        <div className="h-7 w-20 bg-gray-800 rounded" />
       </div>
-      <div className="grid grid-cols-2 gap-y-2 gap-x-4">
+      <div className="h-8 bg-gray-800/30 rounded mb-3" />
+      <div className="grid grid-cols-2 gap-y-1.5 gap-x-4">
         {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} className="flex justify-between">
             <div className="h-3 w-12 bg-gray-800/60 rounded" />
@@ -115,10 +116,10 @@ export default function Home() {
       <main className="max-w-7xl mx-auto px-4 py-6">
         {tab === "overview" && (
           <div className="space-y-8">
-            {/* US Stocks */}
+            {/* US Equities */}
             <section>
               <h2 className="text-lg font-semibold mb-4 text-gray-300">
-                🇺🇸 US Stocks
+                US Equities
               </h2>
               {loading ? renderSkeletons(3) : renderCards(usData.slice(0, 3))}
               <div className="mt-4">
@@ -128,23 +129,22 @@ export default function Home() {
               </div>
             </section>
 
-            {/* Crypto */}
+            {/* Cryptocurrency */}
             <section>
               <h2 className="text-lg font-semibold mb-4 text-gray-300">
-                ₿ Crypto Market
+                Cryptocurrency
               </h2>
               {loading ? renderSkeletons(3) : renderCards(cryptoData)}
             </section>
 
-            {/* A-Shares */}
+            {/* China A-Shares */}
             <section>
               <h2 className="text-lg font-semibold mb-4 text-gray-300">
-                🇨🇳 A-Share Market
+                China A-Shares
               </h2>
               {loading ? renderSkeletons(3) : renderCards(cnData.slice(0, 3))}
             </section>
 
-            <DebateArena debate={DEBATE} />
             <BacktestTable />
           </div>
         )}
@@ -160,13 +160,7 @@ export default function Home() {
       <footer className="border-t border-gray-800/30 py-6 mt-12">
         <div className="max-w-7xl mx-auto px-4 text-center">
           <p className="text-xs text-gray-600">
-            Built with 🦀 by{" "}
-            <span className="text-orange-500/70">NeuZhou</span> — Python +
-            TypeScript + AI Agents
-          </p>
-          <p className="text-[10px] text-gray-700 mt-1">
-            Research: Multi-Agent Debate (Du et al. 2023) · R&D-Agent-Quant
-            (NeurIPS 2025) · StockAgent (2024)
+            FinClaw &middot; Open-source quantitative research platform
           </p>
         </div>
       </footer>

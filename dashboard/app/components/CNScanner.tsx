@@ -19,7 +19,6 @@ export default function CNScanner() {
   const sorted = [...filtered].sort((a, b) => {
     if (sortBy === "score") return b.score - a.score;
     if (sortBy === "changePct") return b.changePct - a.changePct;
-    // pe: nulls last
     if (sortBy === "pe") return (a.pe ?? 999) - (b.pe ?? 999);
     return 0;
   });
@@ -27,21 +26,18 @@ export default function CNScanner() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold flex items-center gap-2">
-          🇨🇳 A股 Scanner
-          <span className="text-sm font-normal text-gray-500">
-            — 沪深市场智能扫描
-          </span>
+        <h2 className="text-lg font-semibold text-gray-200">
+          China A-Shares Scanner
         </h2>
         <p className="text-xs text-gray-500 mt-1">
-          AI agent 多维度打分 · 技术面 + 基本面 + 情绪面综合评估
+          Multi-factor scoring: technicals, fundamentals, and sentiment
         </p>
       </div>
 
       {/* A-share price cards */}
       <div>
         <h3 className="text-sm font-semibold text-gray-400 mb-3">
-          📋 重点跟踪
+          Watchlist
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {CN_MARKET_DATA.slice(0, 3).map((m) => (
@@ -67,13 +63,17 @@ export default function CNScanner() {
                   filterSignal === sig
                     ? s
                       ? `${s.text} ${s.bg} ${s.border}`
-                      : "text-orange-400 bg-orange-950/40 border-orange-800/50"
+                      : "text-slate-300 bg-slate-800/60 border-slate-600/50"
                     : "text-gray-500 bg-gray-800/30 border-gray-700/40 hover:text-gray-300"
                 }`}
               >
                 {sig === "all"
                   ? "All"
-                  : sig.replace("_", " ").toUpperCase()}
+                  : sig === "strong_buy"
+                    ? "Strong Buy"
+                    : sig === "strong_sell"
+                      ? "Strong Sell"
+                      : sig.charAt(0).toUpperCase() + sig.slice(1)}
               </button>
             );
           })}
@@ -82,9 +82,9 @@ export default function CNScanner() {
           <span className="text-xs text-gray-500">Sort:</span>
           {(
             [
-              ["score", "综合评分"],
-              ["changePct", "涨跌幅"],
-              ["pe", "PE (低→高)"],
+              ["score", "Score"],
+              ["changePct", "Change %"],
+              ["pe", "PE (asc)"],
             ] as const
           ).map(([key, label]) => (
             <button
@@ -92,7 +92,7 @@ export default function CNScanner() {
               onClick={() => setSortBy(key)}
               className={`px-2 py-1 rounded text-[10px] border transition-all ${
                 sortBy === key
-                  ? "text-orange-400 bg-orange-950/40 border-orange-800/50"
+                  ? "text-slate-300 bg-slate-800/60 border-slate-600/50"
                   : "text-gray-500 bg-gray-800/30 border-gray-700/40 hover:text-gray-300"
               }`}
             >
@@ -103,16 +103,16 @@ export default function CNScanner() {
       </div>
 
       {/* Scanner results table */}
-      <div className="overflow-x-auto rounded-xl border border-gray-800/60">
+      <div className="overflow-x-auto rounded border border-gray-800/60">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-gray-900/50 text-gray-400 text-xs uppercase tracking-wider">
-              <th className="text-left py-3 px-4">代码</th>
-              <th className="text-left py-3 px-3">名称</th>
-              <th className="text-left py-3 px-3 hidden sm:table-cell">板块</th>
-              <th className="text-right py-3 px-3">现价</th>
-              <th className="text-right py-3 px-3">涨跌</th>
-              <th className="text-right py-3 px-3 hidden md:table-cell">成交量</th>
+              <th className="text-left py-3 px-4">Code</th>
+              <th className="text-left py-3 px-3">Name</th>
+              <th className="text-left py-3 px-3 hidden sm:table-cell">Sector</th>
+              <th className="text-right py-3 px-3">Price</th>
+              <th className="text-right py-3 px-3">Change</th>
+              <th className="text-right py-3 px-3 hidden md:table-cell">Volume</th>
               <th className="text-right py-3 px-3 hidden md:table-cell">PE</th>
               <th className="text-center py-3 px-3">Signal</th>
               <th className="text-center py-3 px-3">Score</th>
@@ -157,7 +157,11 @@ export default function CNScanner() {
                     <span
                       className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${s.text} ${s.bg} border ${s.border}`}
                     >
-                      {r.signal.replace("_", " ")}
+                      {r.signal === "strong_buy"
+                        ? "STRONG BUY"
+                        : r.signal === "strong_sell"
+                          ? "STRONG SELL"
+                          : r.signal.toUpperCase()}
                     </span>
                   </td>
                   <td className="py-2.5 px-3 text-center">
@@ -170,7 +174,7 @@ export default function CNScanner() {
                               : r.score >= 60
                                 ? "bg-yellow-500"
                                 : r.score >= 40
-                                  ? "bg-orange-500"
+                                  ? "bg-slate-400"
                                   : "bg-red-500"
                           }`}
                           style={{ width: `${r.score}%` }}
@@ -188,11 +192,11 @@ export default function CNScanner() {
         </table>
       </div>
 
-      <div className="p-3 bg-orange-950/15 border border-orange-800/30 rounded-lg text-xs text-orange-400">
-        🦀 FinClaw A股扫描器 — 数据为模拟数据，仅供演示。接入实时行情后可自动更新。
+      <div className="p-3 bg-gray-800/20 border border-gray-700/30 rounded text-xs text-gray-500">
+        Data shown is simulated for demonstration purposes. Live market data integration pending.
         <br />
-        <span className="text-gray-500">
-          注: A股涨跌色标遵循中国市场惯例（红涨绿跌）
+        <span className="text-gray-600">
+          Note: A-share color convention follows China market standard (red = up, green = down)
         </span>
       </div>
     </div>

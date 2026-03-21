@@ -2,20 +2,18 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "FinClaw 🦀📈 — AI Quantitative Trading Engine",
+  title: "FinClaw — Quantitative Research Platform",
   description:
-    "AI-native quantitative finance engine powered by multi-agent debate. Crypto + A-shares, backtesting, strategy marketplace, and constitutional risk management.",
+    "Open-source quantitative finance engine. Multi-market coverage, backtesting, strategy analysis, and risk management.",
   keywords: [
     "FinClaw",
     "trading",
-    "AI",
     "quantitative",
     "crypto",
     "A-shares",
     "open-source",
-    "agent",
-    "debate",
-    "NeuZhou",
+    "backtesting",
+    "risk management",
   ],
 };
 

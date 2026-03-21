@@ -1,4 +1,4 @@
-<h1 align="center">🦀📈 FinClaw</h1>
+<h1 align="center">FinClaw</h1>
 
 <p align="center">
   <strong>AI-native quantitative finance in your terminal</strong>
@@ -13,11 +13,11 @@
 </p>
 
 <p align="center">
-  <a href="#-quick-start">Quick Start</a> ·
-  <a href="#-feature-comparison">Comparison</a> ·
-  <a href="#-architecture">Architecture</a> ·
-  <a href="#-roadmap">Roadmap</a> ·
-  <a href="#-contributing">Contributing</a>
+  <a href="#quick-start">Quick Start</a> ·
+  <a href="#feature-comparison">Comparison</a> ·
+  <a href="#architecture">Architecture</a> ·
+  <a href="#roadmap">Roadmap</a> ·
+  <a href="#contributing">Contributing</a>
 </p>
 
 ---
@@ -26,14 +26,14 @@
 
 Most quant tools make you configure databases, install heavy dependencies, and write boilerplate before you see your first result. **FinClaw gets you from zero to insight in one command.**
 
-- 🚀 **Zero API keys needed** — uses Yahoo Finance by default
-- ⚡ **Pure NumPy core** — installs in seconds, not minutes
-- 🤖 **AI-powered** — strategy generation, copilot, MCP server, and A2A protocol built in
-- 🌍 **12+ exchanges** — stocks, crypto, and Chinese A-shares in one tool
+- **Zero API keys needed** — uses Yahoo Finance by default
+- **Pure NumPy core** — installs in seconds, not minutes
+- **AI-powered** — strategy generation, copilot, MCP server, and A2A protocol built in
+- **12+ exchanges** — stocks, crypto, and Chinese A-shares in one tool
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
 pip install finclaw-ai
@@ -44,7 +44,7 @@ finclaw copilot           # AI financial assistant
 
 ```
 $ finclaw quote BTC-USDT
-  📊 BTC-USDT  $67,342.50  +1,285.30 +1.95%  🟢
+  BTC-USDT  $67,342.50  +1,285.30 +1.95%
   ┌──────────────────────────────────────────────┐
   │  Bid: 67,340.20   Ask: 67,344.80            │
   │  24h Vol: 28,451 BTC ($1.92B)               │
@@ -53,7 +53,7 @@ $ finclaw quote BTC-USDT
   └──────────────────────────────────────────────┘
 
 $ finclaw backtest momentum --symbol NVDA --start 2023-01-01
-  📈 Backtest Results: NVDA | momentum
+  Backtest Results: NVDA | momentum
   ════════════════════════════════════════════════
   Period        2023-01-01 → 2024-12-31 (504 days)
   Total Return  +142.3% (+55.2%/yr)
@@ -66,12 +66,12 @@ $ finclaw backtest momentum --symbol NVDA --start 2023-01-01
 
 ---
 
-## 📊 Live Paper Trading
+## Live Paper Trading
 
 We run daily paper trading with real market data to prove our strategies work.
 No cherry-picking. No hindsight bias. Just real-time results.
 
-👉 [View Results](docs/paper-trading/summary.md)
+[View Results →](docs/paper-trading/summary.md)
 
 ```bash
 finclaw paper-report --init   # Initialize portfolios ($100K US + ¥1M CN)
@@ -80,7 +80,7 @@ finclaw paper-report           # Generate today's report
 
 ---
 
-## ⚡ Feature Comparison
+## Feature Comparison
 
 > **How does FinClaw stack up?** Compared against the most popular open-source quant tools.
 
@@ -115,7 +115,7 @@ finclaw paper-report           # Generate today's report
 | Pure NumPy core (no heavy deps) | ✅ | ❌ TA-Lib, ccxt | ❌ TA-Lib | ❌ matplotlib |
 
 <details>
-<summary>🔑 <b>Key differentiators explained</b></summary>
+<summary><b>Key differentiators explained</b></summary>
 
 - **AI Strategy Generation**: Describe a strategy in plain English or Chinese → FinClaw generates production-ready Python code using any LLM (OpenAI, DeepSeek, Ollama local, etc.)
 - **MCP Integration**: First quant tool to support the Model Context Protocol — let AI agents like Claude or Cursor directly call financial tools
@@ -127,9 +127,9 @@ finclaw paper-report           # Generate today's report
 
 ---
 
-## 🎯 What You Can Do
+## What You Can Do
 
-### 📊 Quotes & Analysis
+### Quotes & Analysis
 ```bash
 finclaw quote AAPL,MSFT,NVDA        # Multi-ticker quotes
 finclaw analyze TSLA --indicators rsi,macd,bollinger,sma50
@@ -138,7 +138,7 @@ finclaw news AAPL                    # Financial news
 finclaw sentiment TSLA               # Sentiment analysis
 ```
 
-### 📈 Backtesting
+### Backtesting
 ```bash
 finclaw backtest -t AAPL,MSFT --strategy momentum --start 2023-01-01
 finclaw backtest -t NVDA --benchmark SPY    # Compare to benchmark
@@ -146,7 +146,7 @@ finclaw strategy list                        # 20+ built-in strategies
 finclaw strategy backtest trend-following --symbol AAPL
 ```
 
-### 📋 Paper Trading
+### Paper Trading
 ```bash
 finclaw paper start --balance 100000
 finclaw paper buy AAPL 50
@@ -155,7 +155,7 @@ finclaw paper dashboard
 finclaw paper run-strategy golden-cross --symbols AAPL,MSFT
 ```
 
-### 🤖 AI Features
+### AI Features
 ```bash
 # Generate strategies from plain English
 finclaw generate-strategy "buy when RSI < 30 and MACD golden cross"
@@ -172,7 +172,7 @@ finclaw optimize-strategy my_strategy.py --data AAPL --period 1y
 
 Supports: OpenAI, Anthropic, DeepSeek, Gemini, Ollama (local), Groq, Mistral, Moonshot.
 
-### 🔮 Market Regime Detection
+### Market Regime Detection
 ```bash
 finclaw regime --symbol AAPL         # Detects current market regime (stable/volatile/crash)
 finclaw check-backtest --sharpe 3.5 --win-rate 0.85 --trades 100  # Plausibility check
@@ -182,7 +182,7 @@ Automatically adjusts strategy parameters based on market conditions.
 Uses economic plausibility checks inspired by ARTEMIS ([arXiv:2603.18107](https://arxiv.org/abs/2603.18107))
 to flag suspiciously good backtest results (overfitting, look-ahead bias).
 
-### ₿🔗 BTC Metrics & Crypto Tools
+### BTC Metrics & Crypto Tools
 ```bash
 finclaw btc-metrics                  # On-chain dashboard (hashrate, MVRV, miner outflow)
 finclaw funding-rates                # Multi-exchange funding rate comparison + arbitrage
@@ -190,7 +190,7 @@ finclaw fear-greed --history 7       # Fear & Greed Index with history
 finclaw defi-tvl --top 10            # DeFi Total Value Locked
 ```
 
-### 🔌 MCP Server (for AI Agents)
+### MCP Server (for AI Agents)
 
 Expose FinClaw as tools for Claude, Cursor, VS Code, or OpenClaw:
 
@@ -207,7 +207,7 @@ Expose FinClaw as tools for Claude, Cursor, VS Code, or OpenClaw:
 
 10 MCP tools available: `get_quote`, `get_history`, `list_exchanges`, `run_backtest`, `analyze_portfolio`, `get_indicators`, `screen_stocks`, `get_sentiment`, `compare_strategies`, `get_funding_rates`.
 
-### 🔧 Strategy Plugin Ecosystem
+### Strategy Plugin Ecosystem
 
 ```bash
 # Create a plugin in 5 minutes
@@ -224,7 +224,7 @@ finclaw strategy optimize my_strategy.yaml --param rsi_period:10:30:5
 
 Compatible with **Backtrader** strategies, **TA-Lib** indicators, and basic **Pine Script**.
 
-### 🌐 12+ Exchange Adapters
+### 12+ Exchange Adapters
 
 **Crypto:** Binance, Bybit, OKX, Coinbase, Kraken (with WebSocket for Binance/Bybit/OKX)
 **US Stocks:** Yahoo Finance, Alpaca, Polygon, Alpha Vantage
@@ -236,7 +236,7 @@ finclaw exchanges compare yahoo binance alpaca
 finclaw quote BTCUSDT --exchange binance
 ```
 
-### 🤝 A2A Protocol (Agent-to-Agent)
+### A2A Protocol (Agent-to-Agent)
 
 ```bash
 finclaw a2a serve --port 8081        # Start A2A server
@@ -245,7 +245,7 @@ finclaw a2a card                      # Print agent card
 
 ---
 
-## 🐍 Python API
+## Python API
 
 ```python
 from finclaw import FinClaw
@@ -265,11 +265,11 @@ Full API documentation: [docs/API.md](docs/API.md)
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```mermaid
 graph TB
-    subgraph UI["🖥️ User Interfaces"]
+    subgraph UI["User Interfaces"]
         CLI["CLI"]
         MCP["MCP Server"]
         A2A["A2A Protocol"]
@@ -278,27 +278,27 @@ graph TB
         COP["Copilot Chat"]
     end
 
-    subgraph AI["🤖 AI Strategy Engine"]
+    subgraph AI["AI Strategy Engine"]
         GEN["Strategy Generator<br/><i>natural language → code</i>"]
         OPT["Strategy Optimizer"]
         PINE["Pine Script / YAML DSL"]
         LLM["LLM Hub<br/><i>OpenAI · Anthropic · DeepSeek<br/>Gemini · Ollama · Groq</i>"]
     end
 
-    subgraph STRAT["📐 Strategy Layer"]
+    subgraph STRAT["Strategy Layer"]
         BUILT["20+ Built-in Strategies"]
         PLUG["Plugin System<br/><i>pip-installable</i>"]
         BT_COMPAT["Backtrader Compatible"]
     end
 
-    subgraph ENGINE["⚙️ Execution Engine"]
+    subgraph ENGINE["Execution Engine"]
         BACK["Backtester"]
         PAPER["Paper Trading"]
         RISK["Risk Engine"]
         SCREEN["Stock Screener"]
     end
 
-    subgraph DATA["📡 Data Layer — 12+ Exchange Adapters"]
+    subgraph DATA["Data Layer — 12+ Exchange Adapters"]
         direction LR
         subgraph STOCKS["Stocks"]
             YAHOO["Yahoo Finance"]
@@ -320,7 +320,7 @@ graph TB
         end
     end
 
-    subgraph ONCHAIN["₿🔗 On-Chain & DeFi"]
+    subgraph ONCHAIN["On-Chain & DeFi"]
         BTC_M["BTC Metrics<br/><i>hashrate · MVRV · miner flow</i>"]
         FUND["Funding Rates"]
         LN["Lightning Network"]
@@ -346,7 +346,7 @@ graph TB
     style ONCHAIN fill:#16213e,stroke:#e94560,color:#fff
 ```
 
-### 📐 Data Flow
+### Data Flow
 
 ```mermaid
 flowchart LR
@@ -372,10 +372,10 @@ flowchart LR
     end
 
     subgraph Output["Actions"]
-        ALERT["🔔 Alert"]
-        TRADE["💹 Trade"]
-        REPORT["📊 Report"]
-        AGENT["🤖 MCP/A2A"]
+        ALERT["Alert"]
+        TRADE["Trade"]
+        REPORT["Report"]
+        AGENT["MCP/A2A"]
     end
 
     Sources --> CACHE --> NORM --> IND --> SIGNAL --> STRAT --> RISK --> Output
@@ -391,7 +391,7 @@ flowchart LR
 
 ---
 
-## 🧬 Strategy Self-Evolution
+## Strategy Self-Evolution
 
 FinClaw includes an **EvoSkill-inspired strategy evolution engine** that automatically improves trading strategies through iterative backtest-driven mutation.
 
@@ -421,7 +421,7 @@ finclaw evolve --symbol TSLA --generations 10 --output best_strategy.yaml --verb
 
 ---
 
-## 📚 Examples
+## Examples
 
 See [`examples/`](examples/) for runnable strategies:
 
@@ -437,7 +437,7 @@ python examples/ai_generated.py TSLA
 
 ---
 
-## 🗺️ Roadmap
+## Roadmap
 
 - [x] Rich CLI with terminal charts
 - [x] 20+ built-in strategies with backtesting
@@ -458,7 +458,7 @@ See [GitHub Issues](https://github.com/NeuZhou/finclaw/issues) for the full list
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 ```bash
 git clone https://github.com/NeuZhou/finclaw.git
@@ -470,13 +470,13 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ---
 
-## 📄 License
+## License
 
 [MIT](LICENSE) — Built by [NeuZhou](https://github.com/NeuZhou)
 
 ---
 
-## 🌐 NeuZhou Ecosystem
+## NeuZhou Ecosystem
 
 FinClaw is part of the NeuZhou open source toolkit for AI agents:
 
