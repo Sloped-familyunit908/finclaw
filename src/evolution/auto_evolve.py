@@ -832,14 +832,12 @@ class AutoEvolver:
         mutation_rate: float = 0.3,
         results_dir: str = "evolution_results",
         seed: Optional[int] = None,
-        git_sync: bool = False,
     ):
         self.data_dir = data_dir
         self.population_size = population_size
         self.elite_count = elite_count
         self.mutation_rate = mutation_rate
         self.results_dir = results_dir
-        self.git_sync = git_sync
         self.rng = random.Random(seed)
         os.makedirs(results_dir, exist_ok=True)
 
@@ -1350,11 +1348,7 @@ class AutoEvolver:
         return best_results
 
     def save_results(self, gen: int, best: List[EvolutionResult]) -> None:
-        """Save best strategies to JSON for resumption.
-
-        If ``git_sync=True`` was set on the evolver, also commits and pushes
-        to a remote repo so other machines can pull the latest results.
-        """
+        """Save best strategies to JSON for resumption."""
         result_file = os.path.join(self.results_dir, "latest.json")
         payload = {
             "generation": gen,
@@ -1368,40 +1362,6 @@ class AutoEvolver:
         versioned = os.path.join(self.results_dir, f"gen_{gen:04d}.json")
         with open(versioned, "w", encoding="utf-8") as f:
             json.dump(payload, f, indent=2, ensure_ascii=False)
-
-        # Git sync: commit and push results to remote
-        if getattr(self, "git_sync", False):
-            self._git_push(gen, best[0] if best else None)
-
-    def _git_push(self, gen: int, top: Optional[EvolutionResult] = None) -> None:
-        """Commit and push evolution results to git remote."""
-        import subprocess
-
-        try:
-            cwd = self.results_dir
-            # Stage only evolution results
-            subprocess.run(
-                ["git", "add", "latest.json", f"gen_{gen:04d}.json"],
-                cwd=cwd, capture_output=True, timeout=30,
-            )
-            msg = f"evolution: gen {gen}"
-            if top:
-                msg += (
-                    f" | return={top.annual_return:.1f}%"
-                    f" sharpe={top.sharpe:.2f}"
-                    f" dd={top.max_drawdown:.1f}%"
-                )
-            result = subprocess.run(
-                ["git", "commit", "-m", msg],
-                cwd=cwd, capture_output=True, timeout=30,
-            )
-            if result.returncode == 0:
-                subprocess.run(
-                    ["git", "push"],
-                    cwd=cwd, capture_output=True, timeout=60,
-                )
-        except Exception as e:
-            print(f"  [git-sync] push failed: {e}")
 
     def load_best(self) -> Optional[StrategyDNA]:
         """Load the best known strategy from saved results."""

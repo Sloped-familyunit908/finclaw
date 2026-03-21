@@ -2,23 +2,14 @@
 Download ALL A-share historical data to local CSV files.
 Uses BaoStock (no rate limit, free, reliable).
 Saves to: data/a_shares/{code}.csv
-
-Usage:
-  pip install baostock
-  python scripts/download_a_shares.py
 """
 import baostock as bs
 import os
 import sys
 import time
-from datetime import date
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "a_shares")
 os.makedirs(DATA_DIR, exist_ok=True)
-
-# Auto-detect dates
-START_DATE = "2024-03-01"
-END_DATE = date.today().strftime("%Y-%m-%d")
 
 def download_all():
     lg = bs.login()
@@ -59,8 +50,8 @@ def download_all():
             rs = bs.query_history_k_data_plus(
                 code,
                 "date,code,open,high,low,close,volume,amount,turn",
-                start_date=START_DATE,
-                end_date=END_DATE,
+                start_date='2024-03-01',
+                end_date='2026-03-20',
                 frequency='d',
                 adjustflag='2'  # Pre-adjusted
             )
