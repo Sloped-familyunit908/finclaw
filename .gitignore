@@ -51,3 +51,6 @@ logs/
 
 # Local secret patterns (personal, not tracked)
 .secret-patterns.local
+
+test_output.txt
+dashboard/test-results/
