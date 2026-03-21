@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import type { TabId } from "@/app/types";
 import { searchTickers, type TickerInfo } from "@/app/lib/tickers";
 
@@ -161,7 +162,7 @@ export default function Header({
 
   const tabs: { id: TabId; label: string }[] = [
     { id: "overview", label: "Dashboard" },
-    { id: "cn-scanner", label: "Screener" },
+    { id: "cn-scanner", label: "CN Scanner" },
     { id: "backtest", label: "Backtest" },
   ];
 
@@ -192,6 +193,12 @@ export default function Header({
             onClick={setTab}
           />
         ))}
+        <Link
+          href="/screener"
+          className="px-3 py-2 text-sm font-medium rounded transition-all whitespace-nowrap text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
+        >
+          Screener
+        </Link>
       </div>
     </header>
   );
