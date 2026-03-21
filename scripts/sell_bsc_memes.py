@@ -7,7 +7,9 @@ import urllib.request
 
 Account.enable_unaudited_hdwallet_features()
 bsc = Web3(Web3.HTTPProvider('https://bsc-dataseed.binance.org'))
-with open(r"C:\Users\kazhou\.openclaw\secrets\arb_wallet.key") as f:
+import os
+_SECRETS_DIR = os.environ.get("FINCLAW_SECRETS_DIR", os.path.expanduser("~/.openclaw/secrets"))
+with open(os.path.join(_SECRETS_DIR, "arb_wallet.key")) as f:
     acct = Account.from_mnemonic(f.read().strip())
 
 wallet = acct.address

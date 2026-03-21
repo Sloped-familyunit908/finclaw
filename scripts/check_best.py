@@ -1,5 +1,6 @@
-import json
-with open(r"C:\Users\kazhou\.openclaw\workspace\finclaw\evolution_results\latest.json") as f:
+import json, os
+_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+with open(os.path.join(_PROJECT_DIR, 'evolution_results', 'latest.json')) as f:
     d = json.load(f)
 r = d["results"][0]
 print(f"Trades: {r['total_trades']}")

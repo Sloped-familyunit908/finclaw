@@ -1,6 +1,8 @@
-import sys, time
-sys.path.insert(0, r'C:\Users\kazhou\.openclaw\workspace\finclaw')
+import sys, time, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.evolution.unified_evolver import UnifiedEvolver, UnifiedDNA
+
+_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 dna = UnifiedDNA()
 dna.max_stocks = 50
@@ -9,7 +11,7 @@ dna.w_technical = 0.4
 dna.w_ml = 0.0
 
 print('Creating evolver...', flush=True)
-e = UnifiedEvolver(data_dir=r'C:\Users\kazhou\.openclaw\workspace\finclaw\data\a_shares', best_dna=dna)
+e = UnifiedEvolver(data_dir=os.path.join(_PROJECT_DIR, 'data', 'a_shares'), best_dna=dna)
 
 print('Loading pool...', flush=True)
 t = time.time()

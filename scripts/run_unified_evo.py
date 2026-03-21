@@ -1,8 +1,10 @@
 """Run unified evolution with small elite pool (fast enough to evolve)."""
 import sys, time, json, os
-sys.path.insert(0, r'C:\Users\kazhou\.openclaw\workspace\finclaw')
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.evolution.unified_evolver import UnifiedEvolver, UnifiedDNA
 import copy, random, math
+
+_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Start from best known DNA
 dna = UnifiedDNA()
@@ -12,7 +14,7 @@ dna.w_technical = 0.4
 dna.w_ml = 0.0
 
 print("Loading data...", flush=True)
-e = UnifiedEvolver(data_dir=r'C:\Users\kazhou\.openclaw\workspace\finclaw\data\a_shares', best_dna=dna)
+e = UnifiedEvolver(data_dir=os.path.join(_PROJECT_DIR, 'data', 'a_shares'), best_dna=dna)
 data = e.load_elite_pool()
 print(f"Pool: {len(data)} stocks", flush=True)
 
@@ -28,7 +30,7 @@ best_dna = dna
 best_fitness = best_result["fitness"]
 print(f"Initial: return={best_result['annual_return']:.0f}% dd={best_result['max_drawdown']:.0f}% fitness={best_fitness:.0f}", flush=True)
 
-results_dir = r'C:\Users\kazhou\.openclaw\workspace\finclaw\evolution_results'
+results_dir = os.path.join(_PROJECT_DIR, 'evolution_results')
 os.makedirs(results_dir, exist_ok=True)
 
 top5 = [(best_fitness, best_result, dna)]

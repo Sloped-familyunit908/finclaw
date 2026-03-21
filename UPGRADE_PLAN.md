@@ -4,7 +4,7 @@
 - Git: fb91a29
 - Tests: **3934 passed**, 0 failed (--ignore=examples)
 - Python: 3.12.10
-- 命令: `& "C:\Users\kazhou\AppData\Local\Programs\Python\Python312\python.exe" -m pytest --ignore=examples --tb=no -q`
+- 命令: `python -m pytest --ignore=examples --tb=no -q`
 
 ## 质量红线
 1. **每次commit前必须跑全量测试，3934+ passed, 0 failed**

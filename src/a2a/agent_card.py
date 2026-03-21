@@ -40,7 +40,7 @@ class FinClawAgentCard:
             "authentication": {"schemes": self.auth_schemes},
             "provider": {
                 "organization": "FinClaw",
-                "url": "https://github.com/kazhou2024/finclaw",
+                "url": "https://github.com/NeuZhou/finclaw",
             },
             "defaultInputModes": ["text"],
             "defaultOutputModes": ["text"],

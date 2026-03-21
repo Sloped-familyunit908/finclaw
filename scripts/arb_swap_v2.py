@@ -47,7 +47,9 @@ V3_ROUTER_ABI = [{
 
 def load_wallet():
     Account.enable_unaudited_hdwallet_features()
-    with open(r"C:\Users\kazhou\.openclaw\secrets\arb_wallet.key", "r") as f:
+    import os
+    secrets_dir = os.environ.get("FINCLAW_SECRETS_DIR", os.path.expanduser("~/.openclaw/secrets"))
+    with open(os.path.join(secrets_dir, "arb_wallet.key"), "r") as f:
         return Account.from_mnemonic(f.read().strip())
 
 

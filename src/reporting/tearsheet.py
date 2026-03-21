@@ -376,7 +376,7 @@ class Tearsheet:
 
 <div class="footer">
   FinClaw v4.9.0 — AI-Powered Financial Intelligence Engine<br>
-  <a href="https://github.com/kazhou2024/finclaw" style="color:#58a6ff">github.com/kazhou2024/finclaw</a>
+  <a href="https://github.com/NeuZhou/finclaw" style="color:#58a6ff">github.com/NeuZhou/finclaw</a>
 </div>
 </body></html>"""
 

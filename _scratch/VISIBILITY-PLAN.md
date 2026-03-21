@@ -1,4 +1,4 @@
-# Publication & Visibility Strategy for kazhou
+# Publication & Visibility Strategy for NeuZhou
 
 ## Target: Principal Engineer → Industry Recognition
 

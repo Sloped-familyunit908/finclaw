@@ -29,7 +29,9 @@ for fname, inputs, outputs in [
 # Try to harvest just to see if it would succeed - estimate gas
 from eth_account import Account
 Account.enable_unaudited_hdwallet_features()
-with open(r"C:\Users\kazhou\.openclaw\secrets\arb_wallet.key") as f:
+import os
+_SECRETS_DIR = os.environ.get("FINCLAW_SECRETS_DIR", os.path.expanduser("~/.openclaw/secrets"))
+with open(os.path.join(_SECRETS_DIR, "arb_wallet.key")) as f:
     acct = Account.from_mnemonic(f.read().strip())
 
 # Try calling harvest with estimateGas to see if it would work

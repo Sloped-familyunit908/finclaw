@@ -74,6 +74,6 @@ pip install finclaw-ai[ml]
 
 ## Need Help?
 
-- 📖 [Documentation](https://github.com/kazhou2024/finclaw)
-- 🐛 [Issues](https://github.com/kazhou2024/finclaw/issues)
-- 💬 [Discussions](https://github.com/kazhou2024/finclaw/discussions)
+- 📖 [Documentation](https://github.com/NeuZhou/finclaw)
+- 🐛 [Issues](https://github.com/NeuZhou/finclaw/issues)
+- 💬 [Discussions](https://github.com/NeuZhou/finclaw/discussions)
