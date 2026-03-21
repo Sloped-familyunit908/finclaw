@@ -1,94 +1,106 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useRef, useEffect } from "react";
 import { fmt } from "@/app/lib/utils";
 import { BACKTEST_DATA, EQUITY_CURVE_DATA } from "@/app/lib/fallbackData";
 import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  CartesianGrid,
-} from "recharts";
+  createChart,
+  ColorType,
+  CrosshairMode,
+  LineSeries,
+  LineStyle,
+} from "lightweight-charts";
+import type { IChartApi } from "lightweight-charts";
 
 function EquityCurve() {
+  const chartRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!chartRef.current) return;
+
+    const chart: IChartApi = createChart(chartRef.current, {
+      width: chartRef.current.clientWidth,
+      height: 280,
+      layout: {
+        background: { type: ColorType.Solid, color: '#13131a' },
+        textColor: '#9ca3af',
+      },
+      grid: {
+        vertLines: { color: '#1e1e2e' },
+        horzLines: { color: '#1e1e2e' },
+      },
+      crosshair: { mode: CrosshairMode.Normal },
+      timeScale: { borderColor: '#374151' },
+      rightPriceScale: { borderColor: '#374151' },
+    });
+
+    // Use a base date and add days as dates for the time scale
+    const baseDate = new Date('2024-01-01');
+
+    const toDateStr = (day: number) => {
+      const d = new Date(baseDate);
+      d.setDate(d.getDate() + day);
+      return d.toISOString().slice(0, 10);
+    };
+
+    const debate3Series = chart.addSeries(LineSeries, {
+      color: '#5eead4',
+      lineWidth: 2,
+      title: '3-Agent Debate',
+    });
+    debate3Series.setData(
+      EQUITY_CURVE_DATA.map((d) => ({
+        time: toDateStr(d.day),
+        value: d.debate3,
+      }))
+    );
+
+    const debate2Series = chart.addSeries(LineSeries, {
+      color: '#94a3b8',
+      lineWidth: 2,
+      title: '2-Agent Debate',
+    });
+    debate2Series.setData(
+      EQUITY_CURVE_DATA.map((d) => ({
+        time: toDateStr(d.day),
+        value: d.debate2,
+      }))
+    );
+
+    const buyHoldSeries = chart.addSeries(LineSeries, {
+      color: '#6b7280',
+      lineWidth: 2,
+      lineStyle: LineStyle.Dashed,
+      title: 'Buy & Hold',
+    });
+    buyHoldSeries.setData(
+      EQUITY_CURVE_DATA.map((d) => ({
+        time: toDateStr(d.day),
+        value: d.buyHold,
+      }))
+    );
+
+    chart.timeScale().fitContent();
+
+    const handleResize = () => {
+      if (chartRef.current) {
+        chart.applyOptions({ width: chartRef.current.clientWidth });
+      }
+    };
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      chart.remove();
+    };
+  }, []);
+
   return (
     <div className="rounded border border-gray-800/60 bg-[#13131a] p-4 sm:p-5">
       <h3 className="text-sm font-semibold text-gray-400 mb-4">
         Strategy Equity Curves (200-day Bear Market)
       </h3>
-      <div className="h-64 sm:h-72">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={EQUITY_CURVE_DATA}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#1e1e2e" />
-            <XAxis
-              dataKey="day"
-              stroke="#6b7280"
-              tick={{ fontSize: 11 }}
-              label={{
-                value: "Days",
-                position: "insideBottomRight",
-                offset: -5,
-                style: { fill: "#6b7280", fontSize: 11 },
-              }}
-            />
-            <YAxis
-              stroke="#6b7280"
-              tick={{ fontSize: 11 }}
-              domain={[40, 105]}
-              label={{
-                value: "Portfolio %",
-                angle: -90,
-                position: "insideLeft",
-                style: { fill: "#6b7280", fontSize: 11 },
-              }}
-            />
-            <Tooltip
-              contentStyle={{
-                background: "#13131a",
-                border: "1px solid #2a2a3a",
-                borderRadius: "4px",
-                fontSize: 12,
-              }}
-              itemStyle={{ color: "#e4e4ef" }}
-              labelFormatter={(v) => `Day ${v}`}
-              formatter={(value) => [`${Number(value).toFixed(1)}%`, undefined]}
-            />
-            <Legend
-              wrapperStyle={{ fontSize: 12 }}
-              iconType="line"
-            />
-            <Line
-              type="monotone"
-              dataKey="debate3"
-              stroke="#5eead4"
-              strokeWidth={2}
-              dot={false}
-              name="3-Agent Debate"
-            />
-            <Line
-              type="monotone"
-              dataKey="debate2"
-              stroke="#94a3b8"
-              strokeWidth={2}
-              dot={false}
-              name="2-Agent Debate"
-            />
-            <Line
-              type="monotone"
-              dataKey="buyHold"
-              stroke="#6b7280"
-              strokeWidth={2}
-              dot={false}
-              strokeDasharray="5 5"
-              name="Buy & Hold"
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
+      <div ref={chartRef} />
     </div>
   );
 }

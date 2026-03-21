@@ -1,19 +1,17 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
-  ResponsiveContainer,
-  ComposedChart,
-  Bar,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-  ReferenceLine,
-} from "recharts";
+  createChart,
+  ColorType,
+  CrosshairMode,
+  CandlestickSeries,
+  LineSeries,
+  HistogramSeries,
+} from "lightweight-charts";
+import type { IChartApi } from "lightweight-charts";
 import type { HistoryBar } from "@/app/api/history/route";
 import {
   calcRSI,
@@ -97,35 +95,6 @@ Score Factors: ${factors.join("; ")}
 Risk Note: This analysis is derived from technical indicators only and does not constitute investment advice. Suggested stop-loss: ${currency}${stopLoss.toFixed(2)} (-8%).`;
 }
 
-/* -- Candlestick via SVG in Recharts -- */
-interface CandleProps {
-  x?: number;
-  y?: number;
-  width?: number;
-  height?: number;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  payload?: any;
-}
-function CandlestickShape({ x = 0, y = 0, width = 0, payload }: CandleProps) {
-  if (!payload) return null;
-  const { open, close, high, low, yScale } = payload;
-  if (!yScale) return null;
-
-  const isUp = close >= open;
-  const color = isUp ? "#22c55e" : "#ef4444";
-  const bodyTop = yScale(Math.max(open, close));
-  const bodyBot = yScale(Math.min(open, close));
-  const bodyH = Math.max(bodyBot - bodyTop, 1);
-  const wickX = x + width / 2;
-
-  return (
-    <g>
-      <line x1={wickX} y1={yScale(high)} x2={wickX} y2={yScale(low)} stroke={color} strokeWidth={1} />
-      <rect x={x + 1} y={bodyTop} width={Math.max(width - 2, 2)} height={bodyH} fill={color} rx={1} />
-    </g>
-  );
-}
-
 /* ================================================================ */
 export default function StockDetailPage() {
   const params = useParams();
@@ -136,6 +105,9 @@ export default function StockDetailPage() {
   const [history, setHistory] = useState<HistoryBar[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const macdChartContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -175,6 +147,183 @@ export default function StockDetailPage() {
     return { rsi, macd, bb, sma20, sma50, kdj, closes, highs, lows };
   }, [history]);
 
+  /* -- TradingView Candlestick Chart -- */
+  useEffect(() => {
+    if (!chartContainerRef.current || !history.length || !indicators) return;
+
+    const chart: IChartApi = createChart(chartContainerRef.current, {
+      width: chartContainerRef.current.clientWidth,
+      height: 400,
+      layout: {
+        background: { type: ColorType.Solid, color: '#0a0a0f' },
+        textColor: '#9ca3af',
+      },
+      grid: {
+        vertLines: { color: '#1f2937' },
+        horzLines: { color: '#1f2937' },
+      },
+      crosshair: { mode: CrosshairMode.Normal },
+      timeScale: { borderColor: '#374151' },
+      rightPriceScale: { borderColor: '#374151' },
+    });
+
+    // Candlestick series
+    const candleSeries = chart.addSeries(CandlestickSeries, {
+      upColor: '#22c55e',
+      downColor: '#ef4444',
+      borderUpColor: '#22c55e',
+      borderDownColor: '#ef4444',
+      wickUpColor: '#22c55e',
+      wickDownColor: '#ef4444',
+    });
+    candleSeries.setData(
+      history.map((d) => ({
+        time: d.date as string,
+        open: d.open,
+        high: d.high,
+        low: d.low,
+        close: d.close,
+      }))
+    );
+
+    // SMA(20) overlay
+    const sma20Series = chart.addSeries(LineSeries, {
+      color: '#5eead4',
+      lineWidth: 1,
+      title: 'SMA20',
+    });
+    const sma20Data = history
+      .map((d, i) => ({
+        time: d.date as string,
+        value: indicators.sma20[i],
+      }))
+      .filter((d) => !isNaN(d.value));
+    sma20Series.setData(sma20Data);
+
+    // SMA(50) overlay
+    const sma50Series = chart.addSeries(LineSeries, {
+      color: '#94a3b8',
+      lineWidth: 1,
+      title: 'SMA50',
+    });
+    const sma50Data = history
+      .map((d, i) => ({
+        time: d.date as string,
+        value: indicators.sma50[i],
+      }))
+      .filter((d) => !isNaN(d.value));
+    sma50Series.setData(sma50Data);
+
+    // Volume histogram
+    const volumeSeries = chart.addSeries(HistogramSeries, {
+      priceFormat: { type: 'volume' },
+      priceScaleId: 'volume',
+    });
+    chart.priceScale('volume').applyOptions({
+      scaleMargins: { top: 0.8, bottom: 0 },
+    });
+    volumeSeries.setData(
+      history.map((d) => ({
+        time: d.date as string,
+        value: d.volume,
+        color: d.close >= d.open ? '#22c55e40' : '#ef444440',
+      }))
+    );
+
+    chart.timeScale().fitContent();
+
+    const handleResize = () => {
+      if (chartContainerRef.current) {
+        chart.applyOptions({ width: chartContainerRef.current.clientWidth });
+      }
+    };
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      chart.remove();
+    };
+  }, [history, indicators]);
+
+  /* -- MACD Chart using lightweight-charts -- */
+  useEffect(() => {
+    if (!macdChartContainerRef.current || !history.length || !indicators) return;
+
+    const chart: IChartApi = createChart(macdChartContainerRef.current, {
+      width: macdChartContainerRef.current.clientWidth,
+      height: 200,
+      layout: {
+        background: { type: ColorType.Solid, color: '#0a0a0f' },
+        textColor: '#9ca3af',
+      },
+      grid: {
+        vertLines: { color: '#1f2937' },
+        horzLines: { color: '#1f2937' },
+      },
+      crosshair: { mode: CrosshairMode.Normal },
+      timeScale: { borderColor: '#374151' },
+      rightPriceScale: { borderColor: '#374151' },
+    });
+
+    // MACD histogram
+    const histSeries = chart.addSeries(HistogramSeries, {
+      priceFormat: { type: 'price', precision: 4, minMove: 0.0001 },
+    });
+    histSeries.setData(
+      history
+        .map((d, i) => ({
+          time: d.date as string,
+          value: indicators.macd.histogram[i],
+          color: indicators.macd.histogram[i] >= 0 ? '#22c55e' : '#ef4444',
+        }))
+        .filter((d) => !isNaN(d.value))
+    );
+
+    // MACD line
+    const macdLine = chart.addSeries(LineSeries, {
+      color: '#5eead4',
+      lineWidth: 1,
+      title: 'MACD',
+    });
+    macdLine.setData(
+      history
+        .map((d, i) => ({
+          time: d.date as string,
+          value: indicators.macd.macd[i],
+        }))
+        .filter((d) => !isNaN(d.value))
+    );
+
+    // Signal line
+    const signalLine = chart.addSeries(LineSeries, {
+      color: '#94a3b8',
+      lineWidth: 1,
+      title: 'Signal',
+    });
+    signalLine.setData(
+      history
+        .map((d, i) => ({
+          time: d.date as string,
+          value: indicators.macd.signal[i],
+        }))
+        .filter((d) => !isNaN(d.value))
+    );
+
+    chart.timeScale().fitContent();
+
+    const handleResize = () => {
+      if (macdChartContainerRef.current) {
+        chart.applyOptions({ width: macdChartContainerRef.current.clientWidth });
+      }
+    };
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      chart.remove();
+    };
+  }, [history, indicators]);
+
   /* -- Current values -- */
   const currentBar = last(history);
   const prevBar = history.length > 1 ? history[history.length - 2] : null;
@@ -194,29 +343,6 @@ export default function StockDetailPage() {
   const currentK = indicators ? lastNum(indicators.kdj.k) : NaN;
   const currentD = indicators ? lastNum(indicators.kdj.d) : NaN;
   const currentJ = indicators ? lastNum(indicators.kdj.j) : NaN;
-
-  /* -- Build chart data -- */
-  const chartData = useMemo(() => {
-    if (!indicators) return [];
-
-    return history.map((bar, i) => ({
-      date: bar.date.slice(5), // MM-DD
-      open: bar.open,
-      high: bar.high,
-      low: bar.low,
-      close: bar.close,
-      volume: bar.volume,
-      range: [Math.min(bar.open, bar.close), Math.max(bar.open, bar.close)],
-      sma20: indicators.sma20[i],
-      sma50: indicators.sma50[i],
-      bbUpper: indicators.bb.upper[i],
-      bbLower: indicators.bb.lower[i],
-      rsi: indicators.rsi[i],
-      macdLine: indicators.macd.macd[i],
-      macdSignal: indicators.macd.signal[i],
-      macdHist: indicators.macd.histogram[i],
-    }));
-  }, [history, indicators]);
 
   /* -- Determine stock name -- */
   const stockName = code;
@@ -317,48 +443,12 @@ export default function StockDetailPage() {
               </div>
             </section>
 
-            {/* -- Price Chart -- */}
+            {/* -- TradingView Price Chart -- */}
             <section className="rounded border border-gray-800/60 bg-[#13131a] p-6">
               <h2 className="text-sm font-semibold text-gray-400 mb-4">
                 Price ({history.length}d)
               </h2>
-              <div className="h-[360px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={chartData} margin={{ top: 10, right: 10, bottom: 0, left: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1e1e2e" />
-                    <XAxis
-                      dataKey="date"
-                      tick={{ fill: "#6b7280", fontSize: 10 }}
-                      tickLine={false}
-                      axisLine={{ stroke: "#1e1e2e" }}
-                    />
-                    <YAxis
-                      domain={["auto", "auto"]}
-                      tick={{ fill: "#6b7280", fontSize: 10 }}
-                      tickLine={false}
-                      axisLine={false}
-                      width={60}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#1a1a2e",
-                        border: "1px solid #2a2a3a",
-                        borderRadius: 4,
-                        fontSize: 12,
-                      }}
-                      labelStyle={{ color: "#9ca3af" }}
-                    />
-                    {/* Bollinger Bands */}
-                    <Line type="monotone" dataKey="bbUpper" stroke="#4b5563" strokeDasharray="4 2" dot={false} name="BB Upper" />
-                    <Line type="monotone" dataKey="bbLower" stroke="#4b5563" strokeDasharray="4 2" dot={false} name="BB Lower" />
-                    {/* Moving Averages */}
-                    <Line type="monotone" dataKey="sma20" stroke="#5eead4" dot={false} strokeWidth={1.5} name="SMA20" />
-                    <Line type="monotone" dataKey="sma50" stroke="#94a3b8" dot={false} strokeWidth={1.5} name="SMA50" />
-                    {/* Close price line */}
-                    <Line type="monotone" dataKey="close" stroke="#e4e4ef" dot={false} strokeWidth={2} name="Close" />
-                  </ComposedChart>
-                </ResponsiveContainer>
-              </div>
+              <div ref={chartContainerRef} />
             </section>
 
             {/* -- Technical Indicators Grid -- */}
@@ -541,56 +631,7 @@ export default function StockDetailPage() {
             {/* -- MACD Chart -- */}
             <section className="rounded border border-gray-800/60 bg-[#13131a] p-6">
               <h2 className="text-sm font-semibold text-gray-400 mb-4">MACD</h2>
-              <div className="h-[200px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={chartData} margin={{ top: 10, right: 10, bottom: 0, left: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1e1e2e" />
-                    <XAxis
-                      dataKey="date"
-                      tick={{ fill: "#6b7280", fontSize: 10 }}
-                      tickLine={false}
-                      axisLine={{ stroke: "#1e1e2e" }}
-                    />
-                    <YAxis
-                      tick={{ fill: "#6b7280", fontSize: 10 }}
-                      tickLine={false}
-                      axisLine={false}
-                      width={50}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#1a1a2e",
-                        border: "1px solid #2a2a3a",
-                        borderRadius: 4,
-                        fontSize: 12,
-                      }}
-                    />
-                    <ReferenceLine y={0} stroke="#4b5563" />
-                    <Bar
-                      dataKey="macdHist"
-                      name="Histogram"
-                      fill="#5eead4"
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      shape={(props: any) => {
-                        const { x, y, width, height, payload } = props;
-                        const val = payload?.macdHist ?? 0;
-                        return (
-                          <rect
-                            x={x}
-                            y={val >= 0 ? y : y}
-                            width={width}
-                            height={Math.abs(height)}
-                            fill={val >= 0 ? "#22c55e" : "#ef4444"}
-                            rx={1}
-                          />
-                        );
-                      }}
-                    />
-                    <Line type="monotone" dataKey="macdLine" stroke="#5eead4" dot={false} strokeWidth={1.5} name="MACD" />
-                    <Line type="monotone" dataKey="macdSignal" stroke="#94a3b8" dot={false} strokeWidth={1.5} name="Signal" />
-                  </ComposedChart>
-                </ResponsiveContainer>
-              </div>
+              <div ref={macdChartContainerRef} />
             </section>
 
             {/* -- Technical Analysis -- */}
