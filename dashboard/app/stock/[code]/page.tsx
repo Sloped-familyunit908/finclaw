@@ -120,7 +120,14 @@ export default function StockDetailPage() {
       })
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) {
-          setHistory(data);
+          // De-duplicate by date (API may return duplicate timestamps)
+          const seen = new Set<string>();
+          const deduped = data.filter((d: { date: string }) => {
+            if (seen.has(d.date)) return false;
+            seen.add(d.date);
+            return true;
+          });
+          setHistory(deduped);
         } else {
           setError("No data available");
         }
@@ -207,8 +214,14 @@ export default function StockDetailPage() {
         wickUpColor: '#22c55e',
         wickDownColor: '#ef4444',
       });
+      // De-duplicate and sort by date (TradingView requires ascending unique times)
+      const uniqueHistory = history.reduce((acc: typeof history, d) => {
+        if (!acc.length || acc[acc.length - 1].date !== d.date) acc.push(d);
+        return acc;
+      }, []).sort((a, b) => a.date.localeCompare(b.date));
+
       candleSeries.setData(
-        history.map((d) => ({
+        uniqueHistory.map((d) => ({
           time: d.date as string,
           open: d.open,
           high: d.high,
@@ -251,7 +264,7 @@ export default function StockDetailPage() {
         scaleMargins: { top: 0.8, bottom: 0 },
       });
       volumeSeries.setData(
-        history.map((d) => ({
+        uniqueHistory.map((d) => ({
           time: d.date as string,
           value: d.volume,
           color: d.close >= d.open ? '#22c55e40' : '#ef444440',
