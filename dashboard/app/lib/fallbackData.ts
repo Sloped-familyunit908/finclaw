@@ -19,6 +19,7 @@ export const US_TICKERS: MarketData[] = [
   { asset: "MSFT", price: 0, change24h: 0, volume24h: null, marketCap: null, market: "US" },
   { asset: "AMZN", price: 0, change24h: 0, volume24h: null, marketCap: null, market: "US" },
   { asset: "META", price: 0, change24h: 0, volume24h: null, marketCap: null, market: "US" },
+  { asset: "GOOGL", price: 0, change24h: 0, volume24h: null, marketCap: null, market: "US" },
 ];
 
 /* ── Crypto fallback (stale — real prices fetched from CoinGecko) ── */

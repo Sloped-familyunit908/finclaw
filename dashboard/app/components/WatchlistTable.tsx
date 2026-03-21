@@ -258,6 +258,23 @@ export default function WatchlistTable() {
         }
       }
 
+      // Find tickers NOT covered by the market endpoints
+      const missing = watchlist.filter((sym) => !map.has(sym));
+      if (missing.length > 0) {
+        try {
+          const extra = await fetch(
+            `/api/prices?symbols=${encodeURIComponent(missing.join(","))}`
+          ).then((r) => r.json()).catch(() => []);
+          for (const d of extra) {
+            if (d && d.asset) {
+              map.set(d.asset, d);
+            }
+          }
+        } catch {
+          // ignore
+        }
+      }
+
       setPriceData(map);
       setLoading(false);
     }

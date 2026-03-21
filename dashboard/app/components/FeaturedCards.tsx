@@ -8,11 +8,22 @@ import { fmt } from "@/app/lib/utils";
 
 /* ── SVG Sparkline from price data ── */
 function Sparkline({ data, color }: { data: number[]; color: string }) {
-  if (data.length < 2) return null;
-
   const w = 100;
   const h = 32;
   const padding = 2;
+
+  // Need at least 1 point to render anything
+  if (data.length === 0) return null;
+
+  // Single data point — render a flat line
+  if (data.length === 1) {
+    const y = h / 2;
+    return (
+      <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="block" preserveAspectRatio="none">
+        <line x1={padding} y1={y} x2={w - padding} y2={y} stroke={color} strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    );
+  }
 
   const min = Math.min(...data);
   const max = Math.max(...data);
@@ -90,14 +101,30 @@ export default function FeaturedCards() {
       const featured = watchlist.slice(0, FEATURED_COUNT);
 
       // Fetch prices and sparkline data in parallel
-      const [usData, cryptoData] = await Promise.all([
+      const [usData, cnData, cryptoData] = await Promise.all([
         fetch("/api/prices?market=us").then((r) => r.json()).catch(() => []),
+        fetch("/api/prices?market=cn").then((r) => r.json()).catch(() => []),
         fetch("/api/prices?market=crypto").then((r) => r.json()).catch(() => []),
       ]);
 
       const priceMap = new Map<string, MarketData>();
-      for (const d of [...usData, ...cryptoData]) {
+      for (const d of [...usData, ...cnData, ...cryptoData]) {
         if (d && d.asset) priceMap.set(d.asset, d);
+      }
+
+      // Fetch any featured tickers not covered by market endpoints
+      const missing = featured.filter((sym) => !priceMap.has(sym));
+      if (missing.length > 0) {
+        try {
+          const extra = await fetch(
+            `/api/prices?symbols=${encodeURIComponent(missing.join(","))}`
+          ).then((r) => r.json()).catch(() => []);
+          for (const d of extra) {
+            if (d && d.asset) priceMap.set(d.asset, d);
+          }
+        } catch {
+          // ignore
+        }
       }
 
       // Fetch sparkline data for each featured ticker

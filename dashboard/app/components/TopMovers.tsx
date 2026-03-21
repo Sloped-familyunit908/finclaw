@@ -47,8 +47,14 @@ export default function TopMovers() {
 
   const { gainers, losers, maxAbsChange } = useMemo(() => {
     const sorted = [...allData].sort((a, b) => b.change24h - a.change24h);
-    const g = sorted.slice(0, 5);
-    const l = sorted.slice(-5).reverse();
+
+    // Split into positive (gainers) and negative (losers) — no overlap
+    const positives = sorted.filter((d) => d.change24h >= 0);
+    const negatives = sorted.filter((d) => d.change24h < 0);
+
+    const g = positives.slice(0, 5);
+    const l = negatives.slice(0, 5); // Already sorted desc, first negatives are smallest losses
+
     const all = [...g, ...l];
     const maxAbs = all.reduce((m, d) => Math.max(m, Math.abs(d.change24h)), 1);
     return { gainers: g, losers: l, maxAbsChange: maxAbs };

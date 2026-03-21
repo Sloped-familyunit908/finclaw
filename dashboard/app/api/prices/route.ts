@@ -135,12 +135,33 @@ async function fetchUSPrices(): Promise<MarketData[]> {
       const change = prevClose > 0 ? ((price - prevClose) / prevClose) * 100 : 0;
       const mock = US_MARKET_DATA.find((m) => m.asset === symbol)!;
 
+      // Try to get market cap from chart meta first
+      let marketCap = meta.marketCap ?? null;
+
+      // If chart API doesn't provide marketCap, try quoteSummary
+      if (!marketCap) {
+        try {
+          const summaryResp = await fetch(
+            `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${symbol}?modules=price`,
+            {
+              headers: {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+              },
+            },
+          );
+          const summaryJson = await summaryResp.json();
+          marketCap = summaryJson?.quoteSummary?.result?.[0]?.price?.marketCap?.raw ?? null;
+        } catch {
+          // Ignore — marketCap stays null
+        }
+      }
+
       results.push({
         asset: symbol,
         price,
         change24h: change,
         volume24h: meta.regularMarketVolume ?? mock.volume24h,
-        marketCap: meta.marketCap ?? null, // Use Yahoo's market cap if available
+        marketCap,
         market: "US",
       });
     } catch {
@@ -195,9 +216,115 @@ async function fetchCryptoPrices(): Promise<MarketData[]> {
   }
 }
 
+/* ── Fetch individual US stock by symbol (for tickers not in preset list) ── */
+async function fetchSingleUSPrice(symbol: string): Promise<MarketData | null> {
+  try {
+    const resp = await fetch(
+      `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`,
+      {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        },
+      },
+    );
+    const json = await resp.json();
+    const meta = json?.chart?.result?.[0]?.meta;
+
+    if (!meta?.regularMarketPrice) return null;
+
+    const price = meta.regularMarketPrice;
+    const prevClose = meta.chartPreviousClose ?? meta.previousClose ?? price;
+    const change = prevClose > 0 ? ((price - prevClose) / prevClose) * 100 : 0;
+
+    // Try to get market cap from chart meta
+    let marketCap = meta.marketCap ?? null;
+
+    // If chart API doesn't provide marketCap, try quoteSummary
+    if (!marketCap) {
+      try {
+        const summaryResp = await fetch(
+          `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${symbol}?modules=price`,
+          {
+            headers: {
+              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            },
+          },
+        );
+        const summaryJson = await summaryResp.json();
+        marketCap = summaryJson?.quoteSummary?.result?.[0]?.price?.marketCap?.raw ?? null;
+      } catch {
+        // Ignore — marketCap remains null
+      }
+    }
+
+    return {
+      asset: symbol,
+      price,
+      change24h: change,
+      volume24h: meta.regularMarketVolume ?? null,
+      marketCap,
+      market: "US",
+    };
+  } catch {
+    return null;
+  }
+}
+
+/* ── Fetch specific symbols (mixed markets) ── */
+async function fetchSymbols(symbols: string[]): Promise<MarketData[]> {
+  const results: MarketData[] = [];
+
+  for (const symbol of symbols) {
+    // Detect market
+    if (/\.(SH|SZ)$/i.test(symbol)) {
+      // CN stock — fetch via Sina individually
+      const cnData = await fetchCNPrices();
+      const found = cnData.find((d) => d.asset === symbol);
+      if (found) results.push(found);
+    } else if (CRYPTO_IDS[symbol.toUpperCase()]) {
+      // Crypto — fetch via CoinGecko
+      const cryptoData = await fetchCryptoPrices();
+      const found = cryptoData.find((d) => d.asset === symbol);
+      if (found) results.push(found);
+    } else {
+      // US stock — fetch individually
+      const data = await fetchSingleUSPrice(symbol);
+      if (data) {
+        results.push(data);
+      } else {
+        // Return zero-price placeholder so the UI knows the ticker exists
+        results.push({
+          asset: symbol,
+          price: 0,
+          change24h: 0,
+          volume24h: null,
+          marketCap: null,
+          market: "US",
+        });
+      }
+    }
+  }
+
+  return results;
+}
+
 /* ── Route handler ── */
 export async function GET(request: NextRequest) {
   const market = request.nextUrl.searchParams.get("market") ?? "cn";
+  const symbolsParam = request.nextUrl.searchParams.get("symbols");
+
+  // If symbols param is present, fetch those specific tickers
+  if (symbolsParam) {
+    const symbols = symbolsParam.split(",").map((s) => s.trim()).filter(Boolean);
+    const cacheKey = `symbols:${symbols.sort().join(",")}`;
+
+    const hit = cached(cacheKey);
+    if (hit) return NextResponse.json(hit);
+
+    const data = await fetchSymbols(symbols);
+    cache[cacheKey] = { data, ts: Date.now() };
+    return NextResponse.json(data);
+  }
 
   const hit = cached(market);
   if (hit) {

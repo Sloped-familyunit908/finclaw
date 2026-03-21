@@ -91,17 +91,19 @@ export async function GET() {
   const results: IndexData[] = [];
 
   // Fetch all in parallel
-  const [sp500, nasdaq, dow, shanghai] = await Promise.all([
+  const [sp500, nasdaq, dow, shanghai, vix] = await Promise.all([
     fetchYahooIndex("%5EGSPC", "S&P 500"),
     fetchYahooIndex("%5EIXIC", "Nasdaq"),
     fetchYahooIndex("%5EDJI", "Dow Jones"),
     fetchShanghaiIndex(),
+    fetchYahooIndex("%5EVIX", "VIX"),
   ]);
 
   if (sp500) results.push(sp500);
   if (nasdaq) results.push(nasdaq);
   if (dow) results.push(dow);
   if (shanghai) results.push(shanghai);
+  if (vix) results.push(vix);
 
   cache = { data: results, ts: Date.now() };
   return NextResponse.json(results);
