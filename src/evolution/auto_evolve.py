@@ -42,6 +42,11 @@ _WEIGHT_KEYS: List[str] = [
     "w_obv",
     "w_support",
     "w_volume_profile",
+    # Fundamental factors
+    "w_pe",
+    "w_pb",
+    "w_roe",
+    "w_revenue_growth",
 ]
 
 
@@ -81,6 +86,11 @@ class StrategyDNA:
     w_obv: float = 0.1            # OBV trend (price-volume)
     w_support: float = 0.05       # support/resistance proximity
     w_volume_profile: float = 0.05  # volume profile shape
+    # Fundamental factors (default 0 = disabled until evolved)
+    w_pe: float = 0.0             # PE valuation score
+    w_pb: float = 0.0             # PB value score
+    w_roe: float = 0.0            # Return on equity
+    w_revenue_growth: float = 0.0 # Revenue growth rate
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -118,6 +128,11 @@ _PARAM_RANGES: Dict[str, Tuple[float, float, bool]] = {
     "w_obv": (0.0, 1.0, False),
     "w_support": (0.0, 1.0, False),
     "w_volume_profile": (0.0, 1.0, False),
+    # Fundamental factor weights
+    "w_pe": (0.0, 1.0, False),
+    "w_pb": (0.0, 1.0, False),
+    "w_roe": (0.0, 1.0, False),
+    "w_revenue_growth": (0.0, 1.0, False),
 }
 
 
@@ -545,6 +560,14 @@ def compute_support_resistance(
 
 # ────────────────── Scoring ──────────────────
 
+# Import fundamental scoring functions
+from src.evolution.fundamentals import (
+    compute_pe_score as _compute_pe_score,
+    compute_pb_score as _compute_pb_score,
+    compute_roe_score as _compute_roe_score,
+    compute_growth_score as _compute_growth_score,
+)
+
 
 def score_stock(
     idx: int,
@@ -699,7 +722,24 @@ def score_stock(
 
     vprofile_raw = max(0.0, min(1.0, vprofile_raw))
 
-    # Weighted sum with all 11 dimensions
+    # 12. PE valuation
+    fund = indicators.get("fundamentals", {})
+    pe_val = fund.get("pe", 0)
+    pe_raw = _compute_pe_score(pe_val) if pe_val > 0 else 0.5
+
+    # 13. PB value
+    pb_val = fund.get("pb", 0)
+    pb_raw = _compute_pb_score(pb_val) if pb_val > 0 else 0.5
+
+    # 14. ROE
+    roe_val = fund.get("roe", 0)
+    roe_raw = _compute_roe_score(roe_val) if roe_val > 0 else 0.5
+
+    # 15. Revenue growth
+    rev_growth = fund.get("revenue_growth", 0)
+    growth_raw = _compute_growth_score(rev_growth) if rev_growth != 0 else 0.5
+
+    # Weighted sum with all 15 dimensions
     raw = (
         dna.w_momentum * momentum_raw
         + dna.w_mean_reversion * mr_raw
@@ -712,6 +752,10 @@ def score_stock(
         + dna.w_obv * obv_raw
         + dna.w_support * support_raw
         + dna.w_volume_profile * vprofile_raw
+        + dna.w_pe * pe_raw
+        + dna.w_pb * pb_raw
+        + dna.w_roe * roe_raw
+        + dna.w_revenue_growth * growth_raw
     )
 
     total_weight = sum(getattr(dna, k) for k in _WEIGHT_KEYS)
@@ -911,6 +955,9 @@ class AutoEvolver:
 
         if quality_filter and len(data) > max_stocks:
             data = filter_stock_pool(data, max_stocks=max_stocks)
+            # NOTE: Sector-based and fundamental quality filtering (e.g., min ROE,
+            # max PE, sector rotation) can be configured via finclaw-pro config.
+            # The public framework supports weight-based scoring only.
 
         return data
 
@@ -1055,6 +1102,17 @@ class AutoEvolver:
                 "obv_trend": obv,
                 "ma_alignment": ma_align,
             }
+
+        # Load fundamental data (cached, won't re-fetch if already cached today)
+        try:
+            from src.evolution.fundamentals import fetch_fundamentals_baostock
+            fund_data = fetch_fundamentals_baostock(codes)
+        except Exception:
+            fund_data = {}
+
+        # Add fundamentals to indicators dict for each stock
+        for code in codes:
+            indicators[code]["fundamentals"] = fund_data.get(code, {})
 
         # Find common date range — use the first stock to determine day count
         first_code = codes[0]

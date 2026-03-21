@@ -146,13 +146,7 @@ class TestMutation:
         dna = StrategyDNA()
         for _ in range(50):
             mutated = evolver.mutate(dna)
-            w_sum = (
-                mutated.w_momentum
-                + mutated.w_mean_reversion
-                + mutated.w_volume
-                + mutated.w_trend
-                + mutated.w_pattern
-            )
+            w_sum = sum(v for k, v in mutated.__dict__.items() if k.startswith("w_"))
             assert abs(w_sum - 1.0) < 0.01, f"Weights sum to {w_sum}, expected ≈1.0"
 
 
