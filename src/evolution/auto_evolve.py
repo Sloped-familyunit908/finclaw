@@ -42,11 +42,42 @@ _WEIGHT_KEYS: List[str] = [
     "w_obv",
     "w_support",
     "w_volume_profile",
-    # Fundamental factors
+    # Technical extended
+    "w_atr",
+    "w_adx",
+    "w_roc",
+    "w_williams_r",
+    "w_cci",
+    "w_mfi",
+    "w_vwap",
+    "w_donchian",
+    "w_ichimoku",
+    "w_elder_ray",
+    # Rolling statistics
+    "w_beta",
+    "w_r_squared",
+    "w_residual",
+    "w_quantile_upper",
+    "w_quantile_lower",
+    "w_aroon",
+    "w_price_volume_corr",
+    # Fundamental factors (original)
     "w_pe",
     "w_pb",
     "w_roe",
     "w_revenue_growth",
+    # Fundamental growth
+    "w_revenue_yoy",
+    "w_revenue_qoq",
+    "w_profit_yoy",
+    "w_profit_qoq",
+    # Fundamental valuation
+    "w_ps",
+    "w_peg",
+    # Fundamental quality
+    "w_gross_margin",
+    "w_debt_ratio",
+    "w_cashflow",
 ]
 
 
@@ -92,6 +123,42 @@ class StrategyDNA:
     w_roe: float = 0.0            # Return on equity
     w_revenue_growth: float = 0.0 # Revenue growth rate
 
+    # === Technical Extended ===
+    w_atr: float = 0.0              # Average True Range (volatility)
+    w_adx: float = 0.0              # Average Directional Index (trend strength)
+    w_roc: float = 0.0              # Rate of Change
+    w_williams_r: float = 0.0       # Williams %R
+    w_cci: float = 0.0              # Commodity Channel Index
+    w_mfi: float = 0.0              # Money Flow Index
+    w_vwap: float = 0.0             # Volume Weighted Avg Price distance
+    w_donchian: float = 0.0         # Donchian Channel breakout
+    w_ichimoku: float = 0.0         # Ichimoku cloud position
+    w_elder_ray: float = 0.0        # Elder Ray (bull/bear power)
+
+    # === Rolling Statistics ===
+    w_beta: float = 0.0             # Price regression slope
+    w_r_squared: float = 0.0        # Trend linearity
+    w_residual: float = 0.0         # Regression residual (mean reversion)
+    w_quantile_upper: float = 0.0   # 80% quantile distance
+    w_quantile_lower: float = 0.0   # 20% quantile distance
+    w_aroon: float = 0.0            # Days since high/low
+    w_price_volume_corr: float = 0.0 # Price-volume correlation
+
+    # === Fundamental Growth ===
+    w_revenue_yoy: float = 0.0      # Revenue YoY growth
+    w_revenue_qoq: float = 0.0      # Revenue QoQ growth
+    w_profit_yoy: float = 0.0       # Net profit YoY growth
+    w_profit_qoq: float = 0.0       # Net profit QoQ growth
+
+    # === Fundamental Valuation ===
+    w_ps: float = 0.0               # Price-to-Sales
+    w_peg: float = 0.0              # PEG ratio
+
+    # === Fundamental Quality ===
+    w_gross_margin: float = 0.0     # Gross margin
+    w_debt_ratio: float = 0.0       # Debt-to-asset ratio
+    w_cashflow: float = 0.0         # Operating cashflow quality
+
     def to_dict(self) -> dict:
         return asdict(self)
 
@@ -133,6 +200,37 @@ _PARAM_RANGES: Dict[str, Tuple[float, float, bool]] = {
     "w_pb": (0.0, 1.0, False),
     "w_roe": (0.0, 1.0, False),
     "w_revenue_growth": (0.0, 1.0, False),
+    # Technical extended
+    "w_atr": (0.0, 1.0, False),
+    "w_adx": (0.0, 1.0, False),
+    "w_roc": (0.0, 1.0, False),
+    "w_williams_r": (0.0, 1.0, False),
+    "w_cci": (0.0, 1.0, False),
+    "w_mfi": (0.0, 1.0, False),
+    "w_vwap": (0.0, 1.0, False),
+    "w_donchian": (0.0, 1.0, False),
+    "w_ichimoku": (0.0, 1.0, False),
+    "w_elder_ray": (0.0, 1.0, False),
+    # Rolling statistics
+    "w_beta": (0.0, 1.0, False),
+    "w_r_squared": (0.0, 1.0, False),
+    "w_residual": (0.0, 1.0, False),
+    "w_quantile_upper": (0.0, 1.0, False),
+    "w_quantile_lower": (0.0, 1.0, False),
+    "w_aroon": (0.0, 1.0, False),
+    "w_price_volume_corr": (0.0, 1.0, False),
+    # Fundamental growth
+    "w_revenue_yoy": (0.0, 1.0, False),
+    "w_revenue_qoq": (0.0, 1.0, False),
+    "w_profit_yoy": (0.0, 1.0, False),
+    "w_profit_qoq": (0.0, 1.0, False),
+    # Fundamental valuation
+    "w_ps": (0.0, 1.0, False),
+    "w_peg": (0.0, 1.0, False),
+    # Fundamental quality
+    "w_gross_margin": (0.0, 1.0, False),
+    "w_debt_ratio": (0.0, 1.0, False),
+    "w_cashflow": (0.0, 1.0, False),
 }
 
 
@@ -560,12 +658,179 @@ def compute_support_resistance(
 
 # ────────────────── Scoring ──────────────────
 
+# ────────────────── Extended Technical Indicators ──────────────────
+
+
+def compute_atr(
+    highs: List[float], lows: List[float], closes: List[float], period: int = 14
+) -> List[float]:
+    """Average True Range. Returns ATR as % of close. NaN-padded."""
+    n = len(closes)
+    atr = [float("nan")] * n
+    if n < period + 1:
+        return atr
+    trs: List[float] = [0.0]
+    for i in range(1, n):
+        tr = max(
+            highs[i] - lows[i],
+            abs(highs[i] - closes[i - 1]),
+            abs(lows[i] - closes[i - 1]),
+        )
+        trs.append(tr)
+    # Seed ATR with SMA
+    avg_tr = sum(trs[1:period + 1]) / period
+    atr[period] = avg_tr / closes[period] * 100 if closes[period] > 0 else 0.0
+    for i in range(period + 1, n):
+        avg_tr = (avg_tr * (period - 1) + trs[i]) / period
+        atr[i] = avg_tr / closes[i] * 100 if closes[i] > 0 else 0.0
+    return atr
+
+
+def compute_roc(closes: List[float], period: int = 10) -> List[float]:
+    """Rate of Change: (close - close[n]) / close[n] * 100. NaN-padded."""
+    n = len(closes)
+    roc = [float("nan")] * n
+    for i in range(period, n):
+        if closes[i - period] > 0:
+            roc[i] = (closes[i] - closes[i - period]) / closes[i - period] * 100
+    return roc
+
+
+def compute_williams_r(
+    highs: List[float], lows: List[float], closes: List[float], period: int = 14
+) -> List[float]:
+    """Williams %R. Returns values in [-100, 0]. NaN-padded."""
+    n = len(closes)
+    wr = [float("nan")] * n
+    if n < period:
+        return wr
+    for i in range(period - 1, n):
+        hh = max(highs[i - period + 1:i + 1])
+        ll = min(lows[i - period + 1:i + 1])
+        if hh - ll > 0:
+            wr[i] = (hh - closes[i]) / (hh - ll) * -100
+        else:
+            wr[i] = -50.0
+    return wr
+
+
+def compute_cci(closes: List[float], highs: List[float], lows: List[float], period: int = 20) -> List[float]:
+    """Commodity Channel Index. NaN-padded."""
+    n = len(closes)
+    cci = [float("nan")] * n
+    if n < period:
+        return cci
+    for i in range(period - 1, n):
+        tp_list = [(highs[j] + lows[j] + closes[j]) / 3 for j in range(i - period + 1, i + 1)]
+        tp_mean = sum(tp_list) / period
+        md = sum(abs(tp - tp_mean) for tp in tp_list) / period
+        if md > 0:
+            cci[i] = (tp_list[-1] - tp_mean) / (0.015 * md)
+        else:
+            cci[i] = 0.0
+    return cci
+
+
+def compute_mfi(
+    highs: List[float], lows: List[float], closes: List[float],
+    volumes: List[float], period: int = 14,
+) -> List[float]:
+    """Money Flow Index (volume-weighted RSI). Returns [0, 100]. NaN-padded."""
+    n = min(len(closes), len(volumes))
+    mfi = [float("nan")] * len(closes)
+    if n < period + 1:
+        return mfi
+    tp = [(highs[i] + lows[i] + closes[i]) / 3 for i in range(n)]
+    for i in range(period, n):
+        pos_flow = 0.0
+        neg_flow = 0.0
+        for j in range(i - period + 1, i + 1):
+            mf = tp[j] * volumes[j]
+            if tp[j] > tp[j - 1]:
+                pos_flow += mf
+            elif tp[j] < tp[j - 1]:
+                neg_flow += mf
+        if neg_flow > 0:
+            mr = pos_flow / neg_flow
+            mfi[i] = 100 - 100 / (1 + mr)
+        else:
+            mfi[i] = 100.0
+    return mfi
+
+
+def compute_donchian_position(
+    highs: List[float], lows: List[float], closes: List[float], period: int = 20
+) -> List[float]:
+    """Price position within Donchian channel [0=at low, 1=at high]. NaN-padded."""
+    n = len(closes)
+    pos = [float("nan")] * n
+    if n < period:
+        return pos
+    for i in range(period - 1, n):
+        hh = max(highs[i - period + 1:i + 1])
+        ll = min(lows[i - period + 1:i + 1])
+        rng = hh - ll
+        if rng > 0:
+            pos[i] = (closes[i] - ll) / rng
+        else:
+            pos[i] = 0.5
+    return pos
+
+
+def compute_aroon(closes: List[float], period: int = 25) -> List[float]:
+    """Aroon oscillator: (days_since_high - days_since_low) / period. Returns [-1, 1]. NaN-padded."""
+    n = len(closes)
+    aroon = [float("nan")] * n
+    if n < period:
+        return aroon
+    for i in range(period - 1, n):
+        seg = closes[i - period + 1:i + 1]
+        hi_idx = seg.index(max(seg))
+        lo_idx = seg.index(min(seg))
+        aroon_up = hi_idx / (period - 1) if period > 1 else 0.5
+        aroon_down = lo_idx / (period - 1) if period > 1 else 0.5
+        aroon[i] = aroon_up - aroon_down  # [-1, 1]
+    return aroon
+
+
+def compute_price_volume_corr(
+    closes: List[float], volumes: List[float], window: int = 20
+) -> List[float]:
+    """Rolling Pearson correlation between price and volume. Returns [-1, 1]. NaN-padded."""
+    n = min(len(closes), len(volumes))
+    corr = [float("nan")] * len(closes)
+    if n < window:
+        return corr
+    for i in range(window - 1, n):
+        p = closes[i - window + 1:i + 1]
+        v = volumes[i - window + 1:i + 1]
+        mp = sum(p) / window
+        mv = sum(v) / window
+        cov = sum((p[j] - mp) * (v[j] - mv) for j in range(window)) / window
+        sp = math.sqrt(sum((p[j] - mp) ** 2 for j in range(window)) / window)
+        sv = math.sqrt(sum((v[j] - mv) ** 2 for j in range(window)) / window)
+        if sp > 0 and sv > 0:
+            corr[i] = max(-1.0, min(1.0, cov / (sp * sv)))
+        else:
+            corr[i] = 0.0
+    return corr
+
+
 # Import fundamental scoring functions
 from src.evolution.fundamentals import (
     compute_pe_score as _compute_pe_score,
     compute_pb_score as _compute_pb_score,
     compute_roe_score as _compute_roe_score,
     compute_growth_score as _compute_growth_score,
+    compute_revenue_yoy_score as _compute_revenue_yoy_score,
+    compute_revenue_qoq_score as _compute_revenue_qoq_score,
+    compute_profit_yoy_score as _compute_profit_yoy_score,
+    compute_profit_qoq_score as _compute_profit_qoq_score,
+    compute_ps_score as _compute_ps_score,
+    compute_peg_score as _compute_peg_score,
+    compute_gross_margin_score as _compute_gross_margin_score,
+    compute_debt_ratio_score as _compute_debt_ratio_score,
+    compute_cashflow_score as _compute_cashflow_score,
 )
 
 
@@ -574,7 +839,7 @@ def score_stock(
     indicators: Dict[str, Any],
     dna: StrategyDNA,
 ) -> float:
-    """Score a stock at a given index using 12-dimensional DNA weights.
+    """Score a stock at a given index using multi-dimensional DNA weights.
 
     Args:
         idx: Day index to score
@@ -722,24 +987,238 @@ def score_stock(
 
     vprofile_raw = max(0.0, min(1.0, vprofile_raw))
 
-    # 12. PE valuation
+    # ──── Extended Technical Indicators (12-21) ────
+
+    # Helper to safely read a pre-computed indicator at idx
+    def _safe_read(key: str, default: float = 0.5) -> float:
+        arr = indicators.get(key, None)
+        if arr is None or idx >= len(arr):
+            return default
+        val = arr[idx]
+        if isinstance(val, float) and math.isnan(val):
+            return default
+        return val
+
+    # 12. ATR — lower volatility = safer, score inversely
+    atr_val = _safe_read("atr_pct", 0.5)
+    if atr_val != 0.5:
+        # ATR as % of price: <1% very calm, >5% very volatile
+        if atr_val < 1.0:
+            atr_raw = 1.0
+        elif atr_val < 2.0:
+            atr_raw = 0.8
+        elif atr_val < 3.0:
+            atr_raw = 0.6
+        elif atr_val < 5.0:
+            atr_raw = 0.4
+        else:
+            atr_raw = 0.2
+    else:
+        atr_raw = 0.5
+
+    # 13. ADX — stub (not computed, default neutral)
+    adx_raw = 0.5
+
+    # 14. ROC — positive momentum = good
+    roc_val = _safe_read("roc", 0.5)
+    if roc_val != 0.5:
+        if roc_val > 10:
+            roc_raw = 1.0
+        elif roc_val > 5:
+            roc_raw = 0.8
+        elif roc_val > 0:
+            roc_raw = 0.6
+        elif roc_val > -5:
+            roc_raw = 0.3
+        else:
+            roc_raw = 0.1
+    else:
+        roc_raw = 0.5
+
+    # 15. Williams %R — oversold (<-80) = bullish, overbought (>-20) = bearish
+    wr_val = _safe_read("williams_r", 0.5)
+    if wr_val != 0.5:
+        # %R ranges from -100 to 0
+        if wr_val < -80:
+            williams_raw = 1.0  # oversold = bullish
+        elif wr_val < -50:
+            williams_raw = 0.6
+        elif wr_val < -20:
+            williams_raw = 0.3
+        else:
+            williams_raw = 0.1  # overbought = bearish
+    else:
+        williams_raw = 0.5
+
+    # 16. CCI — score based on position
+    cci_val = _safe_read("cci", 0.5)
+    if cci_val != 0.5:
+        if cci_val < -200:
+            cci_raw = 1.0   # deeply oversold
+        elif cci_val < -100:
+            cci_raw = 0.8
+        elif cci_val < 0:
+            cci_raw = 0.5
+        elif cci_val < 100:
+            cci_raw = 0.4
+        elif cci_val < 200:
+            cci_raw = 0.2
+        else:
+            cci_raw = 0.1
+    else:
+        cci_raw = 0.5
+
+    # 17. MFI — similar to RSI but volume-weighted
+    mfi_val = _safe_read("mfi", 0.5)
+    if mfi_val != 0.5:
+        if mfi_val < 20:
+            mfi_raw = 1.0   # oversold
+        elif mfi_val < 40:
+            mfi_raw = 0.7
+        elif mfi_val < 60:
+            mfi_raw = 0.5
+        elif mfi_val < 80:
+            mfi_raw = 0.3
+        else:
+            mfi_raw = 0.1   # overbought
+    else:
+        mfi_raw = 0.5
+
+    # 18. VWAP — stub (needs intraday data), neutral
+    vwap_raw = 0.5
+
+    # 19. Donchian — position within channel
+    donchian_val = _safe_read("donchian_pos", 0.5)
+    if donchian_val != 0.5:
+        # Near bottom of channel = bullish (buy low)
+        donchian_raw = max(0.0, min(1.0, 1.0 - donchian_val))
+    else:
+        donchian_raw = 0.5
+
+    # 20. Ichimoku — stub (complex, skip for now), neutral
+    ichimoku_raw = 0.5
+
+    # 21. Elder Ray — stub, neutral
+    elder_ray_raw = 0.5
+
+    # ──── Rolling Statistics (22-28) ────
+
+    # 22. Beta (slope magnitude as trend strength)
+    beta_raw = max(0.0, min(1.0, abs(slope[idx]) / 3.0))
+
+    # 23. R² (trend linearity, already available)
+    r2_raw = r2[idx]
+
+    # 24. Residual (mean reversion: if price below regression line = buy signal)
+    # Use regression slope to estimate expected vs actual
+    residual_raw = 0.5  # default neutral
+    if lookback >= 20 and closes[idx] > 0:
+        seg = closes[idx - 19:idx + 1]
+        if len(seg) == 20:
+            mean_y = sum(seg) / 20
+            mean_x = 9.5
+            ss_xy = sum((j - mean_x) * (seg[j] - mean_y) for j in range(20))
+            ss_xx = sum((j - mean_x) ** 2 for j in range(20))
+            if ss_xx > 0:
+                s = ss_xy / ss_xx
+                intercept = mean_y - s * mean_x
+                expected = s * 19 + intercept
+                residual = (closes[idx] - expected) / closes[idx] * 100
+                # Below expected = undervalued (bullish)
+                if residual < -3:
+                    residual_raw = 1.0
+                elif residual < -1:
+                    residual_raw = 0.7
+                elif residual < 1:
+                    residual_raw = 0.5
+                elif residual < 3:
+                    residual_raw = 0.3
+                else:
+                    residual_raw = 0.1
+
+    # 25-26. Quantile distance
+    quantile_upper_raw = 0.5
+    quantile_lower_raw = 0.5
+    if lookback >= 20:
+        seg = sorted(closes[idx - 19:idx + 1])
+        if len(seg) == 20:
+            q80 = seg[int(20 * 0.8)]
+            q20 = seg[int(20 * 0.2)]
+            price = closes[idx]
+            if q80 > 0:
+                # Distance above 80th quantile: higher = overbought
+                quantile_upper_raw = max(0.0, min(1.0, 1.0 - (price - q20) / (q80 - q20))) if q80 != q20 else 0.5
+            if q20 > 0:
+                quantile_lower_raw = max(0.0, min(1.0, (price - q20) / (q80 - q20))) if q80 != q20 else 0.5
+
+    # 27. Aroon oscillator
+    aroon_val = _safe_read("aroon", 0.5)
+    if aroon_val != 0.5:
+        # aroon range [-1, 1]: positive = recent high-dominant, negative = recent low-dominant
+        aroon_raw = max(0.0, min(1.0, (aroon_val + 1.0) / 2.0))
+    else:
+        aroon_raw = 0.5
+
+    # 28. Price-volume correlation
+    pv_corr_val = _safe_read("pv_corr", 0.5)
+    if pv_corr_val != 0.5:
+        # Positive correlation + uptrend = healthy; negative = divergence
+        if slope[idx] > 0:
+            pv_corr_raw = max(0.0, min(1.0, (pv_corr_val + 1.0) / 2.0))
+        else:
+            pv_corr_raw = max(0.0, min(1.0, (1.0 - pv_corr_val) / 2.0))
+    else:
+        pv_corr_raw = 0.5
+
+    # ──── Fundamental Scores (29-42) ────
+
     fund = indicators.get("fundamentals", {})
+
+    # Original 4 fundamental factors
     pe_val = fund.get("pe", 0)
     pe_raw = _compute_pe_score(pe_val) if pe_val > 0 else 0.5
 
-    # 13. PB value
     pb_val = fund.get("pb", 0)
     pb_raw = _compute_pb_score(pb_val) if pb_val > 0 else 0.5
 
-    # 14. ROE
     roe_val = fund.get("roe", 0)
     roe_raw = _compute_roe_score(roe_val) if roe_val > 0 else 0.5
 
-    # 15. Revenue growth
     rev_growth = fund.get("revenue_growth", 0)
     growth_raw = _compute_growth_score(rev_growth) if rev_growth != 0 else 0.5
 
-    # Weighted sum with all 15 dimensions
+    # New fundamental growth factors
+    revenue_yoy_val = fund.get("revenue_yoy", 0)
+    revenue_yoy_raw = _compute_revenue_yoy_score(revenue_yoy_val) if revenue_yoy_val != 0 else 0.5
+
+    revenue_qoq_val = fund.get("revenue_qoq", 0)
+    revenue_qoq_raw = _compute_revenue_qoq_score(revenue_qoq_val) if revenue_qoq_val != 0 else 0.5
+
+    profit_yoy_val = fund.get("profit_yoy", 0)
+    profit_yoy_raw = _compute_profit_yoy_score(profit_yoy_val) if profit_yoy_val != 0 else 0.5
+
+    profit_qoq_val = fund.get("profit_qoq", 0)
+    profit_qoq_raw = _compute_profit_qoq_score(profit_qoq_val) if profit_qoq_val != 0 else 0.5
+
+    # Valuation factors
+    ps_val = fund.get("ps", 0)
+    ps_raw = _compute_ps_score(ps_val) if ps_val > 0 else 0.5
+
+    peg_pe = fund.get("pe", 0)
+    peg_growth = fund.get("revenue_growth", 0)
+    peg_raw = _compute_peg_score(peg_pe, peg_growth) if peg_pe > 0 and peg_growth > 0 else 0.5
+
+    # Quality factors
+    gm_val = fund.get("gross_margin", 0)
+    gross_margin_raw = _compute_gross_margin_score(gm_val) if gm_val > 0 else 0.5
+
+    dr_val = fund.get("debt_ratio", 0)
+    debt_ratio_raw = _compute_debt_ratio_score(dr_val) if dr_val > 0 else 0.5
+
+    cf_val = fund.get("ocf_to_profit", 0)
+    cashflow_raw = _compute_cashflow_score(cf_val) if cf_val != 0 else 0.5
+
+    # ──── Weighted sum with all dimensions ────
     raw = (
         dna.w_momentum * momentum_raw
         + dna.w_mean_reversion * mr_raw
@@ -752,10 +1231,42 @@ def score_stock(
         + dna.w_obv * obv_raw
         + dna.w_support * support_raw
         + dna.w_volume_profile * vprofile_raw
+        # Technical extended
+        + dna.w_atr * atr_raw
+        + dna.w_adx * adx_raw
+        + dna.w_roc * roc_raw
+        + dna.w_williams_r * williams_raw
+        + dna.w_cci * cci_raw
+        + dna.w_mfi * mfi_raw
+        + dna.w_vwap * vwap_raw
+        + dna.w_donchian * donchian_raw
+        + dna.w_ichimoku * ichimoku_raw
+        + dna.w_elder_ray * elder_ray_raw
+        # Rolling statistics
+        + dna.w_beta * beta_raw
+        + dna.w_r_squared * r2_raw
+        + dna.w_residual * residual_raw
+        + dna.w_quantile_upper * quantile_upper_raw
+        + dna.w_quantile_lower * quantile_lower_raw
+        + dna.w_aroon * aroon_raw
+        + dna.w_price_volume_corr * pv_corr_raw
+        # Fundamental (original)
         + dna.w_pe * pe_raw
         + dna.w_pb * pb_raw
         + dna.w_roe * roe_raw
         + dna.w_revenue_growth * growth_raw
+        # Fundamental growth
+        + dna.w_revenue_yoy * revenue_yoy_raw
+        + dna.w_revenue_qoq * revenue_qoq_raw
+        + dna.w_profit_yoy * profit_yoy_raw
+        + dna.w_profit_qoq * profit_qoq_raw
+        # Fundamental valuation
+        + dna.w_ps * ps_raw
+        + dna.w_peg * peg_raw
+        # Fundamental quality
+        + dna.w_gross_margin * gross_margin_raw
+        + dna.w_debt_ratio * debt_ratio_raw
+        + dna.w_cashflow * cashflow_raw
     )
 
     total_weight = sum(getattr(dna, k) for k in _WEIGHT_KEYS)
@@ -1135,6 +1646,16 @@ class AutoEvolver:
             obv = compute_obv_trend(closes, vols)
             ma_align = compute_ma_alignment(closes)
 
+            # Extended technical indicators (v3)
+            atr_pct = compute_atr(highs_list, lows_list, closes)
+            roc = compute_roc(closes)
+            williams_r = compute_williams_r(highs_list, lows_list, closes)
+            cci = compute_cci(closes, highs_list, lows_list)
+            mfi = compute_mfi(highs_list, lows_list, closes, vols)
+            donchian_pos = compute_donchian_position(highs_list, lows_list, closes)
+            aroon = compute_aroon(closes)
+            pv_corr = compute_price_volume_corr(closes, vols)
+
             indicators[code] = {
                 "rsi": rsi,
                 "r2": r2,
@@ -1157,6 +1678,15 @@ class AutoEvolver:
                 "kdj_j": kdj_j,
                 "obv_trend": obv,
                 "ma_alignment": ma_align,
+                # v3 extended indicators
+                "atr_pct": atr_pct,
+                "roc": roc,
+                "williams_r": williams_r,
+                "cci": cci,
+                "mfi": mfi,
+                "donchian_pos": donchian_pos,
+                "aroon": aroon,
+                "pv_corr": pv_corr,
             }
 
         # Load fundamental data (cached, won't re-fetch if already cached today)

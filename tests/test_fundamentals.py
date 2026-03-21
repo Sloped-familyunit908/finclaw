@@ -14,6 +14,15 @@ from src.evolution.fundamentals import (
     compute_pb_score,
     compute_pe_score,
     compute_roe_score,
+    compute_revenue_yoy_score,
+    compute_revenue_qoq_score,
+    compute_profit_yoy_score,
+    compute_profit_qoq_score,
+    compute_ps_score,
+    compute_peg_score,
+    compute_gross_margin_score,
+    compute_debt_ratio_score,
+    compute_cashflow_score,
 )
 from src.evolution.auto_evolve import (
     StrategyDNA,
@@ -202,6 +211,26 @@ class TestStrategyDNAFundamentals:
         assert "w_roe" in _WEIGHT_KEYS
         assert "w_revenue_growth" in _WEIGHT_KEYS
 
+    def test_new_fundamental_weights_in_weight_keys(self):
+        """New fundamental weight keys should all be in _WEIGHT_KEYS."""
+        new_keys = [
+            "w_revenue_yoy", "w_revenue_qoq", "w_profit_yoy", "w_profit_qoq",
+            "w_ps", "w_peg", "w_gross_margin", "w_debt_ratio", "w_cashflow",
+        ]
+        for k in new_keys:
+            assert k in _WEIGHT_KEYS, f"{k} not in _WEIGHT_KEYS"
+
+    def test_new_technical_weights_in_weight_keys(self):
+        """New technical weight keys should all be in _WEIGHT_KEYS."""
+        tech_keys = [
+            "w_atr", "w_adx", "w_roc", "w_williams_r", "w_cci", "w_mfi",
+            "w_vwap", "w_donchian", "w_ichimoku", "w_elder_ray",
+            "w_beta", "w_r_squared", "w_residual", "w_quantile_upper",
+            "w_quantile_lower", "w_aroon", "w_price_volume_corr",
+        ]
+        for k in tech_keys:
+            assert k in _WEIGHT_KEYS, f"{k} not in _WEIGHT_KEYS"
+
     def test_fundamental_weights_in_param_ranges(self):
         for key in ["w_pe", "w_pb", "w_roe", "w_revenue_growth"]:
             assert key in _PARAM_RANGES
@@ -210,9 +239,11 @@ class TestStrategyDNAFundamentals:
             assert hi == 1.0
             assert is_int is False
 
-    def test_weight_keys_count_is_15(self):
-        """11 technical + 4 fundamental = 15 weight keys."""
-        assert len(_WEIGHT_KEYS) == 15
+    def test_weight_keys_count_is_41(self):
+        """11 original technical + 10 tech extended + 7 rolling stats + 4 fundamental
+        + 4 fundamental growth + 2 fundamental valuation + 3 fundamental quality
+        = 41 weight keys."""
+        assert len(_WEIGHT_KEYS) == 41
 
     def test_to_dict_includes_fundamentals(self):
         dna = StrategyDNA(w_pe=0.1, w_roe=0.2)
@@ -225,6 +256,36 @@ class TestStrategyDNAFundamentals:
         restored = StrategyDNA.from_dict(d)
         assert restored.w_pe == 0.15
         assert restored.w_pb == 0.05
+
+    def test_has_new_technical_fields(self):
+        """StrategyDNA should have all new technical weight fields."""
+        dna = StrategyDNA()
+        for k in ["w_atr", "w_adx", "w_roc", "w_williams_r", "w_cci", "w_mfi",
+                   "w_vwap", "w_donchian", "w_ichimoku", "w_elder_ray"]:
+            assert hasattr(dna, k), f"Missing field {k}"
+            assert getattr(dna, k) == 0.0
+
+    def test_has_rolling_stats_fields(self):
+        """StrategyDNA should have all rolling statistics weight fields."""
+        dna = StrategyDNA()
+        for k in ["w_beta", "w_r_squared", "w_residual", "w_quantile_upper",
+                   "w_quantile_lower", "w_aroon", "w_price_volume_corr"]:
+            assert hasattr(dna, k), f"Missing field {k}"
+            assert getattr(dna, k) == 0.0
+
+    def test_has_new_fundamental_fields(self):
+        """StrategyDNA should have all new fundamental weight fields."""
+        dna = StrategyDNA()
+        for k in ["w_revenue_yoy", "w_revenue_qoq", "w_profit_yoy", "w_profit_qoq",
+                   "w_ps", "w_peg", "w_gross_margin", "w_debt_ratio", "w_cashflow"]:
+            assert hasattr(dna, k), f"Missing field {k}"
+            assert getattr(dna, k) == 0.0
+
+    def test_total_weight_dimensions(self):
+        """Total weight dimensions should be 41."""
+        dna = StrategyDNA()
+        w_count = len([f for f in dna.to_dict() if f.startswith("w_")])
+        assert w_count == 41
 
 
 # ────────────────── Score Stock with Fundamentals ──────────────────
@@ -300,7 +361,7 @@ class TestScoreStockFundamentals:
 
 class TestWeightNormalization:
     def test_mutation_normalizes_15_weights(self):
-        """After mutation, all 15 weights should sum ≈ 1.0."""
+        """After mutation, all 42 weights should sum ≈ 1.0."""
         evolver = AutoEvolver(data_dir=".", mutation_rate=1.0, seed=42)
         dna = StrategyDNA()
         for _ in range(50):
@@ -309,7 +370,7 @@ class TestWeightNormalization:
             assert abs(w_sum - 1.0) < 0.02, f"Weights sum to {w_sum}, expected ≈1.0"
 
     def test_crossover_normalizes_15_weights(self):
-        """After crossover, all 15 weights should sum ≈ 1.0."""
+        """After crossover, all 42 weights should sum ≈ 1.0."""
         evolver = AutoEvolver(data_dir=".", seed=42)
         dna1 = StrategyDNA(w_pe=0.2, w_roe=0.3)
         dna2 = StrategyDNA(w_pb=0.4, w_revenue_growth=0.1)
@@ -328,3 +389,140 @@ class TestWeightNormalization:
         dna = StrategyDNA()
         for k in _WEIGHT_KEYS:
             assert hasattr(dna, k), f"{k} not found in StrategyDNA"
+
+
+# ────────────────── New Growth Factor Scores ──────────────────
+
+
+class TestRevenueYOYScore:
+    def test_very_high_growth(self):
+        assert compute_revenue_yoy_score(120) == 1.0
+
+    def test_high_growth(self):
+        assert compute_revenue_yoy_score(60) == 0.9
+
+    def test_moderate_growth(self):
+        assert compute_revenue_yoy_score(35) == 0.8
+
+    def test_low_growth(self):
+        assert compute_revenue_yoy_score(20) == 0.65
+
+    def test_slight_growth(self):
+        assert compute_revenue_yoy_score(3) == 0.35
+
+    def test_slight_decline(self):
+        assert compute_revenue_yoy_score(-5) == 0.2
+
+    def test_severe_decline(self):
+        assert compute_revenue_yoy_score(-20) == 0.1
+
+    def test_returns_between_0_and_1(self):
+        for v in [-50, -10, 0, 5, 15, 30, 50, 100, 200]:
+            score = compute_revenue_yoy_score(float(v))
+            assert 0.0 <= score <= 1.0
+
+
+class TestRevenueQOQScore:
+    def test_high_growth(self):
+        assert compute_revenue_qoq_score(40) == 1.0
+
+    def test_moderate_growth(self):
+        assert compute_revenue_qoq_score(20) == 0.8
+
+    def test_low_growth(self):
+        assert compute_revenue_qoq_score(3) == 0.4
+
+    def test_decline(self):
+        assert compute_revenue_qoq_score(-10) == 0.1
+
+
+class TestProfitYOYScore:
+    def test_very_high(self):
+        assert compute_profit_yoy_score(150) == 1.0
+
+    def test_moderate(self):
+        assert compute_profit_yoy_score(30) == 0.7
+
+    def test_decline(self):
+        assert compute_profit_yoy_score(-30) == 0.1
+
+
+class TestProfitQOQScore:
+    def test_high(self):
+        assert compute_profit_qoq_score(60) == 1.0
+
+    def test_moderate(self):
+        assert compute_profit_qoq_score(10) == 0.6
+
+    def test_decline(self):
+        assert compute_profit_qoq_score(-10) == 0.2
+
+
+# ────────────────── New Valuation Factor Scores ──────────────────
+
+
+class TestPSScore:
+    def test_negative(self):
+        assert compute_ps_score(-1) == 0.0
+
+    def test_very_low(self):
+        assert compute_ps_score(0.5) == 1.0
+
+    def test_moderate(self):
+        assert compute_ps_score(4) == 0.5
+
+    def test_high(self):
+        assert compute_ps_score(15) == 0.1
+
+
+class TestPEGScore:
+    def test_negative_growth(self):
+        assert compute_peg_score(10, -5) == 0.3
+
+    def test_low_peg(self):
+        assert compute_peg_score(10, 30) == 1.0  # PEG = 0.33
+
+    def test_fair_peg(self):
+        assert compute_peg_score(15, 20) == 0.8  # PEG = 0.75
+
+    def test_high_peg(self):
+        assert compute_peg_score(50, 10) == 0.2  # PEG = 5.0
+
+
+# ────────────────── New Quality Factor Scores ──────────────────
+
+
+class TestGrossMarginScore:
+    def test_high_margin(self):
+        assert compute_gross_margin_score(70) == 1.0
+
+    def test_moderate_margin(self):
+        assert compute_gross_margin_score(30) == 0.6
+
+    def test_low_margin(self):
+        assert compute_gross_margin_score(10) == 0.2
+
+
+class TestDebtRatioScore:
+    def test_low_debt(self):
+        assert compute_debt_ratio_score(15) == 1.0
+
+    def test_moderate_debt(self):
+        assert compute_debt_ratio_score(50) == 0.6
+
+    def test_high_debt(self):
+        assert compute_debt_ratio_score(80) == 0.2
+
+
+class TestCashflowScore:
+    def test_excellent(self):
+        assert compute_cashflow_score(2.0) == 1.0
+
+    def test_good(self):
+        assert compute_cashflow_score(1.2) == 0.8
+
+    def test_weak(self):
+        assert compute_cashflow_score(0.3) == 0.3
+
+    def test_negative(self):
+        assert compute_cashflow_score(-0.5) == 0.1
