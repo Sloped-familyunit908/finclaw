@@ -30,12 +30,12 @@ export const CRYPTO_TICKERS: MarketData[] = [
 
 /* ── A-share fallback (stale — real prices fetched from Sina) ── */
 export const CN_TICKERS: MarketData[] = [
-  { asset: "600438.SH", nameCn: "通威股份", price: 0, change24h: 0, volume24h: null, marketCap: null, market: "A股" },
-  { asset: "000988.SZ", nameCn: "华工科技", price: 0, change24h: 0, volume24h: null, marketCap: null, market: "A股" },
-  { asset: "002415.SZ", nameCn: "海康威视", price: 0, change24h: 0, volume24h: null, marketCap: null, market: "A股" },
-  { asset: "300750.SZ", nameCn: "宁德时代", price: 0, change24h: 0, volume24h: null, marketCap: null, market: "A股" },
   { asset: "600519.SH", nameCn: "贵州茅台", price: 0, change24h: 0, volume24h: null, marketCap: null, market: "A股" },
-  { asset: "000625.SZ", nameCn: "长安汽车", price: 0, change24h: 0, volume24h: null, marketCap: null, market: "A股" },
+  { asset: "300750.SZ", nameCn: "宁德时代", price: 0, change24h: 0, volume24h: null, marketCap: null, market: "A股" },
+  { asset: "002594.SZ", nameCn: "比亚迪", price: 0, change24h: 0, volume24h: null, marketCap: null, market: "A股" },
+  { asset: "002415.SZ", nameCn: "海康威视", price: 0, change24h: 0, volume24h: null, marketCap: null, market: "A股" },
+  { asset: "688981.SH", nameCn: "中芯国际", price: 0, change24h: 0, volume24h: null, marketCap: null, market: "A股" },
+  { asset: "000858.SZ", nameCn: "五粮液", price: 0, change24h: 0, volume24h: null, marketCap: null, market: "A股" },
 ];
 
 // Legacy aliases — the API route still imports these names
