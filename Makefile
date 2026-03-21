@@ -10,4 +10,4 @@ lint:
 	ruff check .
 
 run:
-	python main.py
+	python scripts/main.py

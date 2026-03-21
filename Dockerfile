@@ -23,8 +23,8 @@ COPY --from=builder /install /usr/local
 COPY src/ ./src/
 COPY strategies/ ./strategies/
 COPY agents/ ./agents/
-COPY finclaw.py main.py mcp_server.py ./
-COPY finclaw.yml ./
+COPY scripts/finclaw.py scripts/main.py scripts/mcp_server.py ./scripts/
+COPY examples/finclaw.yml ./
 
 # Create data directory
 RUN mkdir -p /app/data && chown -R finclaw:finclaw /app

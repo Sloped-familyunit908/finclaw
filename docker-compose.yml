@@ -11,7 +11,7 @@ services:
       - FINCLAW_HOST=0.0.0.0
       - FINCLAW_LOG_LEVEL=info
     restart: unless-stopped
-    command: ["python", "finclaw.py", "info"]
+    command: ["python", "scripts/finclaw.py", "info"]
     deploy:
       resources:
         limits:
