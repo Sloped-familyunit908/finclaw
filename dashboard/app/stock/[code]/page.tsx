@@ -21,6 +21,7 @@ import {
   calcKDJ,
 } from "@/app/lib/indicators";
 import { fmt } from "@/app/lib/utils";
+import NewsPanel from "@/app/components/NewsPanel";
 
 /* -- Helpers -- */
 function isCN(code: string) {
@@ -648,6 +649,9 @@ export default function StockDetailPage() {
                 </p>
               </section>
             )}
+
+            {/* -- News Panel -- */}
+            <NewsPanel ticker={code} />
           </>
         )}
       </main>

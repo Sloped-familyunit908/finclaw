@@ -16,6 +16,7 @@ import BacktestTable from "@/app/components/BacktestTable";
 import StrategyGallery from "@/app/components/StrategyGallery";
 import CNScanner from "@/app/components/CNScanner";
 import MarketIndexBanner from "@/app/components/MarketIndexBanner";
+import NewsPanel from "@/app/components/NewsPanel";
 
 /* -- View mode -- */
 type ViewMode = "table" | "cards";
@@ -411,6 +412,9 @@ export default function Home() {
             {renderSection("China A-Shares", filteredCn, 6)}
 
             <BacktestTable />
+
+            {/* Market News Widget */}
+            <NewsPanel ticker="market" maxItems={5} compact />
           </div>
         )}
         {tab === "backtest" && <BacktestTable />}
