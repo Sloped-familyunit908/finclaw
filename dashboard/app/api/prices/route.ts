@@ -1,5 +1,5 @@
 /* ════════════════════════════════════════════════════════════════
-   API ROUTE — /api/prices  — FinClaw 🦀📈
+   API ROUTE — /api/prices  — FinClaw
    Fetches real-time prices for CN / US / Crypto markets
    Falls back to mock data on any error
    ════════════════════════════════════════════════════════════════ */

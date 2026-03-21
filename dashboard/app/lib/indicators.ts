@@ -1,5 +1,5 @@
 /* ════════════════════════════════════════════════════════════════
-   TECHNICAL INDICATORS — FinClaw 🦀📈
+   TECHNICAL INDICATORS — FinClaw
    Pure TypeScript, zero dependencies
    ════════════════════════════════════════════════════════════════ */
 

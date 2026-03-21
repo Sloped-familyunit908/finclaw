@@ -1,5 +1,5 @@
 /* ════════════════════════════════════════════════════════════════
-   API ROUTE — /api/history  — FinClaw 🦀📈
+   API ROUTE — /api/history  — FinClaw
    Returns OHLCV price history for a given stock/crypto
    ════════════════════════════════════════════════════════════════ */
 
