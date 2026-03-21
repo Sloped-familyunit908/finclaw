@@ -54,3 +54,9 @@ logs/
 
 test_output.txt
 dashboard/test-results/
+
+# Fundamental data cache (auto-generated)
+data/fundamentals/
+
+# Evolution results (machine-specific, avoid pull conflicts)
+evolution_results/
