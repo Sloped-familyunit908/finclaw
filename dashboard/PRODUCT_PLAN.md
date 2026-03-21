@@ -199,3 +199,21 @@ finclaw.config.ts             — NEW: User configuration
 4. **Mobile-first won't work** — This is a desktop power tool. Mobile can be a simplified view later.
 
 5. **Open source advantage** — Users can add their own data sources, AI providers, and custom widgets. finclaw.config.ts is the extension point.
+
+---
+
+## E2E Testing
+
+Comprehensive Playwright E2E tests cover all pages and interactive elements:
+
+- **Run tests:** `npm run e2e`
+- **Run with UI:** `npm run e2e:ui`
+- **Test file:** `e2e/dashboard.spec.ts`
+
+**Coverage:**
+- Dashboard homepage (load, market banner, watchlist, top movers, search, chat, nav)
+- Stock detail pages (6 tickers including US/crypto/A-shares, indicators, time range buttons, navigation)
+- Screener page (load, results, filters, reset, CSV export, row navigation)
+- 404 / error handling (unknown pages, invalid stock codes)
+
+The dev server starts automatically via Playwright's `webServer` config.
