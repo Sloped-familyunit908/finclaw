@@ -30,6 +30,31 @@ jobs:
         run: |
           ruff check src/ --select E,F,W --ignore E501,E402,F401,F841 --exit-zero
 
+      - name: Secret & PII scan
+        run: |
+          python -c "
+          import re, sys, pathlib
+          patterns_file = pathlib.Path('.secret-patterns')
+          if not patterns_file.exists():
+              sys.exit(0)
+          patterns = [l.strip() for l in patterns_file.read_text().splitlines() if l.strip() and not l.startswith('#')]
+          violations = []
+          for f in pathlib.Path('.').rglob('*'):
+              if f.is_file() and '.git' not in f.parts and 'node_modules' not in f.parts and '__pycache__' not in f.parts:
+                  if f.suffix in ('.py','.ts','.tsx','.js','.md','.json','.yaml','.yml','.toml','.txt','.html','.css'):
+                      try:
+                          for i, line in enumerate(f.read_text(errors='ignore').splitlines(), 1):
+                              for pat in patterns:
+                                  if f.name not in ('.secret-patterns','.pre-commit-config.yaml','ci.yml') and re.search(pat, line, re.IGNORECASE):
+                                      violations.append(f'{f}:{i}: [{pat}]')
+                      except: pass
+          if violations:
+              print('SECRET/PII SCAN FAILED:')
+              for v in violations[:30]: print(f'  {v}')
+              sys.exit(1)
+          print('Secret scan passed: 0 violations')
+          "
+
       - name: Run tests
         run: |
           pytest tests/ -x -q --tb=short -k "not integration and not websocket and not deep_qa" 2>&1 | head -100

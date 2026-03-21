@@ -23,3 +23,41 @@ repos:
         pass_filenames: false
         always_run: true
         stages: [pre-commit]
+
+      - id: secret-scan
+        name: secret & PII scan
+        entry: python -c "
+import re, sys, pathlib
+
+patterns_file = pathlib.Path('.secret-patterns')
+if not patterns_file.exists():
+    sys.exit(0)
+
+patterns = [
+    line.strip() for line in patterns_file.read_text().splitlines()
+    if line.strip() and not line.startswith('#')
+]
+
+violations = []
+for f in sys.argv[1:]:
+    try:
+        content = pathlib.Path(f).read_text(errors='ignore')
+        for i, line in enumerate(content.splitlines(), 1):
+            for pat in patterns:
+                if re.search(pat, line, re.IGNORECASE):
+                    violations.append(f'{f}:{i}: matches [{pat}]')
+    except Exception:
+        pass
+
+if violations:
+    print('SECRET/PII SCAN FAILED:')
+    for v in violations[:20]:
+        print(f'  {v}')
+    if len(violations) > 20:
+        print(f'  ... and {len(violations) - 20} more')
+    sys.exit(1)
+"
+        language: system
+        types: [text]
+        exclude: '(\.git/|node_modules/|__pycache__|\.secret-patterns$|\.pre-commit-config\.yaml$)'
+        stages: [pre-commit]
