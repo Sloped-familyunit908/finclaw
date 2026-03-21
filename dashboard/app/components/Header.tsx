@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import type { TabId } from "@/app/types";
+import { STRATEGIES } from "@/app/lib/fallbackData";
 
 function NavTab({ id, label, active, onClick }: {
   id: TabId; label: string; active: boolean; onClick: (id: TabId) => void;
@@ -23,9 +24,13 @@ function NavTab({ id, label, active, onClick }: {
 export default function Header({
   tab,
   setTab,
+  searchQuery,
+  onSearchChange,
 }: {
   tab: TabId;
   setTab: (id: TabId) => void;
+  searchQuery: string;
+  onSearchChange: (query: string) => void;
 }) {
   const [clock, setClock] = useState("");
 
@@ -61,20 +66,19 @@ export default function Header({
           </div>
         </div>
         <div className="flex items-center gap-4">
-          {/* Search input — UI placeholder */}
+          {/* Search input — filters watchlist on overview */}
           <div className="hidden md:flex items-center">
             <input
               type="text"
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
               placeholder="Search ticker..."
               className="w-48 px-3 py-1.5 text-xs bg-gray-900/60 border border-gray-700/50 rounded text-gray-300 placeholder-gray-600 focus:outline-none focus:border-slate-500/60"
             />
           </div>
           <div className="hidden md:flex items-center gap-1.5 text-[10px]">
             <span className="px-2 py-0.5 bg-gray-800/40 text-gray-500 rounded border border-gray-700/30">
-              5 Agents
-            </span>
-            <span className="px-2 py-0.5 bg-gray-800/40 text-gray-500 rounded border border-gray-700/30">
-              9 Strategies
+              {STRATEGIES.length} Strategies
             </span>
           </div>
           <span className="font-mono text-xs text-gray-500">{clock}</span>

@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { fmt } from "@/app/lib/utils";
-import { BACKTEST_DATA, EQUITY_CURVE_DATA } from "@/app/lib/mockData";
+import { BACKTEST_DATA, EQUITY_CURVE_DATA } from "@/app/lib/fallbackData";
 import {
   LineChart,
   Line,
@@ -102,7 +102,12 @@ export default function BacktestTable() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h2 className="text-lg font-semibold text-gray-200">Backtest Performance</h2>
+        <div>
+          <h2 className="text-lg font-semibold text-gray-200">Backtest Performance</h2>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Historical backtest results from BTC/ETH/SOL 200-day analysis
+          </p>
+        </div>
         <span className="text-xs text-gray-500">
           200 days, bear market, BTC/ETH/SOL
         </span>

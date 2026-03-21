@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import type { TabId, MarketData } from "@/app/types";
 import {
-  MARKET_DATA,
-  US_MARKET_DATA,
-  CN_MARKET_DATA,
+  CRYPTO_TICKERS,
+  US_TICKERS,
+  CN_TICKERS,
   DEBATE,
-} from "@/app/lib/mockData";
+} from "@/app/lib/fallbackData";
 
 import Header from "@/app/components/Header";
 import PriceCard from "@/app/components/PriceCard";
@@ -38,12 +38,24 @@ function PriceCardSkeleton() {
   );
 }
 
+/** Filter market data by search query (matches ticker or Chinese name) */
+function filterBySearch(data: MarketData[], query: string): MarketData[] {
+  if (!query.trim()) return data;
+  const q = query.trim().toLowerCase();
+  return data.filter(
+    (m) =>
+      m.asset.toLowerCase().includes(q) ||
+      (m.nameCn && m.nameCn.includes(q))
+  );
+}
+
 export default function Home() {
   const [tab, setTab] = useState<TabId>("overview");
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const [usData, setUsData] = useState<MarketData[]>(US_MARKET_DATA);
-  const [cnData, setCnData] = useState<MarketData[]>(CN_MARKET_DATA);
-  const [cryptoData, setCryptoData] = useState<MarketData[]>(MARKET_DATA);
+  const [usData, setUsData] = useState<MarketData[]>(US_TICKERS);
+  const [cnData, setCnData] = useState<MarketData[]>(CN_TICKERS);
+  const [cryptoData, setCryptoData] = useState<MarketData[]>(CRYPTO_TICKERS);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -55,13 +67,13 @@ export default function Home() {
       const fetchers = [
         fetch("/api/prices?market=us")
           .then((r) => r.json())
-          .catch(() => US_MARKET_DATA),
+          .catch(() => US_TICKERS),
         fetch("/api/prices?market=cn")
           .then((r) => r.json())
-          .catch(() => CN_MARKET_DATA),
+          .catch(() => CN_TICKERS),
         fetch("/api/prices?market=crypto")
           .then((r) => r.json())
-          .catch(() => MARKET_DATA),
+          .catch(() => CRYPTO_TICKERS),
       ];
 
       const [us, cn, crypto] = await Promise.all(fetchers);
@@ -85,11 +97,22 @@ export default function Home() {
     };
   }, []);
 
-  const renderCards = (data: MarketData[], count?: number) => {
-    const items = count ? data.slice(0, count) : data;
+  // Apply search filter
+  const filteredUs = useMemo(() => filterBySearch(usData, searchQuery), [usData, searchQuery]);
+  const filteredCn = useMemo(() => filterBySearch(cnData, searchQuery), [cnData, searchQuery]);
+  const filteredCrypto = useMemo(() => filterBySearch(cryptoData, searchQuery), [cryptoData, searchQuery]);
+
+  const renderCards = (data: MarketData[]) => {
+    if (data.length === 0) {
+      return (
+        <p className="text-xs text-gray-600 py-4">
+          No tickers match &quot;{searchQuery}&quot;
+        </p>
+      );
+    }
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {items.map((m) => (
+        {data.map((m) => (
           <PriceCard key={m.asset} data={m} />
         ))}
       </div>
@@ -106,7 +129,12 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-gray-100">
-      <Header tab={tab} setTab={setTab} />
+      <Header
+        tab={tab}
+        setTab={setTab}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+      />
 
       {/* Content */}
       <main className="max-w-7xl mx-auto px-4 py-6">
@@ -117,12 +145,7 @@ export default function Home() {
               <h2 className="text-lg font-semibold mb-4 text-gray-300">
                 US Equities
               </h2>
-              {loading ? renderSkeletons(3) : renderCards(usData.slice(0, 3))}
-              <div className="mt-4">
-                {loading
-                  ? renderSkeletons(usData.length - 3)
-                  : renderCards(usData.slice(3))}
-              </div>
+              {loading ? renderSkeletons(6) : renderCards(filteredUs)}
             </section>
 
             {/* Cryptocurrency */}
@@ -130,7 +153,7 @@ export default function Home() {
               <h2 className="text-lg font-semibold mb-4 text-gray-300">
                 Cryptocurrency
               </h2>
-              {loading ? renderSkeletons(3) : renderCards(cryptoData)}
+              {loading ? renderSkeletons(3) : renderCards(filteredCrypto)}
             </section>
 
             {/* China A-Shares */}
@@ -138,7 +161,7 @@ export default function Home() {
               <h2 className="text-lg font-semibold mb-4 text-gray-300">
                 China A-Shares
               </h2>
-              {loading ? renderSkeletons(6) : renderCards(cnData)}
+              {loading ? renderSkeletons(6) : renderCards(filteredCn)}
             </section>
 
             <BacktestTable />

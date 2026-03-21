@@ -1,10 +1,15 @@
-import { STRATEGIES } from "@/app/lib/mockData";
+import { STRATEGIES } from "@/app/lib/fallbackData";
 
 export default function StrategyGallery() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h2 className="text-lg font-semibold text-gray-200">Strategy Library</h2>
+        <div>
+          <h2 className="text-lg font-semibold text-gray-200">Strategy Library</h2>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Available strategies in the FinClaw engine — not live results
+          </p>
+        </div>
         <span className="text-xs text-gray-500">
           {STRATEGIES.length} strategies available
         </span>

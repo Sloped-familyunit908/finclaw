@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import type { MarketData } from "@/app/types";
-import { CN_MARKET_DATA, US_MARKET_DATA, MARKET_DATA } from "@/app/lib/mockData";
+import { CN_MARKET_DATA, US_MARKET_DATA, MARKET_DATA } from "@/app/lib/fallbackData";
 
 /* ── Simple in-memory cache (60 s) ── */
 const cache: Record<string, { data: MarketData[]; ts: number }> = {};
@@ -95,7 +95,7 @@ async function fetchCNPrices(): Promise<MarketData[]> {
         price,
         change24h,
         volume24h: isNaN(volume) ? mock.volume24h : volume,
-        marketCap: mock.marketCap,
+        marketCap: null, // Sina API doesn't provide market cap; omit rather than fake
         market: "A股",
       });
     }
@@ -140,7 +140,7 @@ async function fetchUSPrices(): Promise<MarketData[]> {
         price,
         change24h: change,
         volume24h: meta.regularMarketVolume ?? mock.volume24h,
-        marketCap: mock.marketCap,
+        marketCap: meta.marketCap ?? null, // Use Yahoo's market cap if available
         market: "US",
       });
     } catch {

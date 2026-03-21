@@ -1,5 +1,5 @@
 import { fmt } from "@/app/lib/utils";
-import { RISK } from "@/app/lib/mockData";
+import { RISK } from "@/app/lib/fallbackData";
 
 export default function RiskPanel() {
   return (

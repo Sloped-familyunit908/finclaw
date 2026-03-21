@@ -19,17 +19,6 @@ export interface MarketData {
   nameCn?: string;
 }
 
-export interface AgentReputation {
-  name: string;
-  avatar: string;
-  elo: number;
-  accuracy: number;
-  totalPredictions: number;
-  correctPredictions: number;
-  debateWeight: number;
-  specialty: string;
-}
-
 export interface DebateStatement {
   agent: string;
   role: string;
@@ -73,18 +62,6 @@ export interface RiskConstitution {
   minDebateConfidence: number;
   minAgentsAgreeing: number;
   maxLeverage: number;
-}
-
-export interface CNScannerResult {
-  code: string;
-  name: string;
-  price: number;
-  changePct: number;
-  volume: string;
-  pe: number | null;
-  sector: string;
-  signal: string;
-  score: number;
 }
 
 export type TabId = "overview" | "arena" | "backtest" | "strategies" | "agents" | "risk" | "cn-scanner";

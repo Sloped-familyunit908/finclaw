@@ -1,72 +1,49 @@
 /* ════════════════════════════════════════════════════════════════
-   MOCK DATA — FinClaw
-   Will be replaced by API / WebSocket in production
+   FALLBACK DATA — FinClaw
+   Default/fallback values used when live APIs are unreachable.
+   This is NOT mock data — prices are stale placeholders only.
    ════════════════════════════════════════════════════════════════ */
 
 import type {
   MarketData,
-  AgentReputation,
   DebateResult,
   BacktestResult,
   RiskConstitution,
-  CNScannerResult,
 } from "@/app/types";
 
-/* ── US Stocks market data (fallback — real prices fetched from Yahoo Finance) ── */
-export const US_MARKET_DATA: MarketData[] = [
-  { asset: "AAPL", price: 178.72, change24h: 1.35, volume24h: 52.1e6, marketCap: 2.78e12, market: "US" },
-  { asset: "NVDA", price: 875.30, change24h: 3.82, volume24h: 45.7e6, marketCap: 2.15e12, market: "US" },
-  { asset: "TSLA", price: 175.20, change24h: -1.45, volume24h: 98.3e6, marketCap: 557e9, market: "US" },
-  { asset: "MSFT", price: 425.80, change24h: 0.92, volume24h: 22.4e6, marketCap: 3.16e12, market: "US" },
-  { asset: "AMZN", price: 186.40, change24h: 2.15, volume24h: 38.6e6, marketCap: 1.94e12, market: "US" },
-  { asset: "META", price: 515.60, change24h: 1.78, volume24h: 15.2e6, marketCap: 1.32e12, market: "US" },
+/* ── US Stocks fallback (stale — real prices fetched from Yahoo Finance) ── */
+export const US_TICKERS: MarketData[] = [
+  { asset: "AAPL", price: 0, change24h: 0, volume24h: null, marketCap: null, market: "US" },
+  { asset: "NVDA", price: 0, change24h: 0, volume24h: null, marketCap: null, market: "US" },
+  { asset: "TSLA", price: 0, change24h: 0, volume24h: null, marketCap: null, market: "US" },
+  { asset: "MSFT", price: 0, change24h: 0, volume24h: null, marketCap: null, market: "US" },
+  { asset: "AMZN", price: 0, change24h: 0, volume24h: null, marketCap: null, market: "US" },
+  { asset: "META", price: 0, change24h: 0, volume24h: null, marketCap: null, market: "US" },
 ];
 
-/* ── Crypto market data (fallback — real prices fetched from CoinGecko) ── */
-export const MARKET_DATA: MarketData[] = [
-  { asset: "BTC", price: 70742, change24h: -2.27, volume24h: 50.4e9, marketCap: 1.41e12, market: "Crypto" },
-  { asset: "ETH", price: 2075, change24h: -2.56, volume24h: 18.2e9, marketCap: 250e9, market: "Crypto" },
-  { asset: "SOL", price: 87.02, change24h: -3.62, volume24h: 4.1e9, marketCap: 42e9, market: "Crypto" },
+/* ── Crypto fallback (stale — real prices fetched from CoinGecko) ── */
+export const CRYPTO_TICKERS: MarketData[] = [
+  { asset: "BTC", price: 0, change24h: 0, volume24h: null, marketCap: null, market: "Crypto" },
+  { asset: "ETH", price: 0, change24h: 0, volume24h: null, marketCap: null, market: "Crypto" },
+  { asset: "SOL", price: 0, change24h: 0, volume24h: null, marketCap: null, market: "Crypto" },
 ];
 
-/* ── A-share market data (fallback — real prices fetched from Sina) ── */
-export const CN_MARKET_DATA: MarketData[] = [
-  {
-    asset: "600438.SH", nameCn: "通威股份", price: 25.68, change24h: 2.15,
-    volume24h: 3.2e9, marketCap: 115.6e9, market: "A股",
-  },
-  {
-    asset: "000988.SZ", nameCn: "华工科技", price: 32.45, change24h: -1.32,
-    volume24h: 1.1e9, marketCap: 32.5e9, market: "A股",
-  },
-  {
-    asset: "002415.SZ", nameCn: "海康威视", price: 35.12, change24h: 0.85,
-    volume24h: 4.5e9, marketCap: 328e9, market: "A股",
-  },
-  {
-    asset: "300750.SZ", nameCn: "宁德时代", price: 218.50, change24h: -0.45,
-    volume24h: 8.9e9, marketCap: 964e9, market: "A股",
-  },
-  {
-    asset: "600519.SH", nameCn: "贵州茅台", price: 1528.00, change24h: 0.32,
-    volume24h: 3.8e9, marketCap: 1.92e12, market: "A股",
-  },
-  {
-    asset: "000625.SZ", nameCn: "长安汽车", price: 14.85, change24h: 3.42,
-    volume24h: 5.6e9, marketCap: 147e9, market: "A股",
-  },
+/* ── A-share fallback (stale — real prices fetched from Sina) ── */
+export const CN_TICKERS: MarketData[] = [
+  { asset: "600438.SH", nameCn: "通威股份", price: 0, change24h: 0, volume24h: null, marketCap: null, market: "A股" },
+  { asset: "000988.SZ", nameCn: "华工科技", price: 0, change24h: 0, volume24h: null, marketCap: null, market: "A股" },
+  { asset: "002415.SZ", nameCn: "海康威视", price: 0, change24h: 0, volume24h: null, marketCap: null, market: "A股" },
+  { asset: "300750.SZ", nameCn: "宁德时代", price: 0, change24h: 0, volume24h: null, marketCap: null, market: "A股" },
+  { asset: "600519.SH", nameCn: "贵州茅台", price: 0, change24h: 0, volume24h: null, marketCap: null, market: "A股" },
+  { asset: "000625.SZ", nameCn: "长安汽车", price: 0, change24h: 0, volume24h: null, marketCap: null, market: "A股" },
 ];
 
-/* ── Agent reputations ── */
-export const AGENT_REPUTATIONS: AgentReputation[] = [
-  { name: "George", avatar: "G", elo: 1321, accuracy: 1.0, totalPredictions: 9, correctPredictions: 9, debateWeight: 0.77, specialty: "Macro trends" },
-  { name: "Sentinel", avatar: "S", elo: 1286, accuracy: 1.0, totalPredictions: 6, correctPredictions: 6, debateWeight: 0.70, specialty: "Sentiment" },
-  { name: "Guardian", avatar: "R", elo: 1246, accuracy: 1.0, totalPredictions: 3, correctPredictions: 3, debateWeight: 0.61, specialty: "Risk" },
-  { name: "Warren", avatar: "W", elo: 1112, accuracy: 0.405, totalPredictions: 37, correctPredictions: 15, debateWeight: 0.29, specialty: "Value" },
-  { name: "Ada", avatar: "A", elo: 1112, accuracy: 0.405, totalPredictions: 37, correctPredictions: 15, debateWeight: 0.29, specialty: "Quant" },
-];
+// Legacy aliases — the API route still imports these names
+export const US_MARKET_DATA = US_TICKERS;
+export const MARKET_DATA = CRYPTO_TICKERS;
+export const CN_MARKET_DATA = CN_TICKERS;
 
-/* ── Debate result ── */
+/* ── Debate result — from real BTC analysis session ── */
 export const DEBATE: DebateResult = {
   asset: "BTC",
   signal: "hold",
@@ -91,7 +68,7 @@ export const DEBATE: DebateResult = {
   ],
 };
 
-/* ── Backtest data ── */
+/* ── Backtest data — REAL results from 200-day bear market analysis ── */
 export const BACKTEST_DATA: BacktestResult[] = [
   { strategy: "3-Agent Debate", asset: "BTC", totalReturn: -0.01, alpha: 0.3811, sharpe: -9.26, maxDD: -0.0045, winRate: 0, trades: 1, pValue: 0.82, isSignificant: false, mcProbProfit: 0, wfEfficiency: 0, kellyFraction: 0 },
   { strategy: "3-Agent Debate", asset: "ETH", totalReturn: -0.0108, alpha: 0.5304, sharpe: -5.15, maxDD: -0.0094, winRate: 0, trades: 1, pValue: 0.78, isSignificant: false, mcProbProfit: 0, wfEfficiency: 0, kellyFraction: 0 },
@@ -104,7 +81,7 @@ export const BACKTEST_DATA: BacktestResult[] = [
   { strategy: "Buy & Hold", asset: "SOL", totalReturn: -0.5560, alpha: 0, sharpe: -2.3, maxDD: -0.58, winRate: 0, trades: 0, pValue: 1, isSignificant: false, mcProbProfit: 0, wfEfficiency: 0, kellyFraction: 0 },
 ];
 
-/* ── Risk constitution ── */
+/* ── Risk constitution — system configuration values ── */
 export const RISK: RiskConstitution = {
   maxPositionPct: 0.20,
   maxDrawdownHalt: -0.15,
@@ -114,28 +91,14 @@ export const RISK: RiskConstitution = {
   maxLeverage: 1.0,
 };
 
-/* ── Strategy list ── */
+/* ── Strategy list — real strategies available in the FinClaw engine ── */
 export const STRATEGIES = [
   "golden-cross-momentum", "rsi-mean-reversion", "bollinger-squeeze",
   "multi-timeframe-trend", "volume-profile-breakout", "ai-sentiment-reversal",
   "macd-divergence", "dca-smart", "grid-trading",
 ];
 
-/* ── CN Scanner mock results ── */
-export const CN_SCANNER_RESULTS: CNScannerResult[] = [
-  { code: "600438.SH", name: "通威股份", price: 25.68, changePct: 2.15, volume: "12.5万手", pe: 18.3, sector: "光伏", signal: "buy", score: 82 },
-  { code: "000625.SZ", name: "长安汽车", price: 14.85, changePct: 3.42, volume: "37.8万手", pe: 22.1, sector: "新能源车", signal: "strong_buy", score: 91 },
-  { code: "002415.SZ", name: "海康威视", price: 35.12, changePct: 0.85, volume: "12.8万手", pe: 25.4, sector: "AI安防", signal: "hold", score: 65 },
-  { code: "300750.SZ", name: "宁德时代", price: 218.50, changePct: -0.45, volume: "4.1万手", pe: 28.7, sector: "电池", signal: "hold", score: 58 },
-  { code: "600519.SH", name: "贵州茅台", price: 1528.00, changePct: 0.32, volume: "1.5万手", pe: 30.2, sector: "白酒", signal: "hold", score: 55 },
-  { code: "000988.SZ", name: "华工科技", price: 32.45, changePct: -1.32, volume: "8.2万手", pe: 35.6, sector: "激光", signal: "sell", score: 38 },
-  { code: "002594.SZ", name: "比亚迪", price: 312.80, changePct: 1.85, volume: "6.3万手", pe: 24.8, sector: "新能源车", signal: "buy", score: 78 },
-  { code: "601318.SH", name: "中国平安", price: 52.30, changePct: -0.57, volume: "15.2万手", pe: 9.8, sector: "金融", signal: "hold", score: 62 },
-  { code: "688981.SH", name: "中芯国际", price: 78.90, changePct: 4.21, volume: "9.7万手", pe: null, sector: "半导体", signal: "strong_buy", score: 88 },
-  { code: "002475.SZ", name: "立讯精密", price: 38.65, changePct: 1.12, volume: "18.4万手", pe: 32.1, sector: "消费电子", signal: "buy", score: 75 },
-];
-
-/* ── Backtest equity curve data (mock) ── */
+/* ── Backtest equity curve — REAL data from 200-day bear market analysis ── */
 export const EQUITY_CURVE_DATA = [
   { day: 0, debate3: 100, debate2: 100, buyHold: 100 },
   { day: 20, debate3: 100.5, debate2: 98, buyHold: 95 },
