@@ -14,9 +14,15 @@ This is pure numerical parameter optimization via genetic algorithms.
 
 v2: 12-signal scoring system with MACD, Bollinger, KDJ, OBV, MA alignment,
     candle patterns, volume profile, support/resistance.
+
+v3: Walk-Forward validation (70/30 split), deterministic stock sampling
+    per generation, enhanced fitness with Sortino, consecutive loss penalty,
+    and consistency bonus.
 """
 
 from __future__ import annotations
+
+print("Evolution Engine v3 — Walk-Forward + Stable Sampling + Enhanced Fitness")
 
 import json
 import math
@@ -1282,13 +1288,18 @@ def compute_fitness(
     win_rate: float,
     sharpe: float,
     total_trades: int = 200,
+    sortino: Optional[float] = None,
+    max_consec_losses: int = 0,
+    monthly_returns: Optional[List[float]] = None,
 ) -> float:
     """Compute composite fitness score.
 
     fitness = annual_return * sqrt(win_rate) / max(max_drawdown, 5.0) * sharpe_bonus * trade_penalty
+              * sortino_bonus * consec_loss_penalty * consistency_bonus
 
-    Rewards: high return, high win rate, low drawdown, good Sharpe, enough trades.
-    Penalizes: fewer than 100 trades (statistically unreliable).
+    Rewards: high return, high win rate, low drawdown, good Sharpe, enough trades,
+             Sortino > Sharpe, consistent monthly returns.
+    Penalizes: fewer than 30 trades, long consecutive loss streaks.
     """
     dd_denom = max(max_drawdown, 5.0)
     win_factor = math.sqrt(max(win_rate, 0.0))
@@ -1301,8 +1312,33 @@ def compute_fitness(
         trade_penalty = total_trades / 30.0  # linear penalty
     else:
         trade_penalty = 1.0  # no penalty, 30+ trades is enough
-    
-    return annual_return * win_factor / dd_denom * sharpe_bonus * trade_penalty
+
+    base_fitness = annual_return * win_factor / dd_denom * sharpe_bonus * trade_penalty
+
+    # Sortino-like bonus: if sortino > sharpe, extra 10%
+    sortino_bonus = 1.0
+    if sortino is not None and sortino > sharpe:
+        sortino_bonus = 1.1
+
+    # Max consecutive losses penalty
+    consec_loss_penalty = 1.0
+    if max_consec_losses > 15:
+        consec_loss_penalty = 0.4
+    elif max_consec_losses > 10:
+        consec_loss_penalty = 0.7
+
+    # Consistency bonus: coefficient of variation of monthly returns
+    consistency_bonus = 1.0
+    if monthly_returns is not None and len(monthly_returns) >= 3:
+        mean_mr = sum(monthly_returns) / len(monthly_returns)
+        if mean_mr != 0:
+            var_mr = sum((r - mean_mr) ** 2 for r in monthly_returns) / len(monthly_returns)
+            std_mr = math.sqrt(var_mr)
+            cv = abs(std_mr / mean_mr)
+            if cv < 1.0:
+                consistency_bonus = 1.2  # consistent returns
+
+    return base_fitness * sortino_bonus * consec_loss_penalty * consistency_bonus
 
 
 def filter_stock_pool(
@@ -1580,10 +1616,16 @@ class AutoEvolver:
         dna: StrategyDNA,
         data: Dict[str, Dict[str, list]],
         sample_size: int = 200,
+        gen_seed: int = 0,
     ) -> EvolutionResult:
-        """Backtest a strategy on loaded data.
+        """Backtest a strategy on loaded data with walk-forward validation.
 
-        For speed, evaluates on a random sample of ``sample_size`` stocks.
+        For speed, evaluates on a deterministic sample of ``sample_size`` stocks
+        (seeded by ``gen_seed`` so same generation always picks same stocks).
+
+        Walk-forward: splits each stock's data into train (first 70%) and
+        validation (last 30%).  Final fitness weights validation 60%, train 40%.
+
         Simplified but correct backtesting:
         - Every hold_days: score all stocks → pick top max_positions
         - T+1 open price entry
@@ -1595,6 +1637,7 @@ class AutoEvolver:
             dna: Strategy parameters
             data: Stock data dict from load_data()
             sample_size: Max stocks to evaluate (for speed)
+            gen_seed: Deterministic seed for stock sampling (generation number)
 
         Returns:
             EvolutionResult with all metrics
@@ -1612,10 +1655,12 @@ class AutoEvolver:
                 fitness=0.0,
             )
 
-        # Sample stocks for speed
+        # Deterministic sampling: use gen_seed so same generation always
+        # picks the same stocks, eliminating sampling noise.
         codes = list(data.keys())
         if len(codes) > sample_size:
-            codes = self.rng.sample(codes, sample_size)
+            sample_rng = random.Random(gen_seed)
+            codes = sample_rng.sample(codes, sample_size)
 
         # Pre-compute indicators per stock (all 12 dimensions)
         indicators: Dict[str, Dict[str, Any]] = {}
@@ -1710,180 +1755,250 @@ class AutoEvolver:
         first_code = codes[0]
         total_days = len(data[first_code]["close"])
 
-        # Portfolio simulation
-        initial_capital = 1_000_000.0
-        capital = initial_capital
-        portfolio_values = [capital]
-
-        trades: List[float] = []  # list of trade returns (%)
-        gross_profit = 0.0
-        gross_loss = 0.0
+        # ── Walk-Forward Split ──
+        # Train on first 70%, validate on last 30%
+        warmup = 30  # indicator warmup days
+        train_end = warmup + int((total_days - warmup) * 0.7)
+        val_start = train_end
+        val_end = total_days
 
         hold_days = max(2, dna.hold_days)  # A-share T+1: buy T+1, earliest sell T+2
-        day = 30  # skip first 30 days for indicator warmup
 
-        while day < total_days - hold_days - 1:
-            # Score all stocks at this day
-            scored: List[Tuple[str, float]] = []
-            for code in codes:
-                sd = data[code]
-                if day >= len(sd["close"]):
-                    continue
-                ind = indicators[code]
-                s = score_stock(
-                    day,
-                    ind,
-                    dna,
-                )
-                if s >= dna.min_score:
-                    scored.append((code, s))
+        def _run_backtest(day_start: int, day_end: int) -> Tuple[
+            float, float, float, float, float, int, float, float, int, List[float]
+        ]:
+            """Run backtest on a date range. Returns (annual_return, max_drawdown,
+            win_rate, sharpe, calmar, total_trades, profit_factor, sortino,
+            max_consec_losses, monthly_returns)."""
+            initial_capital = 1_000_000.0
+            bt_capital = initial_capital
+            bt_portfolio_values = [bt_capital]
 
-            # Pick top max_positions
-            scored.sort(key=lambda x: x[1], reverse=True)
-            picks = scored[: dna.max_positions]
+            bt_trades: List[float] = []
+            bt_gross_profit = 0.0
+            bt_gross_loss = 0.0
 
-            if picks:
-                # Allocate capital equally
-                per_pos = capital / len(picks)
+            # Track monthly returns for consistency bonus
+            bt_monthly_returns: List[float] = []
+            month_start_capital = bt_capital
+            last_month_day = day_start
+            approx_month_days = 21  # ~21 trading days per month
 
-                for code, _score in picks:
+            day = day_start
+
+            while day < day_end - hold_days - 1:
+                # Monthly return tracking
+                if day - last_month_day >= approx_month_days:
+                    if month_start_capital > 0:
+                        mr = (bt_capital - month_start_capital) / month_start_capital * 100
+                        bt_monthly_returns.append(mr)
+                    month_start_capital = bt_capital
+                    last_month_day = day
+
+                # Score all stocks at this day
+                scored: List[Tuple[str, float]] = []
+                for code in codes:
                     sd = data[code]
-                    entry_day = day + 1  # T+1
-
-                    if entry_day >= len(sd["open"]):
+                    if day >= len(sd["close"]):
                         continue
+                    ind = indicators[code]
+                    s = score_stock(day, ind, dna)
+                    if s >= dna.min_score:
+                        scored.append((code, s))
 
-                    entry_price = sd["open"][entry_day]
-                    if entry_price <= 0:
-                        continue
+                # Pick top max_positions
+                scored.sort(key=lambda x: x[1], reverse=True)
+                picks = scored[: dna.max_positions]
 
-                    # === A-SHARE LIMIT RULES ===
-                    # Check if stock is at limit-up on entry day (can't buy)
-                    if entry_day >= 1:
-                        prev_close = sd["close"][entry_day - 1]
-                        if prev_close > 0:
-                            # Determine limit % based on board type
-                            code_str = code.replace("_", ".")
-                            if code_str.startswith("sh.688") or code_str.startswith("sz.3"):
-                                limit_pct = 0.20  # 科创板/创业板 20%
-                            else:
-                                limit_pct = 0.10  # 主板 10%
+                if picks:
+                    per_pos = bt_capital / len(picks)
 
-                            # Skip if opening at limit-up (can't buy, sealed)
-                            if entry_price >= prev_close * (1 + limit_pct - 0.005):
-                                continue
+                    for code, _score in picks:
+                        sd = data[code]
+                        entry_day = day + 1  # T+1
 
-                    shares = per_pos / entry_price
-                    exit_price = entry_price  # default
+                        if entry_day >= len(sd["open"]):
+                            continue
 
-                    # Hold period with SL/TP check
-                    for d in range(entry_day, min(entry_day + hold_days, len(sd["close"]))):
-                        low = sd["low"][d]
-                        high = sd["high"][d]
+                        entry_price = sd["open"][entry_day]
+                        if entry_price <= 0:
+                            continue
 
-                        # Check if at limit-down (can't sell)
-                        if d >= 1:
-                            pc = sd["close"][d - 1]
-                            if pc > 0:
+                        # === A-SHARE LIMIT RULES ===
+                        if entry_day >= 1:
+                            prev_close = sd["close"][entry_day - 1]
+                            if prev_close > 0:
                                 code_str = code.replace("_", ".")
                                 if code_str.startswith("sh.688") or code_str.startswith("sz.3"):
-                                    lim = 0.20
+                                    limit_pct = 0.20
                                 else:
-                                    lim = 0.10
-                                limit_down_price = pc * (1 - lim + 0.005)
-                                # If close is at limit-down, can't sell
-                                if sd["close"][d] <= limit_down_price and d < entry_day + hold_days - 1:
-                                    continue  # skip this day, try to sell next day
+                                    limit_pct = 0.10
+                                if entry_price >= prev_close * (1 + limit_pct - 0.005):
+                                    continue
 
-                        # Stop loss
-                        sl_price = entry_price * (1 - dna.stop_loss_pct / 100)
-                        if low <= sl_price:
-                            exit_price = sl_price
-                            break
+                        shares = per_pos / entry_price
+                        exit_price = entry_price
 
-                        # Take profit
-                        tp_price = entry_price * (1 + dna.take_profit_pct / 100)
-                        if high >= tp_price:
-                            exit_price = tp_price
-                            break
+                        for d in range(entry_day, min(entry_day + hold_days, len(sd["close"]))):
+                            low = sd["low"][d]
+                            high = sd["high"][d]
 
-                        exit_price = sd["close"][d]
+                            if d >= 1:
+                                pc = sd["close"][d - 1]
+                                if pc > 0:
+                                    code_str = code.replace("_", ".")
+                                    if code_str.startswith("sh.688") or code_str.startswith("sz.3"):
+                                        lim = 0.20
+                                    else:
+                                        lim = 0.10
+                                    limit_down_price = pc * (1 - lim + 0.005)
+                                    if sd["close"][d] <= limit_down_price and d < entry_day + hold_days - 1:
+                                        continue
 
-                    # Apply realistic trading costs (A-share rates for liquid stocks)
-                    # Commission: 0.03% per side (typical online broker)
-                    # Stamp tax: 0.1% sell side only (China A-share regulation)
-                    # Slippage: 0.05% per side (bid-ask spread, conservative for our filtered pool)
-                    buy_cost = entry_price * (0.0003 + 0.0005)   # commission + slippage
-                    sell_cost = exit_price * (0.0003 + 0.0005 + 0.001)  # commission + slippage + stamp tax
-                    trade_return = (exit_price - entry_price - buy_cost - sell_cost) / entry_price * 100
-                    trades.append(trade_return)
+                            sl_price = entry_price * (1 - dna.stop_loss_pct / 100)
+                            if low <= sl_price:
+                                exit_price = sl_price
+                                break
 
-                    pnl = shares * (exit_price - entry_price) - shares * (buy_cost + sell_cost) / entry_price * entry_price
-                    # Simplified: pnl after costs
-                    pnl = shares * entry_price * trade_return / 100
-                    if pnl > 0:
-                        gross_profit += pnl
+                            tp_price = entry_price * (1 + dna.take_profit_pct / 100)
+                            if high >= tp_price:
+                                exit_price = tp_price
+                                break
+
+                            exit_price = sd["close"][d]
+
+                        buy_cost = entry_price * (0.0003 + 0.0005)
+                        sell_cost = exit_price * (0.0003 + 0.0005 + 0.001)
+                        trade_return = (exit_price - entry_price - buy_cost - sell_cost) / entry_price * 100
+                        bt_trades.append(trade_return)
+
+                        pnl = shares * entry_price * trade_return / 100
+                        if pnl > 0:
+                            bt_gross_profit += pnl
+                        else:
+                            bt_gross_loss += abs(pnl)
+
+                        bt_capital += pnl
+
+                bt_portfolio_values.append(max(bt_capital, 0.01))
+                day += hold_days
+
+            # Final partial month
+            if month_start_capital > 0 and bt_capital != month_start_capital:
+                mr = (bt_capital - month_start_capital) / month_start_capital * 100
+                bt_monthly_returns.append(mr)
+
+            # ── Compute metrics ──
+            bt_total_trades = len(bt_trades)
+            bt_win_rate = 0.0
+            if bt_total_trades > 0:
+                wins = sum(1 for t in bt_trades if t > 0)
+                bt_win_rate = wins / bt_total_trades * 100
+
+            # Max consecutive losses
+            bt_max_consec_losses = 0
+            current_streak = 0
+            for t in bt_trades:
+                if t <= 0:
+                    current_streak += 1
+                    bt_max_consec_losses = max(bt_max_consec_losses, current_streak)
+                else:
+                    current_streak = 0
+
+            # Annual return
+            bt_annual_return = 0.0
+            if len(bt_portfolio_values) > 1 and bt_portfolio_values[0] > 0:
+                total_return = bt_portfolio_values[-1] / bt_portfolio_values[0] - 1
+                trading_days_used = day_end - day_start
+                years = trading_days_used / 250 if trading_days_used > 0 else 1
+                if total_return > -1:
+                    bt_annual_return = ((1 + total_return) ** (1 / max(years, 0.01)) - 1) * 100
+                else:
+                    bt_annual_return = -100.0
+
+            # Max drawdown
+            bt_max_drawdown = 0.0
+            peak = bt_portfolio_values[0]
+            for v in bt_portfolio_values:
+                if v > peak:
+                    peak = v
+                dd = (peak - v) / peak * 100 if peak > 0 else 0
+                bt_max_drawdown = max(bt_max_drawdown, dd)
+
+            # Sharpe ratio
+            bt_sharpe = 0.0
+            bt_sortino = 0.0
+            if len(bt_portfolio_values) > 2:
+                period_returns = [
+                    (bt_portfolio_values[i] - bt_portfolio_values[i - 1]) / bt_portfolio_values[i - 1]
+                    for i in range(1, len(bt_portfolio_values))
+                    if bt_portfolio_values[i - 1] > 0
+                ]
+                if period_returns:
+                    mean_r = sum(period_returns) / len(period_returns)
+                    var_r = sum((r - mean_r) ** 2 for r in period_returns) / len(period_returns)
+                    std_r = math.sqrt(var_r) if var_r > 0 else 0.001
+                    periods_per_year = 250 / max(hold_days, 1)
+                    bt_sharpe = (mean_r / std_r) * math.sqrt(periods_per_year)
+
+                    # Sortino: downside deviation only
+                    downside_returns = [r for r in period_returns if r < 0]
+                    if downside_returns:
+                        downside_var = sum(r ** 2 for r in downside_returns) / len(period_returns)
+                        downside_std = math.sqrt(downside_var) if downside_var > 0 else 0.001
+                        bt_sortino = (mean_r / downside_std) * math.sqrt(periods_per_year)
                     else:
-                        gross_loss += abs(pnl)
+                        bt_sortino = bt_sharpe * 1.5  # no down periods = great
 
-                    capital += pnl
+            bt_calmar = bt_annual_return / max(bt_max_drawdown, 1.0)
+            bt_profit_factor = bt_gross_profit / bt_gross_loss if bt_gross_loss > 0 else (10.0 if bt_gross_profit > 0 else 0.0)
 
-            portfolio_values.append(max(capital, 0.01))  # avoid zero
+            return (bt_annual_return, bt_max_drawdown, bt_win_rate, bt_sharpe,
+                    bt_calmar, bt_total_trades, bt_profit_factor, bt_sortino,
+                    bt_max_consec_losses, bt_monthly_returns)
 
-            day += hold_days
+        # ── Run backtests on train and validation periods ──
+        (train_ret, train_dd, train_wr, train_sharpe, train_calmar,
+         train_trades, train_pf, train_sortino,
+         train_consec_losses, train_monthly) = _run_backtest(warmup, train_end)
 
-        # Compute metrics
-        total_trades = len(trades)
-        win_rate = 0.0
-        if total_trades > 0:
-            wins = sum(1 for t in trades if t > 0)
-            win_rate = wins / total_trades * 100
+        (val_ret, val_dd, val_wr, val_sharpe, val_calmar,
+         val_trades, val_pf, val_sortino,
+         val_consec_losses, val_monthly) = _run_backtest(val_start, val_end)
 
-        # Annual return
-        if len(portfolio_values) > 1 and portfolio_values[0] > 0:
-            total_return = portfolio_values[-1] / portfolio_values[0] - 1
-            # Assume ~250 trading days per year
-            trading_days_used = total_days - 30
-            years = trading_days_used / 250 if trading_days_used > 0 else 1
-            if total_return > -1:
-                annual_return = ((1 + total_return) ** (1 / max(years, 0.01)) - 1) * 100
-            else:
-                annual_return = -100.0
-        else:
-            annual_return = 0.0
+        # Combine metrics (report validation-period numbers as primary)
+        total_trades = train_trades + val_trades
+        # Use combined stats for reporting
+        annual_return = val_ret  # report validation return
+        max_drawdown = max(train_dd, val_dd)
+        win_rate = val_wr
+        sharpe = val_sharpe
+        calmar = val_calmar
+        profit_factor = val_pf
+        sortino = val_sortino
+        max_consec_losses = max(train_consec_losses, val_consec_losses)
+        monthly_returns = (train_monthly or []) + (val_monthly or [])
 
-        # Max drawdown
-        max_drawdown = 0.0
-        peak = portfolio_values[0]
-        for v in portfolio_values:
-            if v > peak:
-                peak = v
-            dd = (peak - v) / peak * 100 if peak > 0 else 0
-            max_drawdown = max(max_drawdown, dd)
+        # ── Walk-Forward Fitness ──
+        train_fitness = compute_fitness(
+            train_ret, train_dd, train_wr, train_sharpe, train_trades,
+            sortino=train_sortino,
+            max_consec_losses=train_consec_losses,
+            monthly_returns=train_monthly,
+        )
+        val_fitness = compute_fitness(
+            val_ret, val_dd, val_wr, val_sharpe, val_trades,
+            sortino=val_sortino,
+            max_consec_losses=val_consec_losses,
+            monthly_returns=val_monthly,
+        )
 
-        # Sharpe ratio (daily returns → annualized)
-        sharpe = 0.0
-        if len(portfolio_values) > 2:
-            daily_returns = [
-                (portfolio_values[i] - portfolio_values[i - 1]) / portfolio_values[i - 1]
-                for i in range(1, len(portfolio_values))
-                if portfolio_values[i - 1] > 0
-            ]
-            if daily_returns:
-                mean_r = sum(daily_returns) / len(daily_returns)
-                var_r = sum((r - mean_r) ** 2 for r in daily_returns) / len(daily_returns)
-                std_r = math.sqrt(var_r) if var_r > 0 else 0.001
-                # Annualize: each "period" is hold_days trading days
-                periods_per_year = 250 / max(hold_days, 1)
-                sharpe = (mean_r / std_r) * math.sqrt(periods_per_year)
+        # Weight validation more: prevents overfitting to training data
+        fitness = 0.4 * train_fitness + 0.6 * val_fitness
 
-        # Calmar ratio
-        calmar = annual_return / max(max_drawdown, 1.0)
-
-        # Profit factor
-        profit_factor = gross_profit / gross_loss if gross_loss > 0 else (10.0 if gross_profit > 0 else 0.0)
-
-        fitness = compute_fitness(annual_return, max_drawdown, win_rate, sharpe, total_trades)
+        # Harsh overfit penalty: if validation fitness is < 30% of train fitness
+        if train_fitness > 0 and val_fitness < 0.3 * train_fitness:
+            fitness *= 0.3
 
         return EvolutionResult(
             dna=dna,
@@ -1901,11 +2016,12 @@ class AutoEvolver:
         self,
         parents: List[StrategyDNA],
         data: Dict[str, Dict[str, list]],
+        gen: int = 0,
     ) -> List[EvolutionResult]:
         """Run one generation of evolution.
 
         1. Generate mutations + crossovers from parents
-        2. Evaluate all candidates
+        2. Evaluate all candidates (with deterministic sampling via gen seed)
         3. Sort by fitness
         4. Return top ``elite_count`` results
         """
@@ -1923,7 +2039,7 @@ class AutoEvolver:
                 child = self.mutate(child)  # mutate after crossover
             candidates.append(child)
 
-        results = [self.evaluate(dna, data) for dna in candidates]
+        results = [self.evaluate(dna, data, gen_seed=gen) for dna in candidates]
         results.sort(key=lambda r: r.fitness, reverse=True)
         return results[: self.elite_count]
 
@@ -1971,7 +2087,7 @@ class AutoEvolver:
 
         for gen in range(start_gen, start_gen + generations):
             gen_t0 = time.time()
-            results = self.run_generation(parents, data)
+            results = self.run_generation(parents, data, gen=gen)
             gen_time = time.time() - gen_t0
 
             best = results[0]
