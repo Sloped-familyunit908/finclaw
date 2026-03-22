@@ -8,6 +8,7 @@ import EvolutionStatus from "@/app/components/EvolutionStatus";
 import TopMovers from "@/app/components/TopMovers";
 import NewsPanel from "@/app/components/NewsPanel";
 import SectorHeatmap from "@/app/components/SectorHeatmap";
+import CryptoMarketTable from "@/app/components/CryptoMarketTable";
 import EconomicCalendar from "@/app/components/EconomicCalendar";
 
 export default function Home() {
@@ -28,6 +29,7 @@ export default function Home() {
           {/* Left Column (60%) */}
           <div className="lg:col-span-3 space-y-6">
             <SectorHeatmap />
+            <CryptoMarketTable />
             <WatchlistTable />
           </div>
 

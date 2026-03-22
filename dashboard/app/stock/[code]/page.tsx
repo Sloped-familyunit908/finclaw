@@ -16,6 +16,7 @@ import { fmt } from "@/app/lib/utils";
 import { findTicker } from "@/app/lib/tickers";
 import TimeRangeSelector, { type TimeRange } from "@/app/components/TimeRangeSelector";
 import FundamentalsPanel from "@/app/components/FundamentalsPanel";
+import FundFlowPanel from "@/app/components/FundFlowPanel";
 import { SetAlertModal } from "@/app/components/PriceAlerts";
 import { Card, CardHeader, CardTitle, CardContent } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
@@ -762,6 +763,9 @@ export default function StockDetailPage() {
                 <div ref={macdChartContainerRef} />
               </CardContent>
             </Card>
+
+            {/* -- Fund Flow (A-shares only) -- */}
+            {cn && <FundFlowPanel code={code} />}
 
             {/* -- Fundamentals Panel (US stocks only) -- */}
             {!crypto && <FundamentalsPanel code={code} />}

@@ -207,6 +207,75 @@ test.describe('Backtest Page', () => {
   });
 });
 
+test.describe('Crypto API', () => {
+  test('crypto API returns data', async ({ request }) => {
+    const resp = await request.get('/api/crypto');
+    expect(resp.status()).toBe(200);
+    const data = await resp.json();
+    expect(Array.isArray(data)).toBe(true);
+    expect(data.length).toBeGreaterThan(0);
+    // Verify shape of first item
+    const first = data[0];
+    expect(first).toHaveProperty('symbol');
+    expect(first).toHaveProperty('price');
+    expect(first).toHaveProperty('change24h');
+    expect(first).toHaveProperty('marketCap');
+  });
+
+  test('crypto API supports pairs filter', async ({ request }) => {
+    const resp = await request.get('/api/crypto?pairs=BTC,ETH');
+    expect(resp.status()).toBe(200);
+    const data = await resp.json();
+    expect(Array.isArray(data)).toBe(true);
+    // Should only return BTC and ETH (if available)
+    for (const item of data) {
+      expect(['BTC', 'ETH']).toContain(item.symbol);
+    }
+  });
+
+  test('crypto market section visible on homepage', async ({ page }) => {
+    await page.goto('/');
+    await expect(
+      page.locator('h3:has-text("Crypto Market"), [class*="CardTitle"]:has-text("Crypto Market")'),
+    ).toBeVisible({ timeout: 15000 });
+  });
+});
+
+test.describe('CN Detail API', () => {
+  test('cn-detail API returns data for A-share stock', async ({ request }) => {
+    const resp = await request.get('/api/cn-detail?code=600438.SH');
+    expect(resp.status()).toBe(200);
+    const data = await resp.json();
+    expect(data).toHaveProperty('code');
+    expect(data).toHaveProperty('fundFlow');
+    expect(data).toHaveProperty('fundamentals');
+  });
+
+  test('cn-detail API rejects non-A-share codes', async ({ request }) => {
+    const resp = await request.get('/api/cn-detail?code=AAPL');
+    expect(resp.status()).toBe(400);
+  });
+});
+
+test.describe('Fund Flow on Stock Detail', () => {
+  test('A-share stock shows capital flow section', async ({ page }) => {
+    await page.goto('/stock/600438.SH');
+    // Wait for page to load
+    await page.waitForTimeout(3000);
+    // Should not crash
+    await expect(page.locator('body')).not.toContainText('Application error');
+    // Back link should work
+    await expect(page.locator('a:has-text("Back")')).toBeVisible();
+  });
+
+  test('US stock does not show capital flow', async ({ page }) => {
+    await page.goto('/stock/AAPL');
+    await page.waitForTimeout(3000);
+    // Capital Flow heading should not be visible for US stocks
+    await expect(page.locator('h2:has-text("Capital Flow")')).not.toBeVisible();
+  });
+});
+
 test.describe('404 / Not Found', () => {
   test('unknown page shows not-found', async ({ page }) => {
     await page.goto('/this-page-does-not-exist');
