@@ -32,7 +32,7 @@ test.describe('Dashboard Homepage', () => {
 
   test('displays top movers', async ({ page }) => {
     await page.goto('/');
-    await expect(page.locator('h2:has-text("Top Movers")')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('text=Top Movers')).toBeVisible({ timeout: 15000 });
   });
 
   test('search box shows dropdown', async ({ page }) => {
