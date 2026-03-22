@@ -20,16 +20,81 @@ def fetch_fundamentals_baostock(
 ) -> Dict[str, Dict[str, float]]:
     """Fetch fundamental data for a list of stock codes.
 
-    Uses BaoStock query_profit_data and query_growth_data.
+    Tries AKShare first (more reliable), falls back to BaoStock.
     Results are cached to disk (1 day TTL) to avoid repeated API calls.
 
     Args:
-        codes: List of stock codes like ['sh.600438', 'sz.000001']
+        codes: List of stock codes like ['sh_600438', 'sz_000001']
         cache_dir: Directory for caching results
 
     Returns:
         Dict mapping code -> {pe, pb, roe, revenue_growth, profit_growth}
     """
+    # Check cache first
+    cache_path = Path(cache_dir)
+    cache_path.mkdir(parents=True, exist_ok=True)
+    today = datetime.now().strftime("%Y-%m-%d")
+    cache_file = cache_path / f"{today}.json"
+
+    if cache_file.exists():
+        try:
+            with open(cache_file, "r", encoding="utf-8") as f:
+                cached = json.load(f)
+            if cached:
+                return cached
+        except Exception:
+            pass
+
+    results: Dict[str, Dict[str, float]] = {}
+
+    # Try AKShare first (more reliable, no login/logout needed)
+    try:
+        from src.exchanges.akshare_enhanced import get_stock_fundamentals
+        print("  [fundamentals] using AKShare...")
+        for code in codes:
+            # Convert code format: sh_600438 -> 600438
+            raw_code = code.replace("sh_", "").replace("sz_", "")
+            try:
+                fund = get_stock_fundamentals(raw_code)
+                if fund:
+                    results[code] = {
+                        "pe": 0,  # AKShare doesn't return PE directly in this function
+                        "pb": 0,
+                        "roe": float(fund.get("roe", 0) or 0),
+                        "revenue_growth": float(fund.get("revenue_yoy", 0) or 0),
+                        "profit_growth": 0,
+                        "gross_margin": float(fund.get("gross_margin", 0) or 0),
+                        "net_margin": float(fund.get("net_margin", 0) or 0),
+                        "debt_ratio": float(fund.get("debt_ratio", 0) or 0),
+                    }
+            except Exception:
+                continue
+
+        if results:
+            # Cache results
+            try:
+                with open(cache_file, "w", encoding="utf-8") as f:
+                    json.dump(results, f, ensure_ascii=False)
+            except Exception:
+                pass
+            return results
+    except ImportError:
+        pass
+    except Exception as e:
+        print(f"  [fundamentals] AKShare failed: {e}")
+
+    # Fall back to BaoStock
+    try:
+        return _fetch_via_baostock(codes, cache_file)
+    except Exception as e:
+        print(f"  [fundamentals] BaoStock also failed: {e}")
+        return {}
+
+
+def _fetch_via_baostock(
+    codes: List[str], cache_file: Path
+) -> Dict[str, Dict[str, float]]:
+    """Original BaoStock implementation as fallback."""
     if not codes:
         return {}
 
