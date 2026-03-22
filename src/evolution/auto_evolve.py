@@ -1667,8 +1667,15 @@ class AutoEvolver:
         d.update(custom_vals)
         return StrategyDNA.from_dict(d)
 
-    def crossover(self, dna1: StrategyDNA, dna2: StrategyDNA) -> StrategyDNA:
-        """Combine two strategies by randomly picking parameters from each parent."""
+    def crossover(self, dna1: StrategyDNA, dna2: StrategyDNA, bias: float = 0.5) -> StrategyDNA:
+        """Combine two strategies by randomly picking parameters from each parent.
+
+        Args:
+            dna1: First parent DNA.
+            dna2: Second parent DNA.
+            bias: Probability of choosing dna1's gene (0.0-1.0, default 0.5).
+                  When bias > 0.5, dna1's parameters are preferred.
+        """
         d1 = dna1.to_dict()
         d2 = dna2.to_dict()
 
@@ -1683,12 +1690,12 @@ class AutoEvolver:
 
         child = {}
         for key in d1:
-            child[key] = d1[key] if self.rng.random() < 0.5 else d2.get(key, d1[key])
+            child[key] = d1[key] if self.rng.random() < bias else d2.get(key, d1[key])
 
         # Merge custom weights from both parents (union of keys)
         child_custom = {}
         for k in all_custom_keys:
-            child_custom[k] = cw1[k] if self.rng.random() < 0.5 else cw2[k]
+            child_custom[k] = cw1[k] if self.rng.random() < bias else cw2[k]
 
         # Normalize ALL weights together (builtin + custom)
         w_sum = sum(child[k] for k in _WEIGHT_KEYS) + sum(child_custom.values())
@@ -2182,6 +2189,56 @@ class AutoEvolver:
             dna.custom_weights = cw
         return dna
 
+    def _strategy_distance(self, dna1: StrategyDNA, dna2: StrategyDNA) -> float:
+        """Measure how different two strategies are (0=identical, 1=very different)."""
+        d1 = dna1.to_dict()
+        d2 = dna2.to_dict()
+        diffs = []
+        for param, (lo, hi, _) in _PARAM_RANGES.items():
+            range_size = hi - lo
+            if range_size > 0:
+                diff = abs(d1.get(param, 0) - d2.get(param, 0)) / range_size
+                diffs.append(diff)
+        return sum(diffs) / len(diffs) if diffs else 0.0
+
+    def _tournament_select(
+        self, results: List[EvolutionResult]
+    ) -> List[EvolutionResult]:
+        """Select elite parents using tournament selection with elitism.
+
+        - Always keeps the #1 best (elitism).
+        - For remaining slots, picks 3 random candidates and takes the best.
+        - Preserves diversity by giving weaker-but-different strategies a chance.
+        """
+        if len(results) <= self.elite_count:
+            return list(results)
+
+        # Elitism: always keep #1
+        selected = [results[0]]
+
+        # Tournament selection for remaining slots
+        for _ in range(self.elite_count - 1):
+            tournament = self.rng.sample(results, min(3, len(results)))
+            winner = max(tournament, key=lambda r: r.fitness)
+            if winner not in selected:
+                selected.append(winner)
+            else:
+                # If winner already selected, take the next best from tournament
+                found = False
+                for t in sorted(tournament, key=lambda r: r.fitness, reverse=True):
+                    if t not in selected:
+                        selected.append(t)
+                        found = True
+                        break
+                if not found:
+                    # Fallback: pick next unselected result by rank
+                    for r in results:
+                        if r not in selected:
+                            selected.append(r)
+                            break
+
+        return selected[:self.elite_count]
+
     def run_generation(
         self,
         parents: List[StrategyDNA],
@@ -2192,8 +2249,9 @@ class AutoEvolver:
 
         1. Generate mutations + crossovers from parents
         2. Evaluate all candidates (with deterministic sampling via gen seed)
-        3. Sort by fitness
-        4. Return top ``elite_count`` results
+        3. Apply diversity bonus (niche preservation)
+        4. Select elite via tournament selection
+        5. Return top ``elite_count`` results
         """
         candidates: List[StrategyDNA] = list(parents)
 
@@ -2203,15 +2261,28 @@ class AutoEvolver:
                 # Mutation
                 child = self.mutate(parent)
             else:
-                # Crossover
+                # Crossover with fitness-weighted bias toward better parent
                 other = self.rng.choice(parents)
-                child = self.crossover(parent, other)
+                child = self.crossover(parent, other, bias=0.6)
                 child = self.mutate(child)  # mutate after crossover
             candidates.append(child)
 
         results = [self.evaluate(dna, data, gen_seed=gen) for dna in candidates]
         results.sort(key=lambda r: r.fitness, reverse=True)
-        return results[: self.elite_count]
+
+        # Diversity bonus: strategies different from the champion get a small boost
+        if len(results) > 1:
+            champion_dna = results[0].dna
+            for r in results[1:]:
+                dist = self._strategy_distance(r.dna, champion_dna)
+                # Up to 10% bonus for being very different
+                diversity_bonus = 1.0 + dist * 0.1
+                r.fitness *= diversity_bonus
+            # Re-sort after applying diversity bonus
+            results.sort(key=lambda r: r.fitness, reverse=True)
+
+        # Tournament selection with elitism (replaces simple top-N)
+        return self._tournament_select(results)
 
     def evolve(self, generations: int = 100, save_interval: int = 10) -> List[EvolutionResult]:
         """Main evolution loop.
