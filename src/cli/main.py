@@ -1542,6 +1542,23 @@ Examples:
     p_chart.add_argument("--width", type=int, default=80, help="Chart width")
     p_chart.add_argument("--height", type=int, default=20, help="Chart height")
 
+    # ── ccxt-quote (crypto via ccxt) ─────────────────────────────
+    p_cq = sub.add_parser("ccxt-quote", help="Get crypto quote via ccxt (100+ exchanges)")
+    p_cq.add_argument("symbol", help="Trading pair (e.g. BTC/USDT)")
+    p_cq.add_argument("--exchange", "-e", default="binance", help="Exchange name (default: binance)")
+
+    # ── cn-realtime (A-share real-time via AKShare) ──────────────
+    p_cnrt = sub.add_parser("cn-realtime", help="Get real-time A-share quotes via AKShare")
+    p_cnrt.add_argument("--code", "-c", default=None, help="Stock code (e.g. 600438). Omit for all.")
+
+    # ── cn-fundamentals (A-share fundamentals via AKShare) ───────
+    p_cnf = sub.add_parser("cn-fundamentals", help="Get A-share fundamental data via AKShare")
+    p_cnf.add_argument("--code", "-c", required=True, help="Stock code (e.g. 600438)")
+
+    # ── cn-fund-flow (A-share capital flow via AKShare) ──────────
+    p_cnff = sub.add_parser("cn-fund-flow", help="Get A-share capital flow data via AKShare")
+    p_cnff.add_argument("--code", "-c", required=True, help="Stock code (e.g. 600438)")
+
     # ── A2A (Agent-to-Agent) protocol ─────────────────────────────
     p_a2a = sub.add_parser("a2a", help="A2A (Agent-to-Agent) protocol server")
     a2a_sub = p_a2a.add_subparsers(dest="a2a_cmd")
@@ -2890,6 +2907,116 @@ def cmd_regime(args):
     print()
 
 
+def cmd_ccxt_quote(args):
+    """Get crypto quote via ccxt."""
+    try:
+        from src.exchanges.ccxt_adapter import CCXTAdapter
+    except ImportError:
+        print("  ERROR: ccxt not installed. Run: pip install ccxt")
+        return
+
+    exchange_id = args.exchange
+    symbol = args.symbol
+
+    print(f"\n  ── ccxt Quote: {symbol} ({exchange_id}) ──")
+    try:
+        adapter = CCXTAdapter(exchange_id=exchange_id)
+        ticker = adapter.get_ticker(symbol)
+        if 'error' in ticker:
+            print(f"  ERROR: {ticker['error']}")
+            return
+        print(f"  Price:      {ticker.get('price')}")
+        print(f"  Change:     {ticker.get('change_pct', 'N/A')}%")
+        print(f"  Volume:     {ticker.get('volume', 'N/A')}")
+        print(f"  High:       {ticker.get('high', 'N/A')}")
+        print(f"  Low:        {ticker.get('low', 'N/A')}")
+        print(f"  Bid:        {ticker.get('bid', 'N/A')}")
+        print(f"  Ask:        {ticker.get('ask', 'N/A')}")
+    except Exception as e:
+        print(f"  ERROR: {e}")
+    print()
+
+
+def cmd_cn_realtime(args):
+    """Get real-time A-share quotes via AKShare."""
+    try:
+        from src.exchanges.akshare_enhanced import get_realtime_quotes
+    except ImportError:
+        print("  ERROR: akshare not installed. Run: pip install akshare")
+        return
+
+    code = getattr(args, 'code', None)
+    symbols = [code] if code else None
+
+    print(f"\n  ── A-Share Real-time Quotes (AKShare) ──")
+    results = get_realtime_quotes(symbols=symbols)
+    if not results:
+        print("  No data returned. Market may be closed or akshare unavailable.")
+        print()
+        return
+
+    display = results[:20] if not symbols else results
+    print(f"  {'Code':<8} {'Name':<10} {'Price':>10} {'Chg%':>8} {'Volume':>14} {'PE':>8}")
+    print("  " + "─" * 62)
+    for r in display:
+        price = r.get('price', 'N/A')
+        chg = r.get('change_pct', 'N/A')
+        vol = r.get('volume', 'N/A')
+        pe = r.get('pe', 'N/A')
+        price_str = f"{price:>10.2f}" if isinstance(price, (int, float)) else f"{price:>10}"
+        chg_str = f"{chg:>+7.2f}%" if isinstance(chg, (int, float)) else f"{chg:>8}"
+        vol_str = f"{vol:>14,.0f}" if isinstance(vol, (int, float)) else f"{vol:>14}"
+        pe_str = f"{pe:>8.1f}" if isinstance(pe, (int, float)) else f"{pe:>8}"
+        print(f"  {r.get('code', '?'):<8} {r.get('name', '?'):<10} {price_str} {chg_str} {vol_str} {pe_str}")
+    if not symbols and len(results) > 20:
+        print(f"  ... and {len(results) - 20} more. Use --code to filter.")
+    print()
+
+
+def cmd_cn_fundamentals(args):
+    """Get A-share fundamentals via AKShare."""
+    try:
+        from src.exchanges.akshare_enhanced import get_stock_fundamentals
+    except ImportError:
+        print("  ERROR: akshare not installed. Run: pip install akshare")
+        return
+
+    code = args.code
+    print(f"\n  ── A-Share Fundamentals: {code} (AKShare) ──")
+    data = get_stock_fundamentals(code)
+    if not data:
+        print("  No fundamental data returned.")
+    else:
+        for k, v in data.items():
+            label = k.replace('_', ' ').title()
+            val_str = f"{v:.2f}%" if isinstance(v, (int, float)) else str(v)
+            print(f"  {label:<20} {val_str}")
+    print()
+
+
+def cmd_cn_fund_flow(args):
+    """Get A-share capital flow via AKShare."""
+    try:
+        from src.exchanges.akshare_enhanced import get_fund_flow
+    except ImportError:
+        print("  ERROR: akshare not installed. Run: pip install akshare")
+        return
+
+    code = args.code
+    print(f"\n  ── A-Share Capital Flow: {code} (AKShare) ──")
+    data = get_fund_flow(code)
+    if not data:
+        print("  No capital flow data returned.")
+    else:
+        for k, v in data.items():
+            label = k.replace('_', ' ').title()
+            if isinstance(v, (int, float)):
+                print(f"  {label:<20} {v:>14,.0f}")
+            else:
+                print(f"  {label:<20} {v}")
+    print()
+
+
 def cmd_check_backtest(args):
     """Check backtest results for economic plausibility."""
     from src.ml.economic_plausibility import EconomicPlausibilityChecker
@@ -3891,6 +4018,14 @@ def test_signals():
             cmd_regime(args)
         elif args.command == "check-backtest":
             cmd_check_backtest(args)
+        elif args.command == "ccxt-quote":
+            cmd_ccxt_quote(args)
+        elif args.command == "cn-realtime":
+            cmd_cn_realtime(args)
+        elif args.command == "cn-fundamentals":
+            cmd_cn_fundamentals(args)
+        elif args.command == "cn-fund-flow":
+            cmd_cn_fund_flow(args)
         else:
             parser.print_help()
     except KeyboardInterrupt:

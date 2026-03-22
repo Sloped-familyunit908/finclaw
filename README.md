@@ -120,6 +120,19 @@ Expose FinClaw as tools for Claude, Cursor, VS Code, or any MCP-compatible clien
 
 10 tools available: `get_quote`, `get_history`, `list_exchanges`, `run_backtest`, `analyze_portfolio`, `get_indicators`, `screen_stocks`, `get_sentiment`, `compare_strategies`, `get_funding_rates`.
 
+## Data Sources
+
+FinClaw pulls real-time and historical data from multiple sources:
+
+| Market | Source | Coverage |
+|--------|--------|----------|
+| US Stocks | Yahoo Finance | All NYSE/NASDAQ |
+| Cryptocurrency | ccxt (100+ exchanges) | BTC, ETH, SOL, and 10,000+ pairs |
+| China A-Shares | AKShare + BaoStock | All SSE/SZSE stocks |
+| Indices | Yahoo Finance + Sina | S&P 500, Nasdaq, Shanghai Composite |
+
+No API keys required for basic market data.
+
 ## Contributing
 
 ```bash
