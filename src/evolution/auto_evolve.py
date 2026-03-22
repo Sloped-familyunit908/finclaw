@@ -29,7 +29,7 @@ import math
 import os
 import random
 import time
-from dataclasses import asdict, dataclass, fields
+from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -165,13 +165,27 @@ class StrategyDNA:
     w_debt_ratio: float = 0.0       # Debt-to-asset ratio
     w_cashflow: float = 0.0         # Operating cashflow quality
 
+    # === Dynamic factor weights (from factor discovery) ===
+    custom_weights: dict = field(default_factory=dict)
+
     def to_dict(self) -> dict:
-        return asdict(self)
+        d = asdict(self)
+        # Flatten custom_weights into top-level for serialization
+        cw = d.pop("custom_weights", {})
+        d.update(cw)
+        return d
 
     @classmethod
     def from_dict(cls, d: dict) -> "StrategyDNA":
         valid = {f.name for f in fields(cls)}
-        return cls(**{k: v for k, v in d.items() if k in valid})
+        known = {k: v for k, v in d.items() if k in valid and k != "custom_weights"}
+        # Any keys not in standard fields go into custom_weights
+        extra = {k: v for k, v in d.items() if k not in valid}
+        # Merge explicit custom_weights from dict if present
+        if "custom_weights" in d and isinstance(d["custom_weights"], dict):
+            extra.update(d["custom_weights"])
+        known["custom_weights"] = extra
+        return cls(**known)
 
 
 # Valid ranges for each parameter — (min, max, is_int)
@@ -238,6 +252,11 @@ _PARAM_RANGES: Dict[str, Tuple[float, float, bool]] = {
     "w_debt_ratio": (0.0, 1.0, False),
     "w_cashflow": (0.0, 1.0, False),
 }
+
+
+def get_all_weight_keys(dna: StrategyDNA) -> List[str]:
+    """Return builtin weight keys + dynamic custom weight keys."""
+    return _WEIGHT_KEYS + list(dna.custom_weights.keys())
 
 
 @dataclass
@@ -1276,6 +1295,26 @@ def score_stock(
     )
 
     total_weight = sum(getattr(dna, k) for k in _WEIGHT_KEYS)
+
+    # ──── Dynamic factors (from custom_weights via factor discovery) ────
+    if hasattr(dna, 'custom_weights') and dna.custom_weights:
+        factor_fns = indicators.get("_factor_fns", {})
+        closes_raw = indicators.get("close", [])
+        highs_raw = indicators.get("high", [])
+        lows_raw = indicators.get("low", [])
+        vols_raw = indicators.get("volume", [])
+
+        for fname, w in dna.custom_weights.items():
+            if w < 0.0001 or fname not in factor_fns:
+                continue
+            try:
+                factor_raw = factor_fns[fname](closes_raw, highs_raw, lows_raw, vols_raw, idx)
+                factor_raw = max(0.0, min(1.0, float(factor_raw)))
+            except Exception:
+                factor_raw = 0.5  # neutral on error
+            raw += w * factor_raw
+            total_weight += w
+
     if total_weight > 0:
         raw /= total_weight
 
@@ -1571,6 +1610,12 @@ class AutoEvolver:
         Mutation amount: ±10-30% of current value, clamped to valid ranges.
         """
         d = dna.to_dict()
+
+        # Extract custom weight keys (they were flattened into d by to_dict)
+        custom_keys = list(dna.custom_weights.keys())
+        # Remove them from d so they don't interfere with _PARAM_RANGES loop
+        custom_vals = {k: d.pop(k, 0.0) for k in custom_keys}
+
         for param, (lo, hi, is_int) in _PARAM_RANGES.items():
             if self.rng.random() < self.mutation_rate:
                 val = d[param]
@@ -1587,28 +1632,62 @@ class AutoEvolver:
                     new_val = int(round(new_val))
                 d[param] = new_val
 
-        # Normalize scoring weights so they sum ≈ 1.0
-        w_sum = sum(d[k] for k in _WEIGHT_KEYS)
+        # Mutate custom weights with the same mutation rate
+        for k in custom_keys:
+            if self.rng.random() < self.mutation_rate:
+                val = custom_vals[k]
+                pct = self.rng.uniform(0.10, 0.30)
+                direction = self.rng.choice([-1, 1])
+                delta = val * pct * direction
+                if abs(delta) < 0.01:
+                    delta = 0.01 * direction
+                custom_vals[k] = max(0.0, min(1.0, val + delta))
+
+        # Normalize ALL weights together (builtin + custom) to sum ≈ 1.0
+        w_sum = sum(d[k] for k in _WEIGHT_KEYS) + sum(custom_vals.values())
         if w_sum > 0:
             for k in _WEIGHT_KEYS:
                 d[k] = round(d[k] / w_sum, 4)
+            for k in custom_keys:
+                custom_vals[k] = round(custom_vals[k] / w_sum, 4)
 
+        # Put custom weights back into the dict for from_dict
+        d.update(custom_vals)
         return StrategyDNA.from_dict(d)
 
     def crossover(self, dna1: StrategyDNA, dna2: StrategyDNA) -> StrategyDNA:
         """Combine two strategies by randomly picking parameters from each parent."""
         d1 = dna1.to_dict()
         d2 = dna2.to_dict()
+
+        # Get union of custom weight keys from both parents
+        custom_keys_1 = set(dna1.custom_weights.keys())
+        custom_keys_2 = set(dna2.custom_weights.keys())
+        all_custom_keys = custom_keys_1 | custom_keys_2
+
+        # Remove custom keys from d1/d2 (they were flattened by to_dict)
+        cw1 = {k: d1.pop(k, 0.0) for k in all_custom_keys}
+        cw2 = {k: d2.pop(k, 0.0) for k in all_custom_keys}
+
         child = {}
         for key in d1:
-            child[key] = d1[key] if self.rng.random() < 0.5 else d2[key]
+            child[key] = d1[key] if self.rng.random() < 0.5 else d2.get(key, d1[key])
 
-        # Normalize weights
-        w_sum = sum(child[k] for k in _WEIGHT_KEYS)
+        # Merge custom weights from both parents (union of keys)
+        child_custom = {}
+        for k in all_custom_keys:
+            child_custom[k] = cw1[k] if self.rng.random() < 0.5 else cw2[k]
+
+        # Normalize ALL weights together (builtin + custom)
+        w_sum = sum(child[k] for k in _WEIGHT_KEYS) + sum(child_custom.values())
         if w_sum > 0:
             for k in _WEIGHT_KEYS:
                 child[k] = round(child[k] / w_sum, 4)
+            for k in all_custom_keys:
+                child_custom[k] = round(child_custom[k] / w_sum, 4)
 
+        # Put custom weights back into child dict for from_dict
+        child.update(child_custom)
         return StrategyDNA.from_dict(child)
 
     def evaluate(
@@ -1654,6 +1733,20 @@ class AutoEvolver:
                 profit_factor=0.0,
                 fitness=0.0,
             )
+
+        # Load dynamic factor registry (cached on self)
+        if not hasattr(self, '_factor_registry'):
+            try:
+                from src.evolution.factor_discovery import FactorRegistry, create_seed_factors
+                create_seed_factors("factors")
+                self._factor_registry = FactorRegistry("factors")
+                self._factor_registry.load_all()
+                factor_names = self._factor_registry.list_factors()
+                if factor_names:
+                    print(f"  [factors] loaded {len(factor_names)} dynamic factors: {factor_names}")
+            except Exception as e:
+                print(f"  [factors] skipped: {e}")
+                self._factor_registry = None
 
         # Deterministic sampling: use gen_seed so same generation always
         # picks the same stocks, eliminating sampling noise.
@@ -1733,6 +1826,13 @@ class AutoEvolver:
                 "aroon": aroon,
                 "pv_corr": pv_corr,
             }
+
+            # Store dynamic factor compute functions for on-the-fly scoring
+            if self._factor_registry and self._factor_registry.factors:
+                indicators[code]["_factor_fns"] = {
+                    fname: self._factor_registry.factors[fname].compute_fn
+                    for fname in self._factor_registry.list_factors()
+                }
 
         # Load fundamental data (once per session, cached)
         if not hasattr(self, '_fund_data_cache'):
@@ -2078,6 +2178,35 @@ class AutoEvolver:
             parents = [StrategyDNA()]  # default seed
             start_gen = 0
             print("Starting fresh with default strategy DNA")
+
+        # Load factor registry and initialize custom_weights for all parents
+        if not hasattr(self, '_factor_registry'):
+            try:
+                from src.evolution.factor_discovery import FactorRegistry, create_seed_factors
+                create_seed_factors("factors")
+                self._factor_registry = FactorRegistry("factors")
+                self._factor_registry.load_all()
+                factor_names = self._factor_registry.list_factors()
+                if factor_names:
+                    print(f"  [factors] loaded {len(factor_names)} dynamic factors: {factor_names}")
+            except Exception as e:
+                print(f"  [factors] skipped: {e}")
+                self._factor_registry = None
+
+        # Ensure all parents have custom_weights populated with discovered factor names
+        if self._factor_registry and self._factor_registry.factors:
+            discovered = self._factor_registry.list_factors()
+            updated_parents = []
+            for p in parents:
+                cw = dict(p.custom_weights)  # copy
+                for fname in discovered:
+                    if fname not in cw:
+                        cw[fname] = 0.0
+                updated_parents.append(StrategyDNA(
+                    **{f.name: getattr(p, f.name) for f in fields(p) if f.name != 'custom_weights'},
+                    custom_weights=cw,
+                ))
+            parents = updated_parents
 
         print(f"Population: {self.population_size} | Elite: {self.elite_count} | "
               f"Mutation rate: {self.mutation_rate}")
