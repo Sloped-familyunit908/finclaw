@@ -1,6 +1,16 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/app/components/ui/table";
+import { Badge } from "@/app/components/ui/badge";
+import { Button } from "@/app/components/ui/button";
 
 /* ── Types ── */
 export interface ScreenerRow {
@@ -32,7 +42,6 @@ function formatPrice(value: number, market?: string): string {
   if (value >= 1) {
     return symbol + value.toLocaleString(undefined, { maximumFractionDigits: 2 });
   }
-  // sub-dollar (crypto decimals)
   return symbol + value.toLocaleString(undefined, { maximumFractionDigits: 4 });
 }
 
@@ -71,7 +80,7 @@ function SortIndicator({
   }
   return (
     <span className="text-gray-400 ml-1">
-      {currentOrder === "asc" ? "^" : "v"}
+      {currentOrder === "asc" ? "▲" : "▼"}
     </span>
   );
 }
@@ -81,13 +90,13 @@ function SkeletonRows() {
   return (
     <>
       {Array.from({ length: 8 }).map((_, i) => (
-        <tr key={i} className="border-b border-gray-800/30">
-          {Array.from({ length: 8 }).map((_, j) => (
-            <td key={j} className="px-3 py-2.5">
+        <TableRow key={i}>
+          {Array.from({ length: 7 }).map((_, j) => (
+            <TableCell key={j}>
               <div className="h-3.5 bg-gray-800/60 rounded animate-pulse" />
-            </td>
+            </TableCell>
           ))}
-        </tr>
+        </TableRow>
       ))}
     </>
   );
@@ -127,15 +136,15 @@ function exportCSV(data: ScreenerRow[]) {
 
 /* ── Market badge ── */
 function MarketBadge({ market }: { market?: string }) {
-  let colors = "text-gray-400 bg-gray-800/40";
-  if (market === "US") colors = "text-blue-400 bg-blue-950/40";
-  else if (market === "A股") colors = "text-yellow-400 bg-yellow-950/40";
-  else if (market === "Crypto") colors = "text-purple-400 bg-purple-950/40";
+  let variant: "info" | "warning" | "purple" | "secondary" = "secondary";
+  if (market === "US") variant = "info";
+  else if (market === "A股") variant = "warning";
+  else if (market === "Crypto") variant = "purple";
 
   return (
-    <span className={`text-[10px] px-1.5 py-0.5 rounded ${colors}`}>
+    <Badge variant={variant} className="text-[10px]">
       {market ?? "--"}
-    </span>
+    </Badge>
   );
 }
 
@@ -174,14 +183,16 @@ export default function ScreenerResults({
   /* Error state */
   if (error) {
     return (
-      <div className="rounded border border-red-900/40 bg-red-950/20 p-8 text-center">
+      <div className="rounded-lg border border-red-900/40 bg-red-950/20 p-8 text-center">
         <p className="text-sm text-red-400">{error}</p>
-        <button
+        <Button
+          variant="destructive"
+          size="sm"
           onClick={onRetry}
-          className="mt-4 px-4 py-2 text-xs bg-red-900/40 hover:bg-red-900/60 border border-red-800/50 rounded text-red-300 transition-colors"
+          className="mt-4"
         >
           Retry
-        </button>
+        </Button>
       </div>
     );
   }
@@ -189,7 +200,7 @@ export default function ScreenerResults({
   /* Empty state (only after loading) */
   if (!loading && data.length === 0) {
     return (
-      <div className="rounded border border-gray-800/50 bg-[#13131a] p-8 text-center">
+      <div className="rounded-lg border border-gray-800/50 bg-[#13131a] p-8 text-center">
         <p className="text-sm text-gray-400">
           No stocks match your filters. Try adjusting the criteria.
         </p>
@@ -209,24 +220,25 @@ export default function ScreenerResults({
           )}
         </p>
         {!loading && data.length > 0 && (
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => exportCSV(data)}
-            className="px-3 py-1.5 text-xs text-gray-400 hover:text-gray-200 bg-gray-800/40 hover:bg-gray-800/60 border border-gray-700/40 rounded transition-colors"
           >
             Export CSV
-          </button>
+          </Button>
         )}
       </div>
 
       {/* Table */}
-      <div className="rounded border border-gray-800/50 bg-[#13131a] overflow-x-auto">
-        <table className="w-full text-xs">
-          <thead>
-            <tr className="border-b border-gray-800/60 bg-gray-900/40">
+      <div className="rounded-lg border border-gray-800/50 bg-[#13131a] overflow-hidden">
+        <Table className="text-xs">
+          <TableHeader>
+            <TableRow className="bg-gray-900/40 hover:bg-gray-900/40">
               {headerCols.map((col) => (
-                <th
+                <TableHead
                   key={col.field}
-                  className={`px-3 py-2.5 font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-300 transition-colors select-none ${col.align}`}
+                  className={`cursor-pointer hover:text-gray-300 transition-colors select-none ${col.align}`}
                   onClick={() => onSort(col.field)}
                 >
                   {col.label}
@@ -235,35 +247,35 @@ export default function ScreenerResults({
                     currentSort={sortField}
                     currentOrder={sortOrder}
                   />
-                </th>
+                </TableHead>
               ))}
-            </tr>
-          </thead>
-          <tbody>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {loading ? (
               <SkeletonRows />
             ) : (
               data.map((row) => (
-                <tr
+                <TableRow
                   key={row.asset}
-                  className="border-b border-gray-800/30 hover:bg-gray-800/30 cursor-pointer transition-colors"
+                  className="cursor-pointer"
                   onClick={() =>
                     router.push(`/stock/${encodeURIComponent(row.asset)}`)
                   }
                 >
-                  <td className="px-3 py-2.5 font-mono font-semibold text-gray-200">
+                  <TableCell className="font-mono font-semibold text-gray-200">
                     {row.asset}
-                  </td>
-                  <td className="px-3 py-2.5 text-gray-400 truncate max-w-[180px]">
+                  </TableCell>
+                  <TableCell className="text-gray-400 truncate max-w-[180px]">
                     {row.nameCn
                       ? `${row.nameCn}`
                       : row.name ?? row.asset}
-                  </td>
-                  <td className="px-3 py-2.5 text-right font-mono text-gray-200">
+                  </TableCell>
+                  <TableCell className="text-right font-mono text-gray-200">
                     {formatPrice(row.price, row.market)}
-                  </td>
-                  <td
-                    className={`px-3 py-2.5 text-right font-mono ${
+                  </TableCell>
+                  <TableCell
+                    className={`text-right font-mono ${
                       row.change24h > 0
                         ? "text-emerald-400"
                         : row.change24h < 0
@@ -272,21 +284,21 @@ export default function ScreenerResults({
                     }`}
                   >
                     {formatChange(row.change24h)}
-                  </td>
-                  <td className="px-3 py-2.5 text-right font-mono text-gray-400">
+                  </TableCell>
+                  <TableCell className="text-right font-mono text-gray-400">
                     {formatVolume(row.volume24h, row.market)}
-                  </td>
-                  <td className="px-3 py-2.5 text-right font-mono text-gray-400">
+                  </TableCell>
+                  <TableCell className="text-right font-mono text-gray-400">
                     {formatCompact(row.marketCap, row.market)}
-                  </td>
-                  <td className="px-3 py-2.5 text-center">
+                  </TableCell>
+                  <TableCell className="text-center">
                     <MarketBadge market={row.market} />
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
     </div>
   );

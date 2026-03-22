@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/app/components/ui/card";
 
 interface SectorData {
   name: string;
@@ -43,14 +44,16 @@ export default function SectorHeatmap() {
 
   if (loading) {
     return (
-      <section className="rounded border border-gray-800/60 bg-[#13131a] p-4">
-        <h2 className="text-xs font-semibold text-gray-500 tracking-wider uppercase mb-3">
-          S&P 500 Sectors
-        </h2>
-        <div className="h-[180px] flex items-center justify-center">
-          <div className="animate-spin w-5 h-5 border-2 border-slate-600 border-t-transparent rounded-full" />
-        </div>
-      </section>
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle>S&P 500 Sectors</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[180px] flex items-center justify-center">
+            <div className="animate-spin w-5 h-5 border-2 border-slate-600 border-t-transparent rounded-full" />
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -62,44 +65,45 @@ export default function SectorHeatmap() {
   const totalWeight = sorted.reduce((s, sec) => s + sec.weight, 0);
 
   return (
-    <section className="rounded border border-gray-800/60 bg-[#13131a] p-4">
-      <h2 className="text-xs font-semibold text-gray-500 tracking-wider uppercase mb-3">
-        S&P 500 Sectors
-      </h2>
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle>S&P 500 Sectors</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-wrap gap-[2px]" style={{ height: "180px" }}>
+          {sorted.map((sector) => {
+            const pct = (sector.weight / totalWeight) * 100;
+            const changeStr =
+              (sector.change >= 0 ? "+" : "") + sector.change.toFixed(2) + "%";
 
-      <div className="flex flex-wrap gap-[2px]" style={{ height: "180px" }}>
-        {sorted.map((sector) => {
-          const pct = (sector.weight / totalWeight) * 100;
-          const changeStr =
-            (sector.change >= 0 ? "+" : "") + sector.change.toFixed(2) + "%";
-
-          return (
-            <div
-              key={sector.symbol}
-              className={`${getChangeColor(sector.change)} rounded-sm flex flex-col items-center justify-center cursor-default transition-opacity hover:opacity-90 overflow-hidden`}
-              style={{
-                flexBasis: `${Math.max(pct - 0.2, 4)}%`,
-                flexGrow: pct > 10 ? 2 : 1,
-                minWidth: "50px",
-                minHeight: "48px",
-              }}
-              title={`${sector.name} (${sector.symbol}) ${changeStr}`}
-            >
-              <span className="text-[10px] text-gray-300 font-medium leading-tight text-center px-1 truncate w-full">
-                {sector.name}
-              </span>
-              <span
-                className={`text-xs font-mono font-bold ${getTextColor(sector.change)}`}
+            return (
+              <div
+                key={sector.symbol}
+                className={`${getChangeColor(sector.change)} rounded-sm flex flex-col items-center justify-center cursor-default transition-opacity hover:opacity-90 overflow-hidden`}
+                style={{
+                  flexBasis: `${Math.max(pct - 0.2, 4)}%`,
+                  flexGrow: pct > 10 ? 2 : 1,
+                  minWidth: "50px",
+                  minHeight: "48px",
+                }}
+                title={`${sector.name} (${sector.symbol}) ${changeStr}`}
               >
-                {changeStr}
-              </span>
-              <span className="text-[9px] text-gray-500 font-mono">
-                {sector.symbol}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    </section>
+                <span className="text-[10px] text-gray-300 font-medium leading-tight text-center px-1 truncate w-full">
+                  {sector.name}
+                </span>
+                <span
+                  className={`text-xs font-mono font-bold ${getTextColor(sector.change)}`}
+                >
+                  {changeStr}
+                </span>
+                <span className="text-[9px] text-gray-500 font-mono">
+                  {sector.symbol}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
   );
 }

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/app/components/ui/card";
+import { Badge } from "@/app/components/ui/badge";
 
 /* ── Types ── */
 interface NewsItem {
@@ -40,18 +42,16 @@ function displayDomain(url: string): string {
 
 /* ── Sentiment badge ── */
 function SentimentBadge({ sentiment }: { sentiment: "positive" | "negative" | "neutral" }) {
-  const config = {
-    positive: { label: "Positive", className: "text-green-400" },
-    negative: { label: "Negative", className: "text-red-400" },
-    neutral: { label: "Neutral", className: "text-gray-500" },
+  const variantMap = {
+    positive: "success" as const,
+    negative: "destructive" as const,
+    neutral: "secondary" as const,
   };
 
-  const { label, className } = config[sentiment];
-
   return (
-    <span className={`text-[10px] font-semibold uppercase tracking-wider ${className}`}>
-      [{label}]
-    </span>
+    <Badge variant={variantMap[sentiment]} className="text-[9px] px-1 py-0">
+      {sentiment}
+    </Badge>
   );
 }
 
@@ -110,86 +110,91 @@ export default function NewsPanel({
 
   if (compact) {
     return (
-      <div className="rounded border border-gray-800/60 bg-[#13131a] p-5">
-        <h3 className="text-sm font-semibold text-gray-400 mb-4">Market News</h3>
-        {loading ? (
-          <NewsSkeleton />
-        ) : error || news.length === 0 ? (
-          <p className="text-xs text-gray-600">No news available</p>
-        ) : (
-          <ul className="space-y-2.5">
-            {news.map((item, i) => (
-              <li key={i}>
-                <a
-                  href={item.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group block"
-                >
-                  <p className="text-xs text-gray-300 group-hover:text-white transition-colors line-clamp-2 leading-relaxed">
-                    {item.title}
-                  </p>
-                  <p className="text-[10px] text-gray-600 mt-0.5">
-                    {displayDomain(item.url) || item.source}
-                    {item.publishedAt && (
-                      <> · {timeAgo(item.publishedAt)}</>
-                    )}
-                  </p>
-                </a>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    );
-  }
-
-  return (
-    <section className="rounded border border-gray-800/60 bg-[#13131a] p-6">
-      <h2 className="text-sm font-semibold text-gray-400 mb-4">
-        Recent News
-      </h2>
-
-      {loading ? (
-        <NewsSkeleton />
-      ) : error || news.length === 0 ? (
-        <p className="text-xs text-gray-600">No news available for {ticker}</p>
-      ) : (
-        <ul className="space-y-3">
-          {news.map((item, i) => (
-            <li
-              key={i}
-              className="group"
-            >
-              <a
-                href={item.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block hover:bg-gray-900/30 rounded -mx-2 px-2 py-1.5 transition-colors"
-              >
-                <div className="flex items-start gap-2">
-                  {item.sentiment && (
-                    <div className="flex-shrink-0 pt-0.5">
-                      <SentimentBadge sentiment={item.sentiment} />
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-300 group-hover:text-white transition-colors line-clamp-2 leading-snug">
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="normal-case text-sm font-semibold">Market News</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <NewsSkeleton />
+          ) : error || news.length === 0 ? (
+            <p className="text-xs text-gray-600">No news available</p>
+          ) : (
+            <ul className="space-y-2.5">
+              {news.map((item, i) => (
+                <li key={i}>
+                  <a
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group block"
+                  >
+                    <p className="text-xs text-gray-300 group-hover:text-white transition-colors line-clamp-2 leading-relaxed">
                       {item.title}
                     </p>
-                    <p className="text-[11px] text-gray-600 mt-1">
+                    <p className="text-[10px] text-gray-600 mt-0.5">
                       {displayDomain(item.url) || item.source}
                       {item.publishedAt && (
                         <> · {timeAgo(item.publishedAt)}</>
                       )}
                     </p>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="normal-case text-sm font-semibold">Recent News</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <NewsSkeleton />
+        ) : error || news.length === 0 ? (
+          <p className="text-xs text-gray-600">No news available for {ticker}</p>
+        ) : (
+          <ul className="space-y-3">
+            {news.map((item, i) => (
+              <li
+                key={i}
+                className="group"
+              >
+                <a
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block hover:bg-gray-900/30 rounded -mx-2 px-2 py-1.5 transition-colors"
+                >
+                  <div className="flex items-start gap-2">
+                    {item.sentiment && (
+                      <div className="flex-shrink-0 pt-0.5">
+                        <SentimentBadge sentiment={item.sentiment} />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-gray-300 group-hover:text-white transition-colors line-clamp-2 leading-snug">
+                        {item.title}
+                      </p>
+                      <p className="text-[11px] text-gray-600 mt-1">
+                        {displayDomain(item.url) || item.source}
+                        {item.publishedAt && (
+                          <> · {timeAgo(item.publishedAt)}</>
+                        )}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </a>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
   );
 }

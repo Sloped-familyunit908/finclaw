@@ -13,7 +13,7 @@
 ## Weekly Returns
 | Week | US | CN | Combined |
 |------|----|----|----------|
-| (starting...) | - | - | - |
+| W12 | +0.0% | +0.0% | +0.0% |
 
 *Updated daily by automated pipeline. Past performance does not guarantee future results.*
 *Individual positions are not disclosed. Only aggregate performance is shown.*

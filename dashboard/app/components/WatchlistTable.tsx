@@ -6,6 +6,24 @@ import { useRouter } from "next/navigation";
 import type { MarketData } from "@/app/types";
 import { searchTickers, findTicker, type TickerInfo } from "@/app/lib/tickers";
 import { fmt } from "@/app/lib/utils";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/app/components/ui/table";
+import { Badge } from "@/app/components/ui/badge";
+import { Input } from "@/app/components/ui/input";
+import { Button } from "@/app/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/app/components/ui/dialog";
 
 /* ── Constants ── */
 const STORAGE_KEY = "finclaw_watchlist"; // legacy compat
@@ -33,6 +51,13 @@ function isCnSymbol(symbol: string): boolean {
   return /\.(SH|SZ)$/i.test(symbol);
 }
 
+function getMarketBadgeVariant(market: string): "info" | "warning" | "purple" | "secondary" {
+  if (market === "US") return "info";
+  if (market === "CN") return "warning";
+  if (market === "Crypto") return "purple";
+  return "secondary";
+}
+
 /* ── Load watchlists (with legacy migration) ── */
 function loadWatchlists(): { store: WatchlistStore; active: string } {
   try {
@@ -40,7 +65,6 @@ function loadWatchlists(): { store: WatchlistStore; active: string } {
     if (multiRaw) {
       const store = JSON.parse(multiRaw) as WatchlistStore;
       const active = localStorage.getItem(ACTIVE_WATCHLIST_KEY) || DEFAULT_WATCHLIST_NAME;
-      // Ensure active watchlist exists
       if (!store[active]) {
         const first = Object.keys(store)[0] || DEFAULT_WATCHLIST_NAME;
         if (!store[first]) store[first] = DEFAULT_TICKERS;
@@ -49,7 +73,6 @@ function loadWatchlists(): { store: WatchlistStore; active: string } {
       return { store, active };
     }
 
-    // Migrate from legacy single watchlist
     const legacyRaw = localStorage.getItem(STORAGE_KEY);
     if (legacyRaw) {
       const parsed = JSON.parse(legacyRaw);
@@ -71,7 +94,6 @@ function saveWatchlists(store: WatchlistStore, active: string) {
   try {
     localStorage.setItem(MULTI_STORAGE_KEY, JSON.stringify(store));
     localStorage.setItem(ACTIVE_WATCHLIST_KEY, active);
-    // Also keep legacy key in sync for compatibility
     if (store[active]) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(store[active]));
     }
@@ -98,8 +120,8 @@ function SortHeader({
 }) {
   const isActive = currentField === field;
   return (
-    <th
-      className={`py-2.5 px-3 cursor-pointer select-none hover:text-gray-200 transition-colors text-xs uppercase tracking-wider ${className}`}
+    <TableHead
+      className={`cursor-pointer select-none hover:text-gray-200 transition-colors ${className}`}
       onClick={() => onSort(field)}
     >
       <span className="inline-flex items-center gap-1">
@@ -108,7 +130,7 @@ function SortHeader({
           <span className="text-[10px]">{currentDir === "asc" ? "\u25B2" : "\u25BC"}</span>
         )}
       </span>
-    </th>
+    </TableHead>
   );
 }
 
@@ -184,21 +206,19 @@ function AddTickerInput({ onAdd }: { onAdd: (symbol: string) => void }) {
 
   return (
     <div ref={containerRef} className="relative">
-      <div className="flex items-center gap-2">
-        <input
-          ref={inputRef}
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={handleKeyDown}
-          onFocus={() => query.trim() && setOpen(true)}
-          placeholder="Add ticker..."
-          className="w-40 px-3 py-1.5 text-xs bg-gray-900/60 border border-gray-700/50 rounded text-gray-300 placeholder-gray-600 focus:outline-none focus:border-slate-500/60 font-mono"
-        />
-      </div>
+      <Input
+        ref={inputRef}
+        type="text"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        onKeyDown={handleKeyDown}
+        onFocus={() => query.trim() && setOpen(true)}
+        placeholder="Add ticker..."
+        className="w-40 h-8"
+      />
 
       {open && results.length > 0 && (
-        <div className="absolute top-full left-0 mt-1 w-72 bg-[#13131a] border border-gray-700/60 rounded shadow-xl z-50 max-h-64 overflow-y-auto">
+        <div className="absolute top-full left-0 mt-1 w-72 bg-[#13131a] border border-gray-700/60 rounded-md shadow-xl z-50 max-h-64 overflow-y-auto">
           {results.map((t, i) => (
             <button
               key={t.symbol}
@@ -229,9 +249,11 @@ function AddTickerInput({ onAdd }: { onAdd: (symbol: string) => void }) {
 
 /* ── New Watchlist Dialog ── */
 function NewWatchlistDialog({
+  open,
   onAdd,
   onClose,
 }: {
+  open: boolean;
   onAdd: (name: string) => void;
   onClose: () => void;
 }) {
@@ -239,8 +261,11 @@ function NewWatchlistDialog({
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
+    if (open) {
+      setName("");
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+  }, [open]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -252,42 +277,32 @@ function NewWatchlistDialog({
   };
 
   return (
-    <div
-      className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100]"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div className="bg-[#13131a] border border-gray-800/60 rounded-lg p-5 w-full max-w-sm animate-fade-in">
-        <h3 className="text-sm font-semibold text-gray-300 mb-3">
-          New Watchlist
-        </h3>
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <input
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>New Watchlist</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Input
             ref={inputRef}
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Watchlist name..."
-            className="w-full px-3 py-2 text-sm bg-gray-900/60 border border-gray-700/50 rounded text-gray-200 placeholder-gray-600 focus:outline-none focus:border-slate-500/60"
+            className="h-9 text-sm"
             required
           />
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-3 py-1.5 text-xs text-gray-400 hover:text-gray-200 transition-colors"
-            >
+          <DialogFooter>
+            <Button type="button" variant="ghost" size="sm" onClick={onClose}>
               Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-3 py-1.5 text-xs bg-slate-700/60 border border-slate-600/50 rounded text-white hover:bg-slate-700/80 transition-colors"
-            >
+            </Button>
+            <Button type="submit" variant="secondary" size="sm">
               Create
-            </button>
-          </div>
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -502,7 +517,7 @@ export default function WatchlistTable() {
   };
 
   const handleNewWatchlist = (name: string) => {
-    if (watchlistStore[name]) return; // Already exists
+    if (watchlistStore[name]) return;
     const newStore = { ...watchlistStore, [name]: [] };
     persistStore(newStore, name);
   };
@@ -514,8 +529,8 @@ export default function WatchlistTable() {
   };
 
   const handleDeleteWatchlist = (name: string) => {
-    if (name === DEFAULT_WATCHLIST_NAME) return; // Can't delete default
-    if (watchlistNames.length <= 1) return; // Must have at least one
+    if (name === DEFAULT_WATCHLIST_NAME) return;
+    if (watchlistNames.length <= 1) return;
     const newStore = { ...watchlistStore };
     delete newStore[name];
     const newActive = name === activeWatchlist
@@ -539,18 +554,20 @@ export default function WatchlistTable() {
 
           {/* Watchlist selector dropdown */}
           <div ref={dropdownRef} className="relative">
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setShowDropdown(!showDropdown)}
-              className="px-2 py-1 text-xs bg-gray-800/60 border border-gray-700/50 rounded text-gray-300 hover:bg-gray-800/80 transition-colors flex items-center gap-1"
+              className="h-7 text-xs gap-1"
             >
               {activeWatchlist}
               <span className="text-[10px] text-gray-500">
                 {showDropdown ? "\u25B2" : "\u25BC"}
               </span>
-            </button>
+            </Button>
 
             {showDropdown && (
-              <div className="absolute top-full left-0 mt-1 w-48 bg-[#13131a] border border-gray-700/60 rounded shadow-xl z-50">
+              <div className="absolute top-full left-0 mt-1 w-48 bg-[#13131a] border border-gray-700/60 rounded-md shadow-xl z-50">
                 {watchlistNames.map((name) => (
                   <div
                     key={name}
@@ -576,7 +593,7 @@ export default function WatchlistTable() {
                         className="text-gray-600 hover:text-red-400 transition-colors ml-2"
                         title="Delete watchlist"
                       >
-                        X
+                        ✕
                       </button>
                     )}
                   </div>
@@ -600,38 +617,38 @@ export default function WatchlistTable() {
         <AddTickerInput onAdd={handleAdd} />
       </div>
 
-      <div className="overflow-x-auto rounded border border-gray-800/60">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-gray-900/50 text-gray-400">
+      <div className="rounded-lg border border-gray-800/60 overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-gray-900/50 hover:bg-gray-900/50">
               <SortHeader label="Ticker" field="ticker" currentField={sortField} currentDir={sortDir} onSort={handleSort} className="text-left px-4" />
               <SortHeader label="Name" field="name" currentField={sortField} currentDir={sortDir} onSort={handleSort} className="text-left hidden lg:table-cell" />
               <SortHeader label="Last" field="price" currentField={sortField} currentDir={sortDir} onSort={handleSort} className="text-right" />
               <SortHeader label="Chg%" field="change" currentField={sortField} currentDir={sortDir} onSort={handleSort} className="text-right" />
               <SortHeader label="Volume" field="volume" currentField={sortField} currentDir={sortDir} onSort={handleSort} className="text-right hidden sm:table-cell" />
               <SortHeader label="Mkt Cap" field="marketCap" currentField={sortField} currentDir={sortDir} onSort={handleSort} className="text-right hidden md:table-cell" />
-              <th className="py-2.5 px-3 text-right text-xs uppercase tracking-wider w-10"></th>
-            </tr>
-          </thead>
-          <tbody>
+              <TableHead className="text-right w-10"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {loading && rows.length === 0 ? (
               Array.from({ length: DEFAULT_TICKERS.length }).map((_, i) => (
-                <tr key={i} className="border-t border-gray-800/30 animate-pulse">
-                  <td className="py-2.5 px-4"><div className="h-4 w-16 bg-gray-800 rounded" /></td>
-                  <td className="py-2.5 px-3 hidden lg:table-cell"><div className="h-4 w-24 bg-gray-800 rounded" /></td>
-                  <td className="py-2.5 px-3 text-right"><div className="h-4 w-16 bg-gray-800 rounded ml-auto" /></td>
-                  <td className="py-2.5 px-3 text-right"><div className="h-4 w-14 bg-gray-800 rounded ml-auto" /></td>
-                  <td className="py-2.5 px-3 text-right hidden sm:table-cell"><div className="h-4 w-16 bg-gray-800 rounded ml-auto" /></td>
-                  <td className="py-2.5 px-3 text-right hidden md:table-cell"><div className="h-4 w-16 bg-gray-800 rounded ml-auto" /></td>
-                  <td className="py-2.5 px-3 w-10" />
-                </tr>
+                <TableRow key={i} className="animate-pulse">
+                  <TableCell className="px-4"><div className="h-4 w-16 bg-gray-800 rounded" /></TableCell>
+                  <TableCell className="hidden lg:table-cell"><div className="h-4 w-24 bg-gray-800 rounded" /></TableCell>
+                  <TableCell className="text-right"><div className="h-4 w-16 bg-gray-800 rounded ml-auto" /></TableCell>
+                  <TableCell className="text-right"><div className="h-4 w-14 bg-gray-800 rounded ml-auto" /></TableCell>
+                  <TableCell className="text-right hidden sm:table-cell"><div className="h-4 w-16 bg-gray-800 rounded ml-auto" /></TableCell>
+                  <TableCell className="text-right hidden md:table-cell"><div className="h-4 w-16 bg-gray-800 rounded ml-auto" /></TableCell>
+                  <TableCell className="w-10" />
+                </TableRow>
               ))
             ) : sortedRows.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="py-8 text-center text-gray-600 text-xs">
+              <TableRow>
+                <TableCell colSpan={7} className="py-8 text-center text-gray-600 text-xs">
                   Watchlist is empty. Add a ticker above.
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ) : (
               sortedRows.map((row) => {
                 const isUp = row.change >= 0;
@@ -646,43 +663,43 @@ export default function WatchlistTable() {
                   : "N/A";
 
                 return (
-                  <tr
+                  <TableRow
                     key={row.symbol}
-                    className="border-t border-gray-800/30 hover:bg-gray-900/40 transition-colors cursor-pointer"
+                    className="cursor-pointer"
                     onClick={() => handleRowClick(row.symbol)}
                   >
-                    <td className="py-2 px-4">
+                    <TableCell className="px-4">
                       <div className="flex items-center gap-2">
                         <span className="font-mono font-semibold text-gray-100 text-xs">
                           {row.symbol}
                         </span>
-                        <span className="px-1 py-0.5 text-[9px] rounded bg-gray-800/60 text-gray-500">
+                        <Badge variant={getMarketBadgeVariant(row.market)} className="text-[9px] px-1 py-0">
                           {row.market}
-                        </span>
+                        </Badge>
                       </div>
-                    </td>
-                    <td className="py-2 px-3 text-gray-400 text-xs truncate max-w-[160px] hidden lg:table-cell">
+                    </TableCell>
+                    <TableCell className="text-gray-400 text-xs truncate max-w-[160px] hidden lg:table-cell">
                       {row.name}
-                    </td>
-                    <td className="py-2 px-3 text-right font-mono text-gray-200 text-xs">
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-gray-200 text-xs">
                       {fmtPrice}
-                    </td>
-                    <td
-                      className={`py-2 px-3 text-right font-mono font-bold text-xs ${
+                    </TableCell>
+                    <TableCell
+                      className={`text-right font-mono font-bold text-xs ${
                         isUp ? "text-[#22c55e]" : "text-[#ef4444]"
                       }`}
                     >
                       {row.price > 0
                         ? `${isUp ? "+" : ""}${row.change.toFixed(2)}%`
                         : "--"}
-                    </td>
-                    <td className="py-2 px-3 text-right font-mono text-gray-400 text-xs hidden sm:table-cell">
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-gray-400 text-xs hidden sm:table-cell">
                       {fmtVol}
-                    </td>
-                    <td className="py-2 px-3 text-right font-mono text-gray-400 text-xs hidden md:table-cell">
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-gray-400 text-xs hidden md:table-cell">
                       {fmtCap}
-                    </td>
-                    <td className="py-2 px-3 text-right w-10">
+                    </TableCell>
+                    <TableCell className="text-right w-10">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -691,24 +708,23 @@ export default function WatchlistTable() {
                         className="text-gray-600 hover:text-red-400 transition-colors text-xs font-mono"
                         title="Remove from watchlist"
                       >
-                        X
+                        ✕
                       </button>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 );
               })
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
       {/* New Watchlist Dialog */}
-      {showNewWatchlist && (
-        <NewWatchlistDialog
-          onAdd={handleNewWatchlist}
-          onClose={() => setShowNewWatchlist(false)}
-        />
-      )}
+      <NewWatchlistDialog
+        open={showNewWatchlist}
+        onAdd={handleNewWatchlist}
+        onClose={() => setShowNewWatchlist(false)}
+      />
     </section>
   );
 }

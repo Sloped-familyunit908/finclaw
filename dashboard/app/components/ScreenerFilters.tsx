@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { Input } from "@/app/components/ui/input";
+import { Button } from "@/app/components/ui/button";
 
 /* ── Filter state interface ── */
 export interface ScreenerFilterValues {
@@ -32,14 +34,14 @@ function FilterChip({
   onRemove: () => void;
 }) {
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] bg-slate-800/60 border border-slate-700/50 rounded text-gray-300">
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] bg-slate-800/60 border border-slate-700/50 rounded-md text-gray-300">
       {label}
       <button
         onClick={onRemove}
         className="ml-0.5 text-gray-500 hover:text-gray-300 transition-colors"
         aria-label={`Remove filter: ${label}`}
       >
-        x
+        ✕
       </button>
     </span>
   );
@@ -69,19 +71,19 @@ function RangeInput({
         {label}
       </label>
       <div className="flex gap-1">
-        <input
+        <Input
           type="number"
           value={minValue}
           onChange={(e) => onMinChange(e.target.value)}
           placeholder={minPlaceholder ?? "Min"}
-          className="w-20 px-2 py-1.5 text-xs bg-gray-900/60 border border-gray-700/50 rounded text-gray-300 placeholder-gray-600 focus:outline-none focus:border-slate-500/60 font-mono [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+          className="w-20 h-8 text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
         />
-        <input
+        <Input
           type="number"
           value={maxValue}
           onChange={(e) => onMaxChange(e.target.value)}
           placeholder={maxPlaceholder ?? "Max"}
-          className="w-20 px-2 py-1.5 text-xs bg-gray-900/60 border border-gray-700/50 rounded text-gray-300 placeholder-gray-600 focus:outline-none focus:border-slate-500/60 font-mono [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+          className="w-20 h-8 text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
         />
       </div>
     </div>
@@ -203,7 +205,7 @@ export default function ScreenerFilters({
           <select
             value={localFilters.market}
             onChange={(e) => update("market", e.target.value)}
-            className="px-2 py-1.5 text-xs bg-gray-900/60 border border-gray-700/50 rounded text-gray-300 focus:outline-none focus:border-slate-500/60 cursor-pointer"
+            className="flex h-8 rounded-md border border-gray-700/50 bg-gray-900/60 px-2 py-1.5 text-xs text-gray-300 shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-500/60 cursor-pointer font-mono"
           >
             <option value="all">All Markets</option>
             <option value="us">US</option>
@@ -246,12 +248,14 @@ export default function ScreenerFilters({
         {/* Reset button */}
         <div className="space-y-1">
           <label className="text-[10px] text-transparent select-none">_</label>
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             onClick={resetAll}
-            className="px-3 py-1.5 text-xs text-gray-400 hover:text-gray-200 bg-gray-800/40 hover:bg-gray-800/60 border border-gray-700/40 rounded transition-colors"
+            className="h-8"
           >
             Reset
-          </button>
+          </Button>
         </div>
       </div>
 

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { MarketData } from "@/app/types";
 import { findTicker } from "@/app/lib/tickers";
 import { fmt } from "@/app/lib/utils";
+import { Card, CardContent } from "@/app/components/ui/card";
 
 /* ── SVG Sparkline from price data ── */
 function Sparkline({ data, color }: { data: number[]; color: string }) {
@@ -175,15 +176,14 @@ export default function FeaturedCards() {
     return (
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {Array.from({ length: FEATURED_COUNT }).map((_, i) => (
-          <div
-            key={i}
-            className="rounded border border-gray-800/60 bg-[#13131a] p-4 animate-pulse"
-          >
-            <div className="h-3 w-12 bg-gray-800 rounded mb-3" />
-            <div className="h-6 w-20 bg-gray-800 rounded mb-2" />
-            <div className="h-3 w-14 bg-gray-800 rounded mb-3" />
-            <div className="h-8 w-full bg-gray-800/40 rounded" />
-          </div>
+          <Card key={i} className="animate-pulse">
+            <CardContent className="p-4">
+              <div className="h-3 w-12 bg-gray-800 rounded mb-3" />
+              <div className="h-6 w-20 bg-gray-800 rounded mb-2" />
+              <div className="h-3 w-14 bg-gray-800 rounded mb-3" />
+              <div className="h-8 w-full bg-gray-800/40 rounded" />
+            </CardContent>
+          </Card>
         ))}
       </div>
     );
@@ -202,37 +202,39 @@ export default function FeaturedCards() {
             : "--";
 
         return (
-          <button
+          <Card
             key={card.symbol}
+            className="cursor-pointer hover:bg-[#161622] hover:border-gray-700/60 transition-all group"
             onClick={() =>
               router.push(`/stock/${encodeURIComponent(card.symbol)}`)
             }
-            className="rounded border border-gray-800/60 bg-[#13131a] hover:bg-[#161622] hover:border-gray-700/60 transition-all p-4 text-left group"
           >
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-mono font-semibold text-gray-400 group-hover:text-gray-200 transition-colors">
-                {card.symbol}
-              </span>
-              <span
-                className={`text-[10px] font-mono font-bold ${
-                  isUp ? "text-[#22c55e]" : "text-[#ef4444]"
-                }`}
-              >
-                {card.price > 0
-                  ? `${isUp ? "+" : ""}${card.change.toFixed(2)}%`
-                  : "--"}
-              </span>
-            </div>
-            <p className="text-lg font-mono font-bold text-gray-100 mb-1">
-              {fmtPrice}
-            </p>
-            <p className="text-[10px] text-gray-600 truncate mb-2">
-              {card.name}
-            </p>
-            {card.sparkline.length > 1 && (
-              <Sparkline data={card.sparkline} color={color} />
-            )}
-          </button>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-mono font-semibold text-gray-400 group-hover:text-gray-200 transition-colors">
+                  {card.symbol}
+                </span>
+                <span
+                  className={`text-[10px] font-mono font-bold ${
+                    isUp ? "text-[#22c55e]" : "text-[#ef4444]"
+                  }`}
+                >
+                  {card.price > 0
+                    ? `${isUp ? "+" : ""}${card.change.toFixed(2)}%`
+                    : "--"}
+                </span>
+              </div>
+              <p className="text-lg font-mono font-bold text-gray-100 mb-1">
+                {fmtPrice}
+              </p>
+              <p className="text-[10px] text-gray-600 truncate mb-2">
+                {card.name}
+              </p>
+              {card.sparkline.length > 1 && (
+                <Sparkline data={card.sparkline} color={color} />
+              )}
+            </CardContent>
+          </Card>
         );
       })}
     </div>

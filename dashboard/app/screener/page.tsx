@@ -9,6 +9,9 @@ import ScreenerFilters, {
 import ScreenerResults, {
   type ScreenerRow,
 } from "@/app/components/ScreenerResults";
+import { Card, CardContent } from "@/app/components/ui/card";
+import { Input } from "@/app/components/ui/input";
+import { Button } from "@/app/components/ui/button";
 
 type SortField =
   | "ticker"
@@ -122,46 +125,44 @@ export default function ScreenerPage() {
               Stock Screener
             </h1>
           </div>
-          <Link
-            href="/"
-            className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
-          >
-            Back to Dashboard
-          </Link>
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/">Back to Dashboard</Link>
+          </Button>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
         {/* Natural language input */}
-        <div className="rounded border border-gray-800/50 bg-[#13131a] p-4">
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <input
-                type="text"
-                value={nlQuery}
-                onChange={(e) => setNlQuery(e.target.value)}
-                placeholder="Describe what you're looking for... (requires LLM in finclaw.config.ts)"
-                disabled
-                className="w-full px-3 py-2 text-xs bg-gray-900/60 border border-gray-700/50 rounded text-gray-500 placeholder-gray-600 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-              />
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <Input
+                  type="text"
+                  value={nlQuery}
+                  onChange={(e) => setNlQuery(e.target.value)}
+                  placeholder="Describe what you're looking for... (requires LLM in finclaw.config.ts)"
+                  disabled
+                  className="h-9 text-xs"
+                />
+              </div>
+              <Button disabled variant="secondary" size="sm" className="h-9">
+                Go
+              </Button>
             </div>
-            <button
-              disabled
-              className="px-4 py-2 text-xs bg-slate-700/40 border border-slate-600/50 rounded text-gray-500 disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              Go
-            </button>
-          </div>
-          <p className="text-[10px] text-gray-600 mt-1.5">
-            Natural language search requires LLM configuration. Configure in
-            finclaw.config.ts to enable.
-          </p>
-        </div>
+            <p className="text-[10px] text-gray-600 mt-1.5">
+              Natural language search requires LLM configuration. Configure in
+              finclaw.config.ts to enable.
+            </p>
+          </CardContent>
+        </Card>
 
         {/* Filters */}
-        <div className="rounded border border-gray-800/50 bg-[#13131a] p-4">
-          <ScreenerFilters filters={filters} onChange={handleFiltersChange} />
-        </div>
+        <Card>
+          <CardContent className="p-4">
+            <ScreenerFilters filters={filters} onChange={handleFiltersChange} />
+          </CardContent>
+        </Card>
 
         {/* Results */}
         <ScreenerResults

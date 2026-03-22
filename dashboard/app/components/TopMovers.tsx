@@ -7,11 +7,8 @@ import {
   US_TICKERS,
   CRYPTO_TICKERS,
 } from "@/app/lib/fallbackData";
-
-/* ════════════════════════════════════════════════════════════════
-   TOP MOVERS WIDGET — Gainers & Losers
-   Shows top 5 gainers and top 5 losers with mini change bars.
-   ════════════════════════════════════════════════════════════════ */
+import { Card, CardHeader, CardTitle, CardContent } from "@/app/components/ui/card";
+import { Separator } from "@/app/components/ui/separator";
 
 export default function TopMovers() {
   const router = useRouter();
@@ -47,13 +44,11 @@ export default function TopMovers() {
 
   const { gainers, losers, maxAbsChange } = useMemo(() => {
     const sorted = [...allData].sort((a, b) => b.change24h - a.change24h);
-
-    // Split into positive (gainers) and negative (losers) — no overlap
     const positives = sorted.filter((d) => d.change24h >= 0);
     const negatives = sorted.filter((d) => d.change24h < 0);
 
     const g = positives.slice(0, 5);
-    const l = negatives.slice(0, 5); // Already sorted desc, first negatives are smallest losses
+    const l = negatives.slice(0, 5);
 
     const all = [...g, ...l];
     const maxAbs = all.reduce((m, d) => Math.max(m, Math.abs(d.change24h)), 1);
@@ -116,16 +111,17 @@ export default function TopMovers() {
   };
 
   return (
-    <div className="rounded border border-gray-800/60 bg-[#13131a] p-4">
-      <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-        Top Movers
-      </h3>
-      <div className="space-y-4">
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle>Top Movers</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
         {/* Gainers */}
         <div>
-          <h4 className="text-[10px] font-semibold text-[#22c55e] uppercase tracking-wider mb-1.5 border-b border-gray-800/40 pb-1">
+          <h4 className="text-[10px] font-semibold text-[#22c55e] uppercase tracking-wider mb-1.5">
             Gainers
           </h4>
+          <Separator className="mb-1.5" />
           <div className="space-y-0">
             {renderList(gainers)}
           </div>
@@ -133,14 +129,15 @@ export default function TopMovers() {
 
         {/* Losers */}
         <div>
-          <h4 className="text-[10px] font-semibold text-[#ef4444] uppercase tracking-wider mb-1.5 border-b border-gray-800/40 pb-1">
+          <h4 className="text-[10px] font-semibold text-[#ef4444] uppercase tracking-wider mb-1.5">
             Losers
           </h4>
+          <Separator className="mb-1.5" />
           <div className="space-y-0">
             {renderList(losers)}
           </div>
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

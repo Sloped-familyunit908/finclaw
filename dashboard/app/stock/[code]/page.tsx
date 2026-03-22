@@ -17,6 +17,10 @@ import { findTicker } from "@/app/lib/tickers";
 import TimeRangeSelector, { type TimeRange } from "@/app/components/TimeRangeSelector";
 import FundamentalsPanel from "@/app/components/FundamentalsPanel";
 import { SetAlertModal } from "@/app/components/PriceAlerts";
+import { Card, CardHeader, CardTitle, CardContent } from "@/app/components/ui/card";
+import { Badge } from "@/app/components/ui/badge";
+import { Button } from "@/app/components/ui/button";
+import { Separator } from "@/app/components/ui/separator";
 
 /* -- Helpers -- */
 function isCN(code: string) {
@@ -122,7 +126,6 @@ export default function StockDetailPage() {
       })
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) {
-          // De-duplicate by date (API may return duplicate timestamps)
           const seen = new Set<string>();
           const deduped = data.filter((d: { date: string }) => {
             if (seen.has(d.date)) return false;
@@ -147,9 +150,7 @@ export default function StockDetailPage() {
           setYearHistory(data);
         }
       })
-      .catch(() => {
-        // silent — 52w data is supplementary
-      });
+      .catch(() => {});
   }, [code]);
 
   // Compute 52-week high/low
@@ -216,7 +217,6 @@ export default function StockDetailPage() {
         wickUpColor: '#22c55e',
         wickDownColor: '#ef4444',
       });
-      // De-duplicate and sort by date (TradingView requires ascending unique times)
       const uniqueHistory = history.reduce((acc: typeof history, d) => {
         if (!acc.length || acc[acc.length - 1].date !== d.date) acc.push(d);
         return acc;
@@ -423,58 +423,61 @@ export default function StockDetailPage() {
     );
   }, [code, stockName, price, currentRSI, currentHist, currentSMA20, currentSMA50, cn, indicators]);
 
+  /* -- RSI badge variant -- */
+  const rsiBadgeVariant = currentRSI > 70 ? "destructive" as const : currentRSI < 30 ? "success" as const : "secondary" as const;
+  const rsiLabel = currentRSI > 70 ? "Overbought" : currentRSI < 30 ? "Oversold" : currentRSI > 60 ? "Above Neutral" : currentRSI < 40 ? "Below Neutral" : "Neutral";
+
   /* -- Render -- */
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-gray-100">
       {/* Header */}
       <header className="border-b border-gray-800/40 bg-[#0a0a0f]/90 backdrop-blur sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4">
-          <Link
-            href="/"
-            className="text-gray-400 hover:text-white transition-colors text-sm"
-          >
-            Back to Dashboard
-          </Link>
-          <div className="w-px h-5 bg-gray-700" />
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/">Back to Dashboard</Link>
+          </Button>
+          <Separator orientation="vertical" className="h-5" />
           <div className="flex items-center gap-3">
             <h1 className="text-xl font-bold text-white">{stockName}</h1>
             {tickerInfo?.nameCn && (
               <span className="text-sm text-gray-500 font-mono">{code}</span>
             )}
-            <span className="px-2 py-0.5 text-xs rounded bg-gray-800/60 text-gray-400">
+            <Badge variant={cn ? "warning" : crypto ? "purple" : "info"}>
               {cn ? "A-Share" : crypto ? "Crypto" : "US"}
-            </span>
+            </Badge>
           </div>
           <div className="ml-auto flex items-center gap-2">
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setShowAlertModal(true)}
-              className="px-3 py-1.5 text-xs rounded border border-gray-700/50 text-gray-400 hover:text-white hover:border-gray-600 transition-colors"
             >
               Set Alert
-            </button>
-            <Link
-              href={`/compare?a=${encodeURIComponent(code)}&b=`}
-              className="px-3 py-1.5 text-xs rounded border border-gray-700/50 text-gray-400 hover:text-white hover:border-gray-600 transition-colors"
-            >
-              Compare
-            </Link>
-            <button
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link href={`/compare?a=${encodeURIComponent(code)}&b=`}>
+                Compare
+              </Link>
+            </Button>
+            <Button
+              variant={watchlistState === "added" ? "outline" : "outline"}
+              size="sm"
               onClick={addToWatchlist}
               disabled={watchlistState === "exists"}
-              className={`px-3 py-1.5 text-xs rounded border transition-colors ${
+              className={
                 watchlistState === "exists"
-                  ? "border-gray-700/30 text-gray-600 cursor-default"
+                  ? "border-gray-700/30 text-gray-600"
                   : watchlistState === "added"
                     ? "border-green-800/50 text-[#22c55e]"
-                    : "border-gray-700/50 text-gray-400 hover:text-white hover:border-gray-600"
-              }`}
+                    : ""
+              }
             >
               {watchlistState === "exists"
                 ? "In Watchlist"
                 : watchlistState === "added"
-                  ? "Added"
+                  ? "Added ✓"
                   : "Add to Watchlist"}
-            </button>
+            </Button>
           </div>
         </div>
       </header>
@@ -490,307 +493,323 @@ export default function StockDetailPage() {
         {error && !loading && (
           <div className="text-center py-20">
             <p className="text-red-400 text-lg">{error}</p>
-            <Link href="/" className="text-gray-400 text-sm mt-4 inline-block hover:text-white">
-              Back to Dashboard
-            </Link>
+            <Button variant="ghost" size="sm" asChild className="mt-4">
+              <Link href="/">Back to Dashboard</Link>
+            </Button>
           </div>
         )}
 
         {!loading && !error && currentBar && (
           <>
             {/* -- Hero: Price & Stats Grid -- */}
-            <section className="rounded border border-gray-800/60 bg-[#13131a] p-6">
-              <div className="flex flex-wrap items-end gap-6 mb-4">
-                <div>
-                  <p className="text-4xl font-mono font-bold text-white">
-                    {fmtP(price, cn)}
-                  </p>
-                  <span
-                    className={`text-lg font-bold font-mono ${isUp ? "text-[#22c55e]" : "text-[#ef4444]"}`}
-                  >
-                    {isUp ? "+" : ""}{Math.abs(change).toFixed(2)}%
-                  </span>
-                </div>
-              </div>
-
-              {/* Stats Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-6 gap-y-3 text-sm border-t border-gray-800/40 pt-4">
-                <div>
-                  <span className="text-gray-500 text-xs">Open</span>
-                  <p className="font-mono text-gray-300">{fmtP(currentBar.open, cn)}</p>
-                </div>
-                <div>
-                  <span className="text-gray-500 text-xs">High</span>
-                  <p className="font-mono text-gray-300">{fmtP(currentBar.high, cn)}</p>
-                </div>
-                <div>
-                  <span className="text-gray-500 text-xs">Low</span>
-                  <p className="font-mono text-gray-300">{fmtP(currentBar.low, cn)}</p>
-                </div>
-                <div>
-                  <span className="text-gray-500 text-xs">Volume</span>
-                  <p className="font-mono text-gray-300">
-                    {currentBar.volume > 0
-                      ? cn
-                        ? fmt.compactCn(currentBar.volume)
-                        : fmt.compact(currentBar.volume)
-                      : "\u2014"}
-                  </p>
-                </div>
-                {week52 && (
-                  <>
-                    <div>
-                      <span className="text-gray-500 text-xs">52w High</span>
-                      <p className="font-mono text-gray-300">{fmtP(week52.high, cn)}</p>
-                    </div>
-                    <div>
-                      <span className="text-gray-500 text-xs">52w Low</span>
-                      <p className="font-mono text-gray-300">{fmtP(week52.low, cn)}</p>
-                    </div>
-                  </>
-                )}
-              </div>
-            </section>
-
-            {/* -- TradingView Price Chart + Time Range -- */}
-            <section className="rounded border border-gray-800/60 bg-[#13131a] p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-sm font-semibold text-gray-400">
-                  Price ({history.length}d)
-                </h2>
-                <TimeRangeSelector selected={timeRange} onChange={setTimeRange} />
-              </div>
-              <div ref={chartContainerRef} />
-            </section>
-
-            {/* -- Technical Indicators Grid -- */}
-            <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* RSI */}
-              <div className="rounded border border-gray-800/60 bg-[#13131a] p-5">
-                <h3 className="text-xs font-semibold text-gray-500 mb-3">RSI (14)</h3>
-                <p
-                  className={`text-3xl font-mono font-bold ${
-                    currentRSI > 70
-                      ? "text-[#ef4444]"
-                      : currentRSI < 30
-                        ? "text-[#22c55e]"
-                        : "text-gray-200"
-                  }`}
-                >
-                  {isNaN(currentRSI) ? "\u2014" : currentRSI.toFixed(1)}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {currentRSI > 70
-                    ? "Overbought zone"
-                    : currentRSI < 30
-                      ? "Oversold zone"
-                      : currentRSI > 60
-                        ? "Above neutral"
-                        : currentRSI < 40
-                          ? "Below neutral"
-                          : "Neutral range"}
-                </p>
-              </div>
-
-              {/* MACD */}
-              <div className="rounded border border-gray-800/60 bg-[#13131a] p-5">
-                <h3 className="text-xs font-semibold text-gray-500 mb-3">MACD</h3>
-                <div className="space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">MACD</span>
-                    <span className="font-mono text-gray-300">
-                      {isNaN(currentMACD) ? "\u2014" : currentMACD.toFixed(3)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Signal</span>
-                    <span className="font-mono text-gray-300">
-                      {isNaN(currentSignal) ? "\u2014" : currentSignal.toFixed(3)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Histogram</span>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex flex-wrap items-end gap-6 mb-4">
+                  <div>
+                    <p className="text-4xl font-mono font-bold text-white">
+                      {fmtP(price, cn)}
+                    </p>
                     <span
-                      className={`font-mono font-bold ${
-                        currentHist > 0 ? "text-[#22c55e]" : "text-[#ef4444]"
-                      }`}
+                      className={`text-lg font-bold font-mono ${isUp ? "text-[#22c55e]" : "text-[#ef4444]"}`}
                     >
-                      {isNaN(currentHist) ? "\u2014" : currentHist.toFixed(3)}
+                      {isUp ? "+" : ""}{Math.abs(change).toFixed(2)}%
                     </span>
                   </div>
                 </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  {currentHist > 0 ? "Bullish crossover" : "Bearish crossover"}
-                </p>
-              </div>
 
-              {/* Bollinger Bands */}
-              <div className="rounded border border-gray-800/60 bg-[#13131a] p-5">
-                <h3 className="text-xs font-semibold text-gray-500 mb-3">Bollinger Bands (20,2)</h3>
-                <div className="space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Upper</span>
-                    <span className="font-mono text-gray-300">
-                      {isNaN(currentBBUpper) ? "\u2014" : fmtP(currentBBUpper, cn)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Middle</span>
-                    <span className="font-mono text-gray-300">
-                      {isNaN(currentSMA20) ? "\u2014" : fmtP(currentSMA20, cn)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Lower</span>
-                    <span className="font-mono text-gray-300">
-                      {isNaN(currentBBLower) ? "\u2014" : fmtP(currentBBLower, cn)}
-                    </span>
-                  </div>
-                </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  {price > currentBBUpper
-                    ? "Price above upper band"
-                    : price < currentBBLower
-                      ? "Price below lower band"
-                      : "Price within band range"}
-                </p>
-              </div>
+                <Separator className="mb-4" />
 
-              {/* KDJ */}
-              <div className="rounded border border-gray-800/60 bg-[#13131a] p-5">
-                <h3 className="text-xs font-semibold text-gray-500 mb-3">KDJ (9,3,3)</h3>
-                <div className="space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">K</span>
-                    <span className="font-mono text-gray-300">
-                      {isNaN(currentK) ? "\u2014" : currentK.toFixed(1)}
-                    </span>
+                {/* Stats Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-6 gap-y-3 text-sm">
+                  <div>
+                    <span className="text-gray-500 text-xs">Open</span>
+                    <p className="font-mono text-gray-300">{fmtP(currentBar.open, cn)}</p>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">D</span>
-                    <span className="font-mono text-gray-300">
-                      {isNaN(currentD) ? "\u2014" : currentD.toFixed(1)}
-                    </span>
+                  <div>
+                    <span className="text-gray-500 text-xs">High</span>
+                    <p className="font-mono text-gray-300">{fmtP(currentBar.high, cn)}</p>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">J</span>
-                    <span
-                      className={`font-mono ${
-                        currentJ > 100 ? "text-[#ef4444]" : currentJ < 0 ? "text-[#22c55e]" : "text-gray-300"
-                      }`}
-                    >
-                      {isNaN(currentJ) ? "\u2014" : currentJ.toFixed(1)}
-                    </span>
+                  <div>
+                    <span className="text-gray-500 text-xs">Low</span>
+                    <p className="font-mono text-gray-300">{fmtP(currentBar.low, cn)}</p>
                   </div>
-                </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  {currentK > currentD ? "K above D (bullish)" : "K below D (bearish)"}
-                  {currentJ > 100 ? " / J overbought" : currentJ < 0 ? " / J oversold" : ""}
-                </p>
-              </div>
-
-              {/* SMA */}
-              <div className="rounded border border-gray-800/60 bg-[#13131a] p-5">
-                <h3 className="text-xs font-semibold text-gray-500 mb-3">Moving Averages</h3>
-                <div className="space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">SMA(20)</span>
-                    <span className="font-mono text-gray-300">
-                      {isNaN(currentSMA20) ? "\u2014" : fmtP(currentSMA20, cn)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">SMA(50)</span>
-                    <span className="font-mono text-gray-300">
-                      {isNaN(currentSMA50) ? "\u2014" : fmtP(currentSMA50, cn)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Trend</span>
-                    <span className="font-mono text-gray-300">
-                      {price > currentSMA20 && price > currentSMA50
-                        ? "Bullish"
-                        : price < currentSMA20 && price < currentSMA50
-                          ? "Bearish"
-                          : "Ranging"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Volume */}
-              <div className="rounded border border-gray-800/60 bg-[#13131a] p-5">
-                <h3 className="text-xs font-semibold text-gray-500 mb-3">Volume Summary</h3>
-                <div className="space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Latest Volume</span>
-                    <span className="font-mono text-gray-300">
+                  <div>
+                    <span className="text-gray-500 text-xs">Volume</span>
+                    <p className="font-mono text-gray-300">
                       {currentBar.volume > 0
                         ? cn
                           ? fmt.compactCn(currentBar.volume)
                           : fmt.compact(currentBar.volume)
                         : "\u2014"}
-                    </span>
+                    </p>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Data Period</span>
-                    <span className="font-mono text-gray-300">{history.length}d</span>
-                  </div>
+                  {week52 && (
+                    <>
+                      <div>
+                        <span className="text-gray-500 text-xs">52w High</span>
+                        <p className="font-mono text-gray-300">{fmtP(week52.high, cn)}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-500 text-xs">52w Low</span>
+                        <p className="font-mono text-gray-300">{fmtP(week52.low, cn)}</p>
+                      </div>
+                    </>
+                  )}
                 </div>
-              </div>
+              </CardContent>
+            </Card>
+
+            {/* -- TradingView Price Chart + Time Range -- */}
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-sm font-semibold text-gray-400">
+                    Price ({history.length}d)
+                  </h2>
+                  <TimeRangeSelector selected={timeRange} onChange={setTimeRange} />
+                </div>
+                <div ref={chartContainerRef} />
+              </CardContent>
+            </Card>
+
+            {/* -- Technical Indicators Grid -- */}
+            <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* RSI */}
+              <Card>
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-xs font-semibold text-gray-500">RSI (14)</h3>
+                    <Badge variant={rsiBadgeVariant}>{rsiLabel}</Badge>
+                  </div>
+                  <p
+                    className={`text-3xl font-mono font-bold ${
+                      currentRSI > 70
+                        ? "text-[#ef4444]"
+                        : currentRSI < 30
+                          ? "text-[#22c55e]"
+                          : "text-gray-200"
+                    }`}
+                  >
+                    {isNaN(currentRSI) ? "\u2014" : currentRSI.toFixed(1)}
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* MACD */}
+              <Card>
+                <CardContent className="p-5">
+                  <h3 className="text-xs font-semibold text-gray-500 mb-3">MACD</h3>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">MACD</span>
+                      <span className="font-mono text-gray-300">
+                        {isNaN(currentMACD) ? "\u2014" : currentMACD.toFixed(3)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Signal</span>
+                      <span className="font-mono text-gray-300">
+                        {isNaN(currentSignal) ? "\u2014" : currentSignal.toFixed(3)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Histogram</span>
+                      <span
+                        className={`font-mono font-bold ${
+                          currentHist > 0 ? "text-[#22c55e]" : "text-[#ef4444]"
+                        }`}
+                      >
+                        {isNaN(currentHist) ? "\u2014" : currentHist.toFixed(3)}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    {currentHist > 0 ? "Bullish crossover" : "Bearish crossover"}
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Bollinger Bands */}
+              <Card>
+                <CardContent className="p-5">
+                  <h3 className="text-xs font-semibold text-gray-500 mb-3">Bollinger Bands (20,2)</h3>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Upper</span>
+                      <span className="font-mono text-gray-300">
+                        {isNaN(currentBBUpper) ? "\u2014" : fmtP(currentBBUpper, cn)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Middle</span>
+                      <span className="font-mono text-gray-300">
+                        {isNaN(currentSMA20) ? "\u2014" : fmtP(currentSMA20, cn)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Lower</span>
+                      <span className="font-mono text-gray-300">
+                        {isNaN(currentBBLower) ? "\u2014" : fmtP(currentBBLower, cn)}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    {price > currentBBUpper
+                      ? "Price above upper band"
+                      : price < currentBBLower
+                        ? "Price below lower band"
+                        : "Price within band range"}
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* KDJ */}
+              <Card>
+                <CardContent className="p-5">
+                  <h3 className="text-xs font-semibold text-gray-500 mb-3">KDJ (9,3,3)</h3>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">K</span>
+                      <span className="font-mono text-gray-300">
+                        {isNaN(currentK) ? "\u2014" : currentK.toFixed(1)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">D</span>
+                      <span className="font-mono text-gray-300">
+                        {isNaN(currentD) ? "\u2014" : currentD.toFixed(1)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">J</span>
+                      <span
+                        className={`font-mono ${
+                          currentJ > 100 ? "text-[#ef4444]" : currentJ < 0 ? "text-[#22c55e]" : "text-gray-300"
+                        }`}
+                      >
+                        {isNaN(currentJ) ? "\u2014" : currentJ.toFixed(1)}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    {currentK > currentD ? "K above D (bullish)" : "K below D (bearish)"}
+                    {currentJ > 100 ? " / J overbought" : currentJ < 0 ? " / J oversold" : ""}
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* SMA */}
+              <Card>
+                <CardContent className="p-5">
+                  <h3 className="text-xs font-semibold text-gray-500 mb-3">Moving Averages</h3>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">SMA(20)</span>
+                      <span className="font-mono text-gray-300">
+                        {isNaN(currentSMA20) ? "\u2014" : fmtP(currentSMA20, cn)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">SMA(50)</span>
+                      <span className="font-mono text-gray-300">
+                        {isNaN(currentSMA50) ? "\u2014" : fmtP(currentSMA50, cn)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Trend</span>
+                      <span className="font-mono text-gray-300">
+                        {price > currentSMA20 && price > currentSMA50
+                          ? "Bullish"
+                          : price < currentSMA20 && price < currentSMA50
+                            ? "Bearish"
+                            : "Ranging"}
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Volume */}
+              <Card>
+                <CardContent className="p-5">
+                  <h3 className="text-xs font-semibold text-gray-500 mb-3">Volume Summary</h3>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Latest Volume</span>
+                      <span className="font-mono text-gray-300">
+                        {currentBar.volume > 0
+                          ? cn
+                            ? fmt.compactCn(currentBar.volume)
+                            : fmt.compact(currentBar.volume)
+                          : "\u2014"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Data Period</span>
+                      <span className="font-mono text-gray-300">{history.length}d</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </section>
 
             {/* -- MACD Chart -- */}
-            <section className="rounded border border-gray-800/60 bg-[#13131a] p-6">
-              <h2 className="text-sm font-semibold text-gray-400 mb-4">MACD</h2>
-              <div ref={macdChartContainerRef} />
-            </section>
+            <Card>
+              <CardHeader className="pb-0">
+                <CardTitle>MACD</CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 pt-4">
+                <div ref={macdChartContainerRef} />
+              </CardContent>
+            </Card>
 
             {/* -- Fundamentals Panel (US stocks only) -- */}
             {!crypto && <FundamentalsPanel code={code} />}
 
             {/* -- Technical Analysis Summary -- */}
             {analysis && (
-              <section className="rounded border border-gray-700/40 bg-[#13131a] p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-sm font-semibold text-gray-400">
-                    Technical Analysis
-                  </h2>
-                  <span
-                    className={`px-2 py-1 rounded text-xs font-mono font-bold ${
-                      analysis.score >= 7
-                        ? "bg-green-950/60 text-[#22c55e] border border-green-800/40"
-                        : analysis.score <= 3
-                          ? "bg-red-950/60 text-[#ef4444] border border-red-800/40"
-                          : "bg-gray-800/60 text-gray-300 border border-gray-700/40"
-                    }`}
-                  >
-                    {analysis.score}/10 {analysis.signalText}
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-500 text-xs">RSI</span>
-                    <p className="font-mono text-gray-300">{analysis.rsiInterp}</p>
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-sm font-semibold text-gray-400">
+                      Technical Analysis
+                    </h2>
+                    <Badge
+                      variant={
+                        analysis.score >= 7
+                          ? "success"
+                          : analysis.score <= 3
+                            ? "destructive"
+                            : "secondary"
+                      }
+                      className="font-mono"
+                    >
+                      {analysis.score}/10 {analysis.signalText}
+                    </Badge>
                   </div>
-                  <div>
-                    <span className="text-gray-500 text-xs">MACD</span>
-                    <p className="font-mono text-gray-300">{analysis.macdSignal}</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <span className="text-gray-500 text-xs">RSI</span>
+                      <p className="font-mono text-gray-300">{analysis.rsiInterp}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 text-xs">MACD</span>
+                      <p className="font-mono text-gray-300">{analysis.macdSignal}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 text-xs">Stop-loss (-8%)</span>
+                      <p className="font-mono text-gray-300">{analysis.stopLoss}</p>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-gray-500 text-xs">Stop-loss (-8%)</span>
-                    <p className="font-mono text-gray-300">{analysis.stopLoss}</p>
-                  </div>
-                </div>
-                <div className="mt-3 pt-3 border-t border-gray-800/40">
+                  <Separator className="my-3" />
                   <p className="text-[10px] text-gray-600">
                     {analysis.factors.join(" / ")}
                   </p>
-                </div>
-                <p className="text-[10px] text-gray-600 mt-2">
-                  Auto-generated from technical indicators. Not investment advice.
-                </p>
-              </section>
+                  <p className="text-[10px] text-gray-600 mt-2">
+                    Auto-generated from technical indicators. Not investment advice.
+                  </p>
+                </CardContent>
+              </Card>
             )}
           </>
         )}

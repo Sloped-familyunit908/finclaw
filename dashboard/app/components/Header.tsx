@@ -6,6 +6,9 @@ import Link from "next/link";
 import { searchTickers, type TickerInfo } from "@/app/lib/tickers";
 import DataFreshnessIndicator from "@/app/components/DataFreshnessIndicator";
 import { AlertsBadge } from "@/app/components/PriceAlerts";
+import { Input } from "@/app/components/ui/input";
+import { Button } from "@/app/components/ui/button";
+import { Badge } from "@/app/components/ui/badge";
 
 /* ── Search Component ── */
 function SearchBox() {
@@ -78,7 +81,7 @@ function SearchBox() {
 
   return (
     <div ref={containerRef} className="relative hidden md:block">
-      <input
+      <Input
         ref={inputRef}
         type="text"
         value={query}
@@ -86,11 +89,11 @@ function SearchBox() {
         onKeyDown={handleKeyDown}
         onFocus={() => query.trim() && setOpen(true)}
         placeholder="Search ticker..."
-        className="w-48 px-3 py-1.5 text-xs bg-gray-900/60 border border-gray-700/50 rounded text-gray-300 placeholder-gray-600 focus:outline-none focus:border-slate-500/60 font-mono"
+        className="w-48 h-8"
       />
 
       {open && results.length > 0 && (
-        <div className="absolute top-full right-0 mt-1 w-80 bg-[#13131a] border border-gray-700/60 rounded shadow-xl z-[60] max-h-80 overflow-y-auto">
+        <div className="absolute top-full right-0 mt-1 w-80 bg-[#13131a] border border-gray-700/60 rounded-md shadow-xl z-[60] max-h-80 overflow-y-auto">
           {results.map((t, i) => (
             <button
               key={t.symbol}
@@ -108,15 +111,18 @@ function SearchBox() {
                   {t.nameCn ? `${t.nameCn} (${t.name})` : t.name}
                 </span>
               </div>
-              <span className={`text-[10px] shrink-0 ml-2 px-1.5 py-0.5 rounded ${
-                t.market === "US"
-                  ? "text-blue-400 bg-blue-950/40"
-                  : t.market === "CN"
-                    ? "text-yellow-400 bg-yellow-950/40"
-                    : "text-purple-400 bg-purple-950/40"
-              }`}>
+              <Badge
+                variant={
+                  t.market === "US"
+                    ? "info"
+                    : t.market === "CN"
+                      ? "warning"
+                      : "purple"
+                }
+                className="text-[10px] shrink-0 ml-2"
+              >
                 {t.market}
-              </span>
+              </Badge>
             </button>
           ))}
         </div>
@@ -135,6 +141,15 @@ export default function Header() {
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, []);
+
+  const navItems = [
+    { href: "/", label: "Dashboard" },
+    { href: "/evolution", label: "Evolution" },
+    { href: "/portfolio", label: "Portfolio" },
+    { href: "/screener", label: "Screener" },
+    { href: "/compare", label: "Compare" },
+    { href: "/backtest", label: "Backtest" },
+  ];
 
   return (
     <header className="border-b border-gray-800/50 bg-[#0a0a0f]/80 backdrop-blur-sm sticky top-0 z-50">
@@ -157,42 +172,18 @@ export default function Header() {
         </div>
       </div>
       <div className="max-w-7xl mx-auto px-4 pb-2 flex gap-1 overflow-x-auto scrollbar-hide">
-        <Link
-          href="/"
-          className="px-3 py-2 text-sm font-medium rounded transition-all whitespace-nowrap text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
-        >
-          Dashboard
-        </Link>
-        <Link
-          href="/evolution"
-          className="px-3 py-2 text-sm font-medium rounded transition-all whitespace-nowrap text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
-        >
-          Evolution
-        </Link>
-        <Link
-          href="/portfolio"
-          className="px-3 py-2 text-sm font-medium rounded transition-all whitespace-nowrap text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
-        >
-          Portfolio
-        </Link>
-        <Link
-          href="/screener"
-          className="px-3 py-2 text-sm font-medium rounded transition-all whitespace-nowrap text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
-        >
-          Screener
-        </Link>
-        <Link
-          href="/compare"
-          className="px-3 py-2 text-sm font-medium rounded transition-all whitespace-nowrap text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
-        >
-          Compare
-        </Link>
-        <Link
-          href="/backtest"
-          className="px-3 py-2 text-sm font-medium rounded transition-all whitespace-nowrap text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
-        >
-          Backtest
-        </Link>
+        {navItems.map((item) => (
+          <Button
+            key={item.href}
+            variant="ghost"
+            size="sm"
+            asChild
+          >
+            <Link href={item.href} className="whitespace-nowrap">
+              {item.label}
+            </Link>
+          </Button>
+        ))}
       </div>
     </header>
   );
