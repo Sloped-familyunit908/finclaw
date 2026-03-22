@@ -29,14 +29,14 @@ from src.evolution.auto_evolve import (
 
 
 def main():
-    # Load Gen 79 DNA
-    with open("evolution_results/gen_0079.json") as f:
-        gen79 = json.load(f)
+    # Load specific gen DNA
+    with open("evolution_results/gen_0199.json") as f:
+        gen_data = json.load(f)
 
-    dna_dict = gen79["results"][0]["dna"]
-    dna = StrategyDNA(**dna_dict)
+    dna_dict = gen_data["results"][0]["dna"]
+    dna = StrategyDNA.from_dict(dna_dict)
 
-    print(f"=== Gen 79 Champion DNA ===")
+    print(f"=== V4 Gen {gen_data['generation']} Champion DNA ===")
     print(f"min_score={dna.min_score}, hold_days={dna.hold_days}, max_positions={dna.max_positions}")
     print(f"stop_loss={dna.stop_loss_pct:.1f}%, take_profit={dna.take_profit_pct:.1f}%")
     print(f"rsi_buy={dna.rsi_buy_threshold}, rsi_sell={dna.rsi_sell_threshold:.1f}")
