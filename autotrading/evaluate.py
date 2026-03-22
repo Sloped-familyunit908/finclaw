@@ -74,7 +74,7 @@ def run_backtest(strategy_module, stock_data: dict) -> dict:
     # A-share trading costs (realistic 2026 rates)
     COMMISSION_RATE = 0.0003    # 0.03% broker commission (per side)
     STAMP_TAX_RATE = 0.001      # 0.1% stamp tax (sell side only)
-    SLIPPAGE_RATE = 0.001       # 0.1% slippage estimate
+    SLIPPAGE_RATE = 0.0005      # 0.05% slippage (bid-ask spread for liquid stocks)
 
     all_trades = []
     

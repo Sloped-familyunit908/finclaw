@@ -1809,10 +1809,12 @@ class AutoEvolver:
 
                         exit_price = sd["close"][d]
 
-                    # Apply realistic trading costs (A-share rates)
-                    # Commission: 0.03% per side, Stamp tax: 0.1% sell only, Slippage: 0.1% per side
-                    buy_cost = entry_price * (0.0003 + 0.001)   # commission + slippage
-                    sell_cost = exit_price * (0.0003 + 0.001 + 0.001)  # commission + slippage + stamp tax
+                    # Apply realistic trading costs (A-share rates for liquid stocks)
+                    # Commission: 0.03% per side (typical online broker)
+                    # Stamp tax: 0.1% sell side only (China A-share regulation)
+                    # Slippage: 0.05% per side (bid-ask spread, conservative for our filtered pool)
+                    buy_cost = entry_price * (0.0003 + 0.0005)   # commission + slippage
+                    sell_cost = exit_price * (0.0003 + 0.0005 + 0.001)  # commission + slippage + stamp tax
                     trade_return = (exit_price - entry_price - buy_cost - sell_cost) / entry_price * 100
                     trades.append(trade_return)
 
