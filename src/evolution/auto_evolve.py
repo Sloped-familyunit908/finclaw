@@ -1690,11 +1690,16 @@ class AutoEvolver:
             }
 
         # Load fundamental data (cached, won't re-fetch if already cached today)
-        try:
-            from src.evolution.fundamentals import fetch_fundamentals_baostock
-            fund_data = fetch_fundamentals_baostock(codes)
-        except Exception:
-            fund_data = {}
+        fund_data: Dict[str, Dict[str, float]] = {}
+        if not os.environ.get("FINCLAW_SKIP_FUNDAMENTALS"):
+            try:
+                from src.evolution.fundamentals import fetch_fundamentals_baostock
+                fund_data = fetch_fundamentals_baostock(codes)
+            except Exception as e:
+                print(f"  [fundamentals] skipped: {e}")
+                fund_data = {}
+        else:
+            print("  [fundamentals] skipped (FINCLAW_SKIP_FUNDAMENTALS=1)")
 
         # Add fundamentals to indicators dict for each stock
         for code in codes:
