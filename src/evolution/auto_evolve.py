@@ -22,7 +22,7 @@ v3: Walk-Forward validation (70/30 split), deterministic stock sampling
 
 from __future__ import annotations
 
-print("Evolution Engine v3 — Walk-Forward + Stable Sampling + Enhanced Fitness")
+print("Evolution Engine v4 -- Walk-Forward + Smart Evolution + 57-dim Factors")
 
 import json
 import math
@@ -2160,6 +2160,28 @@ class AutoEvolver:
             fitness=round(fitness, 4),
         )
 
+    def _random_dna(self) -> StrategyDNA:
+        """Generate a completely random StrategyDNA."""
+        d = {}
+        for param, (lo, hi, is_int) in _PARAM_RANGES.items():
+            val = self.rng.uniform(lo, hi)
+            if is_int:
+                val = int(round(val))
+            d[param] = val
+        # Normalize weights
+        w_sum = sum(d[k] for k in _WEIGHT_KEYS)
+        if w_sum > 0:
+            for k in _WEIGHT_KEYS:
+                d[k] = round(d[k] / w_sum, 4)
+        dna = StrategyDNA.from_dict(d)
+        # Also randomize custom weights if factor registry exists
+        if hasattr(self, '_factor_registry') and self._factor_registry and self._factor_registry.factors:
+            cw = {}
+            for name in self._factor_registry.list_factors():
+                cw[name] = self.rng.uniform(0, 0.1)  # small random values
+            dna.custom_weights = cw
+        return dna
+
     def run_generation(
         self,
         parents: List[StrategyDNA],
@@ -2262,13 +2284,36 @@ class AutoEvolver:
 
         best_results: List[EvolutionResult] = []
 
+        # Smart evolution: stagnation detection + adaptive mutation rate
+        stagnation_counter = 0
+        best_ever_fitness = 0.0
+        base_mutation_rate = self.mutation_rate
+        boost_gens = 0
+
         for gen in range(start_gen, start_gen + generations):
             gen_t0 = time.time()
+
+            # Adaptive mutation rate
+            if gen < start_gen + 30:
+                self.mutation_rate = min(base_mutation_rate * 1.5, 0.8)
+            elif stagnation_counter == 0 and boost_gens > 0:
+                self.mutation_rate = min(base_mutation_rate * 2.0, 0.9)
+                boost_gens -= 1
+            else:
+                self.mutation_rate = base_mutation_rate
+
             results = self.run_generation(parents, data, gen=gen)
             gen_time = time.time() - gen_t0
 
             best = results[0]
             best_results = results
+
+            # Stagnation detection
+            if best.fitness > best_ever_fitness:
+                best_ever_fitness = best.fitness
+                stagnation_counter = 0
+            else:
+                stagnation_counter += 1
 
             print(
                 f"Gen {gen:4d} | "
@@ -2284,11 +2329,22 @@ class AutoEvolver:
             # Update parents for next generation
             parents = [r.dna for r in results]
 
+            # Stagnation injection: replace worst 2 parents with random DNA
+            if stagnation_counter >= 15:
+                random_dna1 = self._random_dna()
+                random_dna2 = self._random_dna()
+                parents[-1] = random_dna1
+                parents[-2] = random_dna2
+                stagnation_counter = 0
+                boost_gens = 5
+                print("  [stagnation] No improvement for 15 gens -- injecting random DNA")
+
             # Periodic save
             if (gen + 1) % save_interval == 0 or gen == start_gen + generations - 1:
                 self.save_results(gen, results)
 
         total_time = time.time() - t0
+        self.mutation_rate = base_mutation_rate  # restore original rate
         print("-" * 60)
         print(f"Evolution complete! {generations} generations in {total_time:.1f}s")
         if best_results:
