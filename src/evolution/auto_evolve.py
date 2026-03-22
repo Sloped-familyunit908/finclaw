@@ -1330,14 +1330,16 @@ def compute_fitness(
     sortino: Optional[float] = None,
     max_consec_losses: int = 0,
     monthly_returns: Optional[List[float]] = None,
+    positions_used: int = 1,
+    max_positions: int = 1,
 ) -> float:
     """Compute composite fitness score.
 
     fitness = annual_return * sqrt(win_rate) / max(max_drawdown, 5.0) * sharpe_bonus * trade_penalty
-              * sortino_bonus * consec_loss_penalty * consistency_bonus
+              * sortino_bonus * consec_loss_penalty * consistency_bonus * diversification_bonus
 
     Rewards: high return, high win rate, low drawdown, good Sharpe, enough trades,
-             Sortino > Sharpe, consistent monthly returns.
+             Sortino > Sharpe, consistent monthly returns, diversified holdings.
     Penalizes: fewer than 30 trades, long consecutive loss streaks.
     """
     dd_denom = max(max_drawdown, 5.0)
@@ -1377,7 +1379,17 @@ def compute_fitness(
             if cv < 1.0:
                 consistency_bonus = 1.2  # consistent returns
 
-    return base_fitness * sortino_bonus * consec_loss_penalty * consistency_bonus
+    # Diversification bonus: reward strategies that actually hold multiple
+    # positions simultaneously (not just max_positions parameter, but real usage)
+    diversification_bonus = 1.0
+    if positions_used >= 2:
+        if max_positions >= 5 and positions_used >= 3:
+            diversification_bonus = 1.25  # 25% bonus for wide diversification
+        elif max_positions >= 3 and positions_used >= 2:
+            diversification_bonus = 1.15  # 15% bonus for moderate diversification
+
+    return (base_fitness * sortino_bonus * consec_loss_penalty
+            * consistency_bonus * diversification_bonus)
 
 
 def filter_stock_pool(
@@ -1865,11 +1877,11 @@ class AutoEvolver:
         hold_days = max(2, dna.hold_days)  # A-share T+1: buy T+1, earliest sell T+2
 
         def _run_backtest(day_start: int, day_end: int) -> Tuple[
-            float, float, float, float, float, int, float, float, int, List[float]
+            float, float, float, float, float, int, float, float, int, List[float], int
         ]:
             """Run backtest on a date range. Returns (annual_return, max_drawdown,
             win_rate, sharpe, calmar, total_trades, profit_factor, sortino,
-            max_consec_losses, monthly_returns)."""
+            max_consec_losses, monthly_returns, max_concurrent_positions)."""
             initial_capital = 1_000_000.0
             bt_capital = initial_capital
             bt_portfolio_values = [bt_capital]
@@ -1883,6 +1895,9 @@ class AutoEvolver:
             month_start_capital = bt_capital
             last_month_day = day_start
             approx_month_days = 21  # ~21 trading days per month
+
+            # Track max concurrent positions for diversification scoring
+            bt_max_concurrent = 0
 
             day = day_start
 
@@ -1912,6 +1927,7 @@ class AutoEvolver:
 
                 if picks:
                     per_pos = bt_capital / len(picks)
+                    positions_this_period = 0
 
                     for code, _score in picks:
                         sd = data[code]
@@ -1936,8 +1952,28 @@ class AutoEvolver:
                                 if entry_price >= prev_close * (1 + limit_pct - 0.005):
                                     continue
 
+                        # === DYNAMIC SLIPPAGE based on volume ===
+                        # Compute avg daily volume over recent 20 days
+                        vols = sd["volume"]
+                        vol_lookback = min(20, entry_day)
+                        if vol_lookback > 0:
+                            avg_vol = sum(vols[entry_day - vol_lookback:entry_day]) / vol_lookback
+                        else:
+                            avg_vol = vols[entry_day] if entry_day < len(vols) else 0
+                        # Volume-based slippage tiers (shares/day)
+                        if avg_vol < 5_000_000:
+                            slippage_pct = 0.0015  # 0.15% for low volume
+                        elif avg_vol < 50_000_000:
+                            slippage_pct = 0.0005  # 0.05% for medium volume
+                        else:
+                            slippage_pct = 0.0002  # 0.02% for high volume
+
+                        # Apply slippage to entry: buy at slightly higher price
+                        entry_price = entry_price * (1 + slippage_pct)
+
                         shares = per_pos / entry_price
                         exit_price = entry_price
+                        positions_this_period += 1
 
                         for d in range(entry_day, min(entry_day + hold_days, len(sd["close"]))):
                             low = sd["low"][d]
@@ -1967,6 +2003,9 @@ class AutoEvolver:
 
                             exit_price = sd["close"][d]
 
+                        # Apply slippage to exit: sell at slightly lower price
+                        exit_price = exit_price * (1 - slippage_pct)
+
                         buy_cost = entry_price * (0.0003 + 0.0005)
                         sell_cost = exit_price * (0.0003 + 0.0005 + 0.001)
                         trade_return = (exit_price - entry_price - buy_cost - sell_cost) / entry_price * 100
@@ -1979,6 +2018,10 @@ class AutoEvolver:
                             bt_gross_loss += abs(pnl)
 
                         bt_capital += pnl
+
+                    # Update max concurrent positions
+                    if positions_this_period > bt_max_concurrent:
+                        bt_max_concurrent = positions_this_period
 
                 bt_portfolio_values.append(max(bt_capital, 0.01))
                 day += hold_days
@@ -2055,16 +2098,16 @@ class AutoEvolver:
 
             return (bt_annual_return, bt_max_drawdown, bt_win_rate, bt_sharpe,
                     bt_calmar, bt_total_trades, bt_profit_factor, bt_sortino,
-                    bt_max_consec_losses, bt_monthly_returns)
+                    bt_max_consec_losses, bt_monthly_returns, bt_max_concurrent)
 
         # ── Run backtests on train and validation periods ──
         (train_ret, train_dd, train_wr, train_sharpe, train_calmar,
          train_trades, train_pf, train_sortino,
-         train_consec_losses, train_monthly) = _run_backtest(warmup, train_end)
+         train_consec_losses, train_monthly, train_max_concurrent) = _run_backtest(warmup, train_end)
 
         (val_ret, val_dd, val_wr, val_sharpe, val_calmar,
          val_trades, val_pf, val_sortino,
-         val_consec_losses, val_monthly) = _run_backtest(val_start, val_end)
+         val_consec_losses, val_monthly, val_max_concurrent) = _run_backtest(val_start, val_end)
 
         # Combine metrics (report validation-period numbers as primary)
         total_trades = train_trades + val_trades
@@ -2078,6 +2121,7 @@ class AutoEvolver:
         sortino = val_sortino
         max_consec_losses = max(train_consec_losses, val_consec_losses)
         monthly_returns = (train_monthly or []) + (val_monthly or [])
+        max_concurrent = max(train_max_concurrent, val_max_concurrent)
 
         # ── Walk-Forward Fitness ──
         train_fitness = compute_fitness(
@@ -2085,12 +2129,16 @@ class AutoEvolver:
             sortino=train_sortino,
             max_consec_losses=train_consec_losses,
             monthly_returns=train_monthly,
+            positions_used=train_max_concurrent,
+            max_positions=dna.max_positions,
         )
         val_fitness = compute_fitness(
             val_ret, val_dd, val_wr, val_sharpe, val_trades,
             sortino=val_sortino,
             max_consec_losses=val_consec_losses,
             monthly_returns=val_monthly,
+            positions_used=val_max_concurrent,
+            max_positions=dna.max_positions,
         )
 
         # Weight validation more: prevents overfitting to training data
