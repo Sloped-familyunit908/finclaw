@@ -67,3 +67,6 @@ _scratch/
 test_portfolio.json
 strategy_optimization_results.json
 watchlists.json
+
+# AutoTrading real config (use autotrading.env.example as template)
+autotrading/autotrading.env
