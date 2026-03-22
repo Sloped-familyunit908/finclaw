@@ -64,7 +64,18 @@ def load_stock_data(data_dir: str = "../data/a_shares", max_stocks: int = 200):
 
 
 def run_backtest(strategy_module, stock_data: dict) -> dict:
-    """Run the strategy across all stocks and compute metrics."""
+    """Run the strategy across all stocks and compute metrics.
+
+    Applies realistic A-share trading costs:
+    - Commission: 0.03% per side
+    - Stamp tax: 0.1% sell side only (China A-shares)
+    - Slippage: 0.1% per side (market impact estimate)
+    """
+    # A-share trading costs (realistic 2026 rates)
+    COMMISSION_RATE = 0.0003    # 0.03% broker commission (per side)
+    STAMP_TAX_RATE = 0.001      # 0.1% stamp tax (sell side only)
+    SLIPPAGE_RATE = 0.001       # 0.1% slippage estimate
+
     all_trades = []
     
     for code, records in stock_data.items():
@@ -99,7 +110,10 @@ def run_backtest(strategy_module, stock_data: dict) -> dict:
             if sig['action'] == 'buy' and position is None:
                 position = {'buy_price': sig['price'], 'buy_idx': sig['index']}
             elif sig['action'] == 'sell' and position is not None:
-                pnl = (sig['price'] - position['buy_price']) / position['buy_price']
+                # Apply realistic A-share trading costs
+                effective_buy = position['buy_price'] * (1 + COMMISSION_RATE + SLIPPAGE_RATE)
+                effective_sell = sig['price'] * (1 - COMMISSION_RATE - STAMP_TAX_RATE - SLIPPAGE_RATE)
+                pnl = (effective_sell - effective_buy) / effective_buy
                 all_trades.append(pnl)
                 position = None
     

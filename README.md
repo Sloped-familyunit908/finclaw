@@ -40,16 +40,18 @@ This project is for **educational and research purposes only**. Not financial ad
 
 ## Current Best Strategy (Gen 1,500+)
 
-| Metric | Value |
-|--------|-------|
-| Annual Return | 309.6% |
-| Sharpe Ratio | 3.42 |
-| Max Drawdown | 13.8% |
-| Win Rate | 62.9% |
-| Factor Dimensions | 41 |
-| Generations Evolved | 1,500+ |
+| Metric | Gross (before costs) | Net (after costs) |
+|--------|---------------------|-------------------|
+| Annual Return | 309.6% | ~180-220%* |
+| Sharpe Ratio | 3.42 | ~2.0-2.5* |
+| Max Drawdown | 13.8% | ~15-18%* |
+| Win Rate | 62.9% | ~55-60%* |
+| Factor Dimensions | 41 | 41 |
+| Generations Evolved | 1,500+ | 1,500+ |
 
-> These results are from walk-forward backtesting on A-share data. Past performance does not guarantee future results. Not financial advice.
+*Net estimates include 0.03% commission, 0.1% stamp tax (A-shares), and 0.1% slippage per trade.
+
+> **Important**: These results are from historical backtesting on A-share data (2024-2026). Past performance does not guarantee future results. This is a research and education tool — not a production trading system. Always validate strategies with paper trading before risking real capital.
 
 ## Quick Start
 
@@ -146,6 +148,18 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 ## License
 
 [MIT](LICENSE)
+
+## Limitations
+
+FinClaw is a research and education tool. Key limitations:
+
+- **No live trading** — signals are generated but not executed automatically
+- **Free data sources** — subject to delays, gaps, and API rate limits
+- **Simplified backtesting** — does not model order book depth, partial fills, or market microstructure
+- **Single-asset long-only** — no short selling, no multi-asset portfolio optimization (yet)
+- **Historical bias** — backtested strategies may not perform similarly in live markets
+
+For production trading, consider validated platforms with exchange connectivity and proper risk management.
 
 ## Star History
 

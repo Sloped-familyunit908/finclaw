@@ -30,6 +30,16 @@ from typing import Any, Dict, List, Optional, Tuple
 
 # ────────────────── Weight keys (shared constant) ──────────────────
 
+# ────────────────── A-share Trading Costs (realistic 2026 rates) ──────────────────
+
+COMMISSION_RATE = 0.0003    # 0.03% broker commission (per side)
+STAMP_TAX_RATE = 0.001      # 0.1% stamp tax (sell side only, China A-shares)
+SLIPPAGE_RATE = 0.001       # 0.1% slippage estimate (market impact)
+
+# Buy cost: price * (1 + COMMISSION_RATE + SLIPPAGE_RATE)
+# Sell cost: price * (1 - COMMISSION_RATE - STAMP_TAX_RATE - SLIPPAGE_RATE)
+# Net P&L = sell_proceeds - buy_cost
+
 _WEIGHT_KEYS: List[str] = [
     "w_momentum",
     "w_mean_reversion",
@@ -1809,10 +1819,13 @@ class AutoEvolver:
 
                         exit_price = sd["close"][d]
 
-                    trade_return = (exit_price - entry_price) / entry_price * 100
+                    # Apply realistic A-share trading costs
+                    effective_buy = entry_price * (1 + COMMISSION_RATE + SLIPPAGE_RATE)
+                    effective_sell = exit_price * (1 - COMMISSION_RATE - STAMP_TAX_RATE - SLIPPAGE_RATE)
+                    trade_return = (effective_sell - effective_buy) / effective_buy * 100
                     trades.append(trade_return)
 
-                    pnl = shares * (exit_price - entry_price)
+                    pnl = shares * (effective_sell - effective_buy)
                     if pnl > 0:
                         gross_profit += pnl
                     else:
