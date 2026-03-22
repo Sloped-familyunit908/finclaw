@@ -1809,10 +1809,16 @@ class AutoEvolver:
 
                         exit_price = sd["close"][d]
 
-                    trade_return = (exit_price - entry_price) / entry_price * 100
+                    # Apply realistic trading costs (A-share rates)
+                    # Commission: 0.03% per side, Stamp tax: 0.1% sell only, Slippage: 0.1% per side
+                    buy_cost = entry_price * (0.0003 + 0.001)   # commission + slippage
+                    sell_cost = exit_price * (0.0003 + 0.001 + 0.001)  # commission + slippage + stamp tax
+                    trade_return = (exit_price - entry_price - buy_cost - sell_cost) / entry_price * 100
                     trades.append(trade_return)
 
-                    pnl = shares * (exit_price - entry_price)
+                    pnl = shares * (exit_price - entry_price) - shares * (buy_cost + sell_cost) / entry_price * entry_price
+                    # Simplified: pnl after costs
+                    pnl = shares * entry_price * trade_return / 100
                     if pnl > 0:
                         gross_profit += pnl
                     else:
