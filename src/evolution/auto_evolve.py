@@ -1,4 +1,4 @@
-﻿"""
+"""
 Automatic Strategy Evolution Engine
 ====================================
 Runs 24/7. Each generation:
@@ -8,7 +8,7 @@ Runs 24/7. Each generation:
 4. Keep top performers
 5. Repeat
 
-Uses local CSV data only â€” no API calls needed.
+Uses local CSV data only — no API calls needed.
 Separate from the YAML-DSL evolution engine (engine.py).
 This is pure numerical parameter optimization via genetic algorithms.
 
@@ -28,17 +28,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ Weight keys (shared constant) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ A-share Trading Costs (realistic 2026 rates) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-COMMISSION_RATE = 0.0003    # 0.03% broker commission (per side)
-STAMP_TAX_RATE = 0.001      # 0.1% stamp tax (sell side only, China A-shares)
-SLIPPAGE_RATE = 0.001       # 0.1% slippage estimate (market impact)
-
-# Buy cost: price * (1 + COMMISSION_RATE + SLIPPAGE_RATE)
-# Sell cost: price * (1 - COMMISSION_RATE - STAMP_TAX_RATE - SLIPPAGE_RATE)
-# Net P&L = sell_proceeds - buy_cost
+# ────────────────── Weight keys (shared constant) ──────────────────
 
 _WEIGHT_KEYS: List[str] = [
     "w_momentum",
@@ -111,14 +101,14 @@ class StrategyDNA:
 
     # --- Golden dip specific ---
     dip_threshold_pct: float = 10.0  # pullback from high
-    r2_trend_min: float = 0.6  # min RÂ² for bull stock confirmation
+    r2_trend_min: float = 0.6  # min R² for bull stock confirmation
 
     # --- Scoring weights (12 dimensions, auto-normalized to sum=1) ---
     # Original 5
     w_momentum: float = 0.1       # RSI + slope
     w_mean_reversion: float = 0.1 # RSI oversold
     w_volume: float = 0.1         # volume ratio
-    w_trend: float = 0.1          # RÂ² + MA alignment
+    w_trend: float = 0.1          # R² + MA alignment
     w_pattern: float = 0.1        # candle patterns
     # New 6
     w_macd: float = 0.1           # MACD golden/death cross
@@ -178,7 +168,7 @@ class StrategyDNA:
         return cls(**{k: v for k, v in d.items() if k in valid})
 
 
-# Valid ranges for each parameter â€” (min, max, is_int)
+# Valid ranges for each parameter — (min, max, is_int)
 _PARAM_RANGES: Dict[str, Tuple[float, float, bool]] = {
     "min_score": (1, 10, True),
     "rsi_buy_threshold": (10.0, 50.0, False),
@@ -301,7 +291,7 @@ def compute_rsi(closes: List[float], period: int = 14) -> List[float]:
 def compute_linear_regression(
     values: List[float], window: int = 20
 ) -> Tuple[List[float], List[float]]:
-    """Compute rolling RÂ² and slope over a window.
+    """Compute rolling R² and slope over a window.
 
     Returns (r2_list, slope_list), same length as input, NaN-padded.
     Slope is expressed as daily % return.
@@ -356,7 +346,7 @@ def compute_volume_ratio(volumes: List[float], period: int = 20) -> List[float]:
     return ratios
 
 
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ New Signal Functions (v2) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ────────────────── New Signal Functions (v2) ──────────────────
 
 
 def _ema(values: List[float], period: int) -> List[float]:
@@ -666,9 +656,9 @@ def compute_support_resistance(
     return max(0.0, min(1.0, 1.0 - position))
 
 
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ Scoring â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ────────────────── Scoring ──────────────────
 
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ Extended Technical Indicators â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ────────────────── Extended Technical Indicators ──────────────────
 
 
 def compute_atr(
@@ -888,7 +878,7 @@ def score_stock(
     # 3. Volume: higher ratio = better
     vol_raw = min(volume_ratio[idx] / max(dna.volume_ratio_min, 0.01), 2.0) / 2.0
 
-    # 4. Trend: RÂ² + positive slope + MA alignment
+    # 4. Trend: R² + positive slope + MA alignment
     ma_align = indicators.get("ma_alignment", [0.0] * (idx + 1))
     ma_val = ma_align[idx] if idx < len(ma_align) and not math.isnan(ma_align[idx]) else 0.0
     base_trend = r2[idx] if slope[idx] > 0 else r2[idx] * 0.3
@@ -997,7 +987,7 @@ def score_stock(
 
     vprofile_raw = max(0.0, min(1.0, vprofile_raw))
 
-    # â”€â”€â”€â”€ Extended Technical Indicators (12-21) â”€â”€â”€â”€
+    # ──── Extended Technical Indicators (12-21) ────
 
     # Helper to safely read a pre-computed indicator at idx
     def _safe_read(key: str, default: float = 0.5) -> float:
@@ -1009,7 +999,7 @@ def score_stock(
             return default
         return val
 
-    # 12. ATR â€” lower volatility = safer, score inversely
+    # 12. ATR — lower volatility = safer, score inversely
     atr_val = _safe_read("atr_pct", 0.5)
     if atr_val != 0.5:
         # ATR as % of price: <1% very calm, >5% very volatile
@@ -1026,10 +1016,10 @@ def score_stock(
     else:
         atr_raw = 0.5
 
-    # 13. ADX â€” stub (not computed, default neutral)
+    # 13. ADX — stub (not computed, default neutral)
     adx_raw = 0.5
 
-    # 14. ROC â€” positive momentum = good
+    # 14. ROC — positive momentum = good
     roc_val = _safe_read("roc", 0.5)
     if roc_val != 0.5:
         if roc_val > 10:
@@ -1045,7 +1035,7 @@ def score_stock(
     else:
         roc_raw = 0.5
 
-    # 15. Williams %R â€” oversold (<-80) = bullish, overbought (>-20) = bearish
+    # 15. Williams %R — oversold (<-80) = bullish, overbought (>-20) = bearish
     wr_val = _safe_read("williams_r", 0.5)
     if wr_val != 0.5:
         # %R ranges from -100 to 0
@@ -1060,7 +1050,7 @@ def score_stock(
     else:
         williams_raw = 0.5
 
-    # 16. CCI â€” score based on position
+    # 16. CCI — score based on position
     cci_val = _safe_read("cci", 0.5)
     if cci_val != 0.5:
         if cci_val < -200:
@@ -1078,7 +1068,7 @@ def score_stock(
     else:
         cci_raw = 0.5
 
-    # 17. MFI â€” similar to RSI but volume-weighted
+    # 17. MFI — similar to RSI but volume-weighted
     mfi_val = _safe_read("mfi", 0.5)
     if mfi_val != 0.5:
         if mfi_val < 20:
@@ -1094,10 +1084,10 @@ def score_stock(
     else:
         mfi_raw = 0.5
 
-    # 18. VWAP â€” stub (needs intraday data), neutral
+    # 18. VWAP — stub (needs intraday data), neutral
     vwap_raw = 0.5
 
-    # 19. Donchian â€” position within channel
+    # 19. Donchian — position within channel
     donchian_val = _safe_read("donchian_pos", 0.5)
     if donchian_val != 0.5:
         # Near bottom of channel = bullish (buy low)
@@ -1105,18 +1095,18 @@ def score_stock(
     else:
         donchian_raw = 0.5
 
-    # 20. Ichimoku â€” stub (complex, skip for now), neutral
+    # 20. Ichimoku — stub (complex, skip for now), neutral
     ichimoku_raw = 0.5
 
-    # 21. Elder Ray â€” stub, neutral
+    # 21. Elder Ray — stub, neutral
     elder_ray_raw = 0.5
 
-    # â”€â”€â”€â”€ Rolling Statistics (22-28) â”€â”€â”€â”€
+    # ──── Rolling Statistics (22-28) ────
 
     # 22. Beta (slope magnitude as trend strength)
     beta_raw = max(0.0, min(1.0, abs(slope[idx]) / 3.0))
 
-    # 23. RÂ² (trend linearity, already available)
+    # 23. R² (trend linearity, already available)
     r2_raw = r2[idx]
 
     # 24. Residual (mean reversion: if price below regression line = buy signal)
@@ -1180,7 +1170,7 @@ def score_stock(
     else:
         pv_corr_raw = 0.5
 
-    # â”€â”€â”€â”€ Fundamental Scores (29-42) â”€â”€â”€â”€
+    # ──── Fundamental Scores (29-42) ────
 
     fund = indicators.get("fundamentals", {})
 
@@ -1228,7 +1218,7 @@ def score_stock(
     cf_val = fund.get("ocf_to_profit", 0)
     cashflow_raw = _compute_cashflow_score(cf_val) if cf_val != 0 else 0.5
 
-    # â”€â”€â”€â”€ Weighted sum with all dimensions â”€â”€â”€â”€
+    # ──── Weighted sum with all dimensions ────
     raw = (
         dna.w_momentum * momentum_raw
         + dna.w_mean_reversion * mr_raw
@@ -1304,7 +1294,7 @@ def compute_fitness(
     win_factor = math.sqrt(max(win_rate, 0.0))
     sharpe_bonus = 1.0 + max(sharpe, 0.0) * 0.2
     
-    # Penalize very low trade count â€” results with <10 trades are pure luck
+    # Penalize very low trade count — results with <10 trades are pure luck
     if total_trades < 10:
         trade_penalty = 0.1  # almost worthless
     elif total_trades < 30:
@@ -1340,36 +1330,36 @@ def filter_stock_pool(
     Returns:
         Filtered data dict
     """
-    # Bank stock codes (major A-share banks â€” low volatility, not useful for evolution)
+    # Bank stock codes (major A-share banks — low volatility, not useful for evolution)
     _BANK_CODES = {
-        "sh_601398",  # å·¥å•†é“¶è¡Œ
-        "sh_601288",  # å†œä¸šé“¶è¡Œ
-        "sh_601988",  # ä¸­å›½é“¶è¡Œ
-        "sh_601939",  # å»ºè®¾é“¶è¡Œ
-        "sh_601328",  # äº¤é€šé“¶è¡Œ
-        "sh_600036",  # æ‹›å•†é“¶è¡Œ
-        "sh_601166",  # å…´ä¸šé“¶è¡Œ
-        "sh_600016",  # æ°‘ç”Ÿé“¶è¡Œ
-        "sh_600000",  # æµ¦å‘é“¶è¡Œ
-        "sh_601818",  # å…‰å¤§é“¶è¡Œ
-        "sh_600015",  # åŽå¤é“¶è¡Œ
-        "sh_601998",  # ä¸­ä¿¡é“¶è¡Œ
-        "sh_600919",  # æ±Ÿè‹é“¶è¡Œ
-        "sh_601009",  # å—äº¬é“¶è¡Œ
-        "sh_601169",  # åŒ—äº¬é“¶è¡Œ
-        "sz_000001",  # å¹³å®‰é“¶è¡Œ
-        "sz_002142",  # å®æ³¢é“¶è¡Œ
-        "sh_601838",  # æˆéƒ½é“¶è¡Œ
-        "sh_600926",  # æ­å·žé“¶è¡Œ
-        "sh_601077",  # æ¸å†œå•†è¡Œ
-        "sh_600908",  # æ— é”¡é“¶è¡Œ
-        "sz_002839",  # å¼ å®¶æ¸¯è¡Œ
-        "sz_002936",  # éƒ‘å·žé“¶è¡Œ
-        "sz_002948",  # é’å²›é“¶è¡Œ
-        "sh_601528",  # ç‘žä¸°é“¶è¡Œ
-        "sh_601860",  # ç´«é‡‘é“¶è¡Œ
-        "sz_002807",  # æ±Ÿé˜´é“¶è¡Œ
-        "sz_002966",  # è‹å·žé“¶è¡Œ
+        "sh_601398",  # 工商银行
+        "sh_601288",  # 农业银行
+        "sh_601988",  # 中国银行
+        "sh_601939",  # 建设银行
+        "sh_601328",  # 交通银行
+        "sh_600036",  # 招商银行
+        "sh_601166",  # 兴业银行
+        "sh_600016",  # 民生银行
+        "sh_600000",  # 浦发银行
+        "sh_601818",  # 光大银行
+        "sh_600015",  # 华夏银行
+        "sh_601998",  # 中信银行
+        "sh_600919",  # 江苏银行
+        "sh_601009",  # 南京银行
+        "sh_601169",  # 北京银行
+        "sz_000001",  # 平安银行
+        "sz_002142",  # 宁波银行
+        "sh_601838",  # 成都银行
+        "sh_600926",  # 杭州银行
+        "sh_601077",  # 渝农商行
+        "sh_600908",  # 无锡银行
+        "sz_002839",  # 张家港行
+        "sz_002936",  # 郑州银行
+        "sz_002948",  # 青岛银行
+        "sh_601528",  # 瑞丰银行
+        "sh_601860",  # 紫金银行
+        "sz_002807",  # 江阴银行
+        "sz_002966",  # 苏州银行
     }
 
     scored_codes: List[Tuple[str, float]] = []
@@ -1387,7 +1377,7 @@ def filter_stock_pool(
         if code in _BANK_CODES:
             continue
 
-        # Skip ST stocks â€” they have "ST" in the data or erratic price patterns
+        # Skip ST stocks — they have "ST" in the data or erratic price patterns
         # ST stocks typically have 5% daily limit instead of 10%
         # Heuristic: if max daily change in last 60 days never exceeds 5.5%, likely ST
         recent_n = min(60, len(closes))
@@ -1473,7 +1463,7 @@ class AutoEvolver:
         When quality_filter=True, applies:
         - Average daily turnover > 20M CNY (or volume*close proxy)
         - Last close > 5 CNY
-        - Stocks with recent limit-up (æ¶¨åœ) get priority
+        - Stocks with recent limit-up (涨停) get priority
         - Max ``max_stocks`` best-quality stocks retained
         """
         data: Dict[str, Dict[str, list]] = {}
@@ -1542,13 +1532,13 @@ class AutoEvolver:
         """Create a mutated copy of a strategy DNA.
 
         Each parameter has ``mutation_rate`` chance of being modified.
-        Mutation amount: Â±10-30% of current value, clamped to valid ranges.
+        Mutation amount: ±10-30% of current value, clamped to valid ranges.
         """
         d = dna.to_dict()
         for param, (lo, hi, is_int) in _PARAM_RANGES.items():
             if self.rng.random() < self.mutation_rate:
                 val = d[param]
-                # Â±10-30%
+                # ±10-30%
                 pct = self.rng.uniform(0.10, 0.30)
                 direction = self.rng.choice([-1, 1])
                 delta = val * pct * direction
@@ -1561,7 +1551,7 @@ class AutoEvolver:
                     new_val = int(round(new_val))
                 d[param] = new_val
 
-        # Normalize scoring weights so they sum â‰ˆ 1.0
+        # Normalize scoring weights so they sum ≈ 1.0
         w_sum = sum(d[k] for k in _WEIGHT_KEYS)
         if w_sum > 0:
             for k in _WEIGHT_KEYS:
@@ -1595,7 +1585,7 @@ class AutoEvolver:
 
         For speed, evaluates on a random sample of ``sample_size`` stocks.
         Simplified but correct backtesting:
-        - Every hold_days: score all stocks â†’ pick top max_positions
+        - Every hold_days: score all stocks → pick top max_positions
         - T+1 open price entry
         - Check stop-loss / take-profit during holding period
         - Exit at end of hold period
@@ -1716,7 +1706,7 @@ class AutoEvolver:
         for code in codes:
             indicators[code]["fundamentals"] = fund_data.get(code, {})
 
-        # Find common date range â€” use the first stock to determine day count
+        # Find common date range — use the first stock to determine day count
         first_code = codes[0]
         total_days = len(data[first_code]["close"])
 
@@ -1775,9 +1765,9 @@ class AutoEvolver:
                             # Determine limit % based on board type
                             code_str = code.replace("_", ".")
                             if code_str.startswith("sh.688") or code_str.startswith("sz.3"):
-                                limit_pct = 0.20  # ç§‘åˆ›æ¿/åˆ›ä¸šæ¿ 20%
+                                limit_pct = 0.20  # 科创板/创业板 20%
                             else:
-                                limit_pct = 0.10  # ä¸»æ¿ 10%
+                                limit_pct = 0.10  # 主板 10%
 
                             # Skip if opening at limit-up (can't buy, sealed)
                             if entry_price >= prev_close * (1 + limit_pct - 0.005):
@@ -1819,13 +1809,10 @@ class AutoEvolver:
 
                         exit_price = sd["close"][d]
 
-                    # Apply realistic A-share trading costs
-                    effective_buy = entry_price * (1 + COMMISSION_RATE + SLIPPAGE_RATE)
-                    effective_sell = exit_price * (1 - COMMISSION_RATE - STAMP_TAX_RATE - SLIPPAGE_RATE)
-                    trade_return = (effective_sell - effective_buy) / effective_buy * 100
+                    trade_return = (exit_price - entry_price) / entry_price * 100
                     trades.append(trade_return)
 
-                    pnl = shares * (effective_sell - effective_buy)
+                    pnl = shares * (exit_price - entry_price)
                     if pnl > 0:
                         gross_profit += pnl
                     else:
@@ -1866,7 +1853,7 @@ class AutoEvolver:
             dd = (peak - v) / peak * 100 if peak > 0 else 0
             max_drawdown = max(max_drawdown, dd)
 
-        # Sharpe ratio (daily returns â†’ annualized)
+        # Sharpe ratio (daily returns → annualized)
         sharpe = 0.0
         if len(portfolio_values) > 2:
             daily_returns = [
@@ -1945,7 +1932,7 @@ class AutoEvolver:
             Final top results
         """
         print("=" * 60)
-        print("FinClaw Auto Evolution Engine")
+        print(" FinClaw Auto Evolution Engine")
         print("=" * 60)
 
         t0 = time.time()
@@ -2061,4 +2048,3 @@ class AutoEvolver:
             return data.get("generation", 0) + 1
         except Exception:
             return 0
-
