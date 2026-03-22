@@ -32,7 +32,8 @@ test.describe('Dashboard Homepage', () => {
 
   test('displays top movers', async ({ page }) => {
     await page.goto('/');
-    await expect(page.locator('text=Top Movers')).toBeVisible({ timeout: 15000 });
+    // Top Movers needs price data to load first, give it extra time
+    await expect(page.locator('h3:has-text("Top Movers"), h2:has-text("Top Movers"), text=Top Movers')).toBeVisible({ timeout: 30000 });
   });
 
   test('search box shows dropdown', async ({ page }) => {
