@@ -1689,17 +1689,18 @@ class AutoEvolver:
                 "pv_corr": pv_corr,
             }
 
-        # Load fundamental data (cached, won't re-fetch if already cached today)
-        fund_data: Dict[str, Dict[str, float]] = {}
-        if not os.environ.get("FINCLAW_SKIP_FUNDAMENTALS"):
-            try:
-                from src.evolution.fundamentals import fetch_fundamentals_baostock
-                fund_data = fetch_fundamentals_baostock(codes)
-            except Exception as e:
-                print(f"  [fundamentals] skipped: {e}")
-                fund_data = {}
-        else:
-            print("  [fundamentals] skipped (FINCLAW_SKIP_FUNDAMENTALS=1)")
+        # Load fundamental data (once per session, cached)
+        if not hasattr(self, '_fund_data_cache'):
+            self._fund_data_cache = {}
+            if not os.environ.get("FINCLAW_SKIP_FUNDAMENTALS"):
+                try:
+                    from src.evolution.fundamentals import fetch_fundamentals_baostock
+                    self._fund_data_cache = fetch_fundamentals_baostock(codes)
+                except Exception as e:
+                    print(f"  [fundamentals] skipped: {e}")
+            else:
+                print("  [fundamentals] skipped (FINCLAW_SKIP_FUNDAMENTALS=1)")
+        fund_data = self._fund_data_cache
 
         # Add fundamentals to indicators dict for each stock
         for code in codes:

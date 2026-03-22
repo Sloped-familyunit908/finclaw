@@ -47,36 +47,41 @@ def fetch_fundamentals_baostock(
 
     results: Dict[str, Dict[str, float]] = {}
 
-    # Try AKShare first (more reliable, no login/logout needed)
+    # Try AKShare first — use batch API (stock_zh_a_spot_em returns PE for all stocks at once)
     try:
-        from src.exchanges.akshare_enhanced import get_stock_fundamentals
-        print("  [fundamentals] using AKShare...")
-        for code in codes:
-            # Convert code format: sh_600438 -> 600438
-            raw_code = code.replace("sh_", "").replace("sz_", "")
-            try:
-                fund = get_stock_fundamentals(raw_code)
-                if fund:
-                    results[code] = {
-                        "pe": 0,  # AKShare doesn't return PE directly in this function
-                        "pb": 0,
-                        "roe": float(fund.get("roe", 0) or 0),
-                        "revenue_growth": float(fund.get("revenue_yoy", 0) or 0),
-                        "profit_growth": 0,
-                        "gross_margin": float(fund.get("gross_margin", 0) or 0),
-                        "net_margin": float(fund.get("net_margin", 0) or 0),
-                        "debt_ratio": float(fund.get("debt_ratio", 0) or 0),
-                    }
-            except Exception:
-                continue
+        import akshare as ak
+        print("  [fundamentals] using AKShare batch API...")
+        df = ak.stock_zh_a_spot_em()
+        if df is not None and not df.empty:
+            for _, row in df.iterrows():
+                raw_code = str(row.get('代码', ''))
+                # Match to our code format (sh_600438 or sz_000001)
+                if raw_code.startswith('6'):
+                    code_key = f"sh_{raw_code}"
+                else:
+                    code_key = f"sz_{raw_code}"
+                if code_key in codes:
+                    try:
+                        results[code_key] = {
+                            "pe": float(row.get('市盈率-动态', 0) or 0),
+                            "pb": float(row.get('市净率', 0) or 0),
+                            "roe": 0,
+                            "revenue_growth": 0,
+                            "profit_growth": 0,
+                            "gross_margin": 0,
+                            "net_margin": 0,
+                            "debt_ratio": 0,
+                        }
+                    except (ValueError, TypeError):
+                        continue
 
         if results:
-            # Cache results
             try:
                 with open(cache_file, "w", encoding="utf-8") as f:
                     json.dump(results, f, ensure_ascii=False)
             except Exception:
                 pass
+            print(f"  [fundamentals] got data for {len(results)} stocks via AKShare")
             return results
     except ImportError:
         pass
