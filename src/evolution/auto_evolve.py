@@ -2534,7 +2534,7 @@ class AutoEvolver:
             }
             with open(best_ever_file, "w", encoding="utf-8") as f:
                 json.dump(best_ever_payload, f, indent=2, ensure_ascii=False)
-            print(f"  🏆 [best_ever] NEW ALL-TIME RECORD! fitness={current_best_fitness:.2f} "
+            print(f"  [best_ever] NEW ALL-TIME RECORD! fitness={current_best_fitness:.2f} "
                   f"(prev={prev_ever_fitness:.2f}) gen={gen} "
                   f"annual={best[0].annual_return:.1f}% sharpe={best[0].sharpe:.2f}")
 
