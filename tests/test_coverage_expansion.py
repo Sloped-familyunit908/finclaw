@@ -177,7 +177,8 @@ class TestDataExporter:
 class TestConfigManager:
     def test_default_config(self):
         from src.config_manager import ConfigManager
-        cm = ConfigManager()
+        cm = ConfigManager.__new__(ConfigManager)
+        cm.__init__()  # Force fresh instance
         assert cm.get("backtest.commission") == 0.001
         assert cm.get("risk.max_position_pct") == 0.10
 

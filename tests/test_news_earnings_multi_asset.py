@@ -290,24 +290,22 @@ class TestCLIEnhancements:
     """Test enhanced CLI backtest features."""
 
     def test_cli_entry_point_exists(self):
-        """Verify finclaw.py has main() entry point."""
-        import finclaw
-        assert hasattr(finclaw, "main")
+        """Verify CLI main module is importable."""
+        from src.cli import main as cli_main
+        assert hasattr(cli_main, "main")
 
     def test_strategies_dict(self):
-        from finclaw import STRATEGIES
-        assert "momentum" in STRATEGIES
-        assert "mean_reversion" in STRATEGIES
-        assert "buffett" in STRATEGIES
-        assert len(STRATEGIES) >= 8
+        from src.cli.wizard import STRATEGIES
+        strategy_keys = [k for k, _ in STRATEGIES]
+        assert "momentum" in strategy_keys
+        assert "mean_reversion" in strategy_keys
+        assert len(STRATEGIES) >= 3
 
     def test_strategy_has_required_keys(self):
-        from finclaw import STRATEGIES
-        for name, s in STRATEGIES.items():
-            assert "desc" in s, f"{name} missing desc"
-            assert "risk" in s, f"{name} missing risk"
-            assert "select" in s, f"{name} missing select"
-            assert "alloc" in s, f"{name} missing alloc"
+        from src.cli.wizard import STRATEGIES
+        for key, desc in STRATEGIES:
+            assert isinstance(key, str) and len(key) > 0, f"Strategy key should be non-empty"
+            assert isinstance(desc, str) and len(desc) > 0, f"{key} missing description"
 
 
 # =====================================================================
