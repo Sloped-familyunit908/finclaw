@@ -2465,7 +2465,51 @@ class AutoEvolver:
         with open(versioned, "w", encoding="utf-8") as f:
             json.dump(payload, f, indent=2, ensure_ascii=False)
 
-        # Auto-backup best DNA (never lose the best strategy)
+        # ═══════════════════════════════════════════════════════════
+        # best_ever.json — GLOBAL all-time best, NEVER overwritten
+        # unless a new record is set. Survives cycle restarts.
+        # ═══════════════════════════════════════════════════════════
+        current_best_fitness = best[0].fitness if best else 0.0
+        best_ever_file = os.path.join(self.results_dir, "best_ever.json")
+        prev_ever_fitness = 0.0
+        if os.path.exists(best_ever_file):
+            try:
+                with open(best_ever_file, "r", encoding="utf-8") as f:
+                    prev_ever = json.load(f)
+                prev_ever_fitness = prev_ever.get("fitness", 0.0)
+            except Exception:
+                prev_ever_fitness = 0.0
+
+        if current_best_fitness > prev_ever_fitness:
+            best_ever_payload = {
+                "fitness": current_best_fitness,
+                "generation": gen,
+                "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
+                "annual_return": best[0].annual_return,
+                "max_drawdown": best[0].max_drawdown,
+                "win_rate": best[0].win_rate,
+                "sharpe": best[0].sharpe,
+                "calmar": best[0].calmar,
+                "total_trades": best[0].total_trades,
+                "profit_factor": best[0].profit_factor,
+                "dna": best[0].dna.to_dict(),
+            }
+            with open(best_ever_file, "w", encoding="utf-8") as f:
+                json.dump(best_ever_payload, f, indent=2, ensure_ascii=False)
+            print(f"  🏆 [best_ever] NEW ALL-TIME RECORD! fitness={current_best_fitness:.2f} "
+                  f"(prev={prev_ever_fitness:.2f}) gen={gen} "
+                  f"annual={best[0].annual_return:.1f}% sharpe={best[0].sharpe:.2f}")
+
+            # Also save a timestamped copy so we never lose any record-breaking DNA
+            hall_dir = os.path.join(self.results_dir, "hall_of_fame")
+            os.makedirs(hall_dir, exist_ok=True)
+            hof_name = f"record_gen{gen}_fit{int(current_best_fitness)}_" \
+                       f"{time.strftime('%Y%m%d_%H%M%S')}.json"
+            hof_path = os.path.join(hall_dir, hof_name)
+            with open(hof_path, "w", encoding="utf-8") as f:
+                json.dump(best_ever_payload, f, indent=2, ensure_ascii=False)
+
+        # Auto-backup best DNA (per-cycle best, kept for reference)
         best_dir = os.path.join(self.results_dir, "best_dna")
         os.makedirs(best_dir, exist_ok=True)
         best_fitness_file = os.path.join(best_dir, "_best_fitness.txt")
@@ -2475,8 +2519,7 @@ class AutoEvolver:
                 prev_best = float(open(best_fitness_file).read().strip())
             except Exception:
                 pass
-        current_best = best[0].fitness if best else 0.0
-        if current_best > prev_best:
+        if current_best_fitness > prev_best:
             annual = int(best[0].annual_return)
             sharpe_val = round(best[0].sharpe, 1)
             backup_name = f"best_gen{gen}_annual{annual}_sharpe{sharpe_val}.json"
@@ -2484,8 +2527,8 @@ class AutoEvolver:
             with open(backup_path, "w", encoding="utf-8") as f:
                 json.dump(payload, f, indent=2, ensure_ascii=False)
             with open(best_fitness_file, "w") as f:
-                f.write(str(current_best))
-            print(f"  [backup] New best! fitness={current_best:.1f} -> {backup_name}")
+                f.write(str(current_best_fitness))
+            print(f"  [backup] New cycle best! fitness={current_best_fitness:.1f} -> {backup_name}")
 
     def load_best(self) -> Optional[StrategyDNA]:
         """Load the best known strategy from saved results."""
