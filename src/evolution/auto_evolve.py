@@ -2441,6 +2441,28 @@ class AutoEvolver:
         with open(versioned, "w", encoding="utf-8") as f:
             json.dump(payload, f, indent=2, ensure_ascii=False)
 
+        # Auto-backup best DNA (never lose the best strategy)
+        best_dir = os.path.join(self.results_dir, "best_dna")
+        os.makedirs(best_dir, exist_ok=True)
+        best_fitness_file = os.path.join(best_dir, "_best_fitness.txt")
+        prev_best = 0.0
+        if os.path.exists(best_fitness_file):
+            try:
+                prev_best = float(open(best_fitness_file).read().strip())
+            except Exception:
+                pass
+        current_best = best[0].fitness if best else 0.0
+        if current_best > prev_best:
+            annual = int(best[0].annual_return)
+            sharpe_val = round(best[0].sharpe, 1)
+            backup_name = f"best_gen{gen}_annual{annual}_sharpe{sharpe_val}.json"
+            backup_path = os.path.join(best_dir, backup_name)
+            with open(backup_path, "w", encoding="utf-8") as f:
+                json.dump(payload, f, indent=2, ensure_ascii=False)
+            with open(best_fitness_file, "w") as f:
+                f.write(str(current_best))
+            print(f"  [backup] New best! fitness={current_best:.1f} -> {backup_name}")
+
     def load_best(self) -> Optional[StrategyDNA]:
         """Load the best known strategy from saved results."""
         result_file = os.path.join(self.results_dir, "latest.json")

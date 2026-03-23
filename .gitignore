@@ -54,10 +54,14 @@ logs/
 test_output.txt
 dashboard/test-results/
 
-# Evolution results (machine-specific, avoid pull conflicts)
-evolution_results/
+# Evolution results (large checkpoint files, machine-specific)
+evolution_results/gen_*.json
+evolution_results/latest.json
 evolution_results_unified/
 invention_results/
+
+# BUT keep best DNA backups (important!)
+!evolution_results/best_dna/
 
 # Cache & temp
 .finclaw_cache/

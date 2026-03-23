@@ -30,7 +30,7 @@ from src.evolution.auto_evolve import (
 
 def main():
     # Load specific gen DNA
-    with open("evolution_results/gen_0199.json") as f:
+    with open("evolution_results/latest.json") as f:
         gen_data = json.load(f)
 
     dna_dict = gen_data["results"][0]["dna"]

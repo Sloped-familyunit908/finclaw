@@ -1,0 +1,315 @@
+{
+  "gen": 79,
+  "dna_summary": {
+    "hold_days": 3,
+    "stop_loss_pct": 3.3915286181932576,
+    "take_profit_pct": 23.673263995739035,
+    "max_positions": 2,
+    "min_score": 6
+  },
+  "scored_date": "2026-03-20",
+  "total_scored": 500,
+  "passed_threshold": 5,
+  "top30": [
+    {
+      "code": "sh_600722",
+      "score": 6.197,
+      "price": 16.14,
+      "date": "2026-03-20",
+      "rsi": 62.8,
+      "kdj_j": 53.0,
+      "bb_pos": 0.707,
+      "vol_ratio": 0.8
+    },
+    {
+      "code": "sz_001267",
+      "score": 6.165,
+      "price": 42.79,
+      "date": "2026-03-16",
+      "rsi": 66.5,
+      "kdj_j": 54.1,
+      "bb_pos": 0.765,
+      "vol_ratio": 1.35
+    },
+    {
+      "code": "sz_000533",
+      "score": 6.127,
+      "price": 16.75,
+      "date": "2026-03-20",
+      "rsi": 57.4,
+      "kdj_j": 12.5,
+      "bb_pos": 0.622,
+      "vol_ratio": 1.46
+    },
+    {
+      "code": "sz_301396",
+      "score": 6.037,
+      "price": 157.11,
+      "date": "2026-03-20",
+      "rsi": 65.5,
+      "kdj_j": 71.4,
+      "bb_pos": 0.807,
+      "vol_ratio": 1.23
+    },
+    {
+      "code": "sz_001309",
+      "score": 6.031,
+      "price": 331.52,
+      "date": "2026-03-20",
+      "rsi": 62.1,
+      "kdj_j": 59.7,
+      "bb_pos": 0.754,
+      "vol_ratio": 1.03
+    },
+    {
+      "code": "sz_002636",
+      "score": 5.987,
+      "price": 31.3,
+      "date": "2026-03-20",
+      "rsi": 62.0,
+      "kdj_j": 75.8,
+      "bb_pos": 0.759,
+      "vol_ratio": 1.26
+    },
+    {
+      "code": "sh_688411",
+      "score": 5.865,
+      "price": 271.0,
+      "date": "2026-03-20",
+      "rsi": 63.1,
+      "kdj_j": 63.7,
+      "bb_pos": 0.89,
+      "vol_ratio": 1.83
+    },
+    {
+      "code": "sz_300085",
+      "score": 5.858,
+      "price": 42.7,
+      "date": "2026-03-20",
+      "rsi": 60.1,
+      "kdj_j": 74.9,
+      "bb_pos": 0.845,
+      "vol_ratio": 1.66
+    },
+    {
+      "code": "sh_600821",
+      "score": 5.851,
+      "price": 10.71,
+      "date": "2026-03-20",
+      "rsi": 68.4,
+      "kdj_j": 56.6,
+      "bb_pos": 0.799,
+      "vol_ratio": 1.9
+    },
+    {
+      "code": "sz_000617",
+      "score": 5.821,
+      "price": 9.92,
+      "date": "2026-03-20",
+      "rsi": 57.4,
+      "kdj_j": 84.1,
+      "bb_pos": 0.821,
+      "vol_ratio": 2.83
+    },
+    {
+      "code": "sz_301306",
+      "score": 5.76,
+      "price": 131.77,
+      "date": "2026-03-20",
+      "rsi": 63.8,
+      "kdj_j": 88.4,
+      "bb_pos": 0.996,
+      "vol_ratio": 1.98
+    },
+    {
+      "code": "sz_002015",
+      "score": 5.757,
+      "price": 20.8,
+      "date": "2026-03-20",
+      "rsi": 73.1,
+      "kdj_j": 52.9,
+      "bb_pos": 0.783,
+      "vol_ratio": 1.91
+    },
+    {
+      "code": "sz_301358",
+      "score": 5.741,
+      "price": 78.69,
+      "date": "2026-03-20",
+      "rsi": 64.3,
+      "kdj_j": 67.1,
+      "bb_pos": 0.865,
+      "vol_ratio": 1.41
+    },
+    {
+      "code": "sz_002463",
+      "score": 5.723,
+      "price": 84.3,
+      "date": "2026-03-20",
+      "rsi": 58.7,
+      "kdj_j": 60.9,
+      "bb_pos": 0.721,
+      "vol_ratio": 0.97
+    },
+    {
+      "code": "sz_300274",
+      "score": 5.684,
+      "price": 173.6,
+      "date": "2026-03-20",
+      "rsi": 62.6,
+      "kdj_j": 59.9,
+      "bb_pos": 0.861,
+      "vol_ratio": 1.78
+    },
+    {
+      "code": "sz_002025",
+      "score": 5.649,
+      "price": 63.44,
+      "date": "2026-03-20",
+      "rsi": 65.4,
+      "kdj_j": 98.9,
+      "bb_pos": 1.065,
+      "vol_ratio": 1.9
+    },
+    {
+      "code": "sz_300166",
+      "score": 5.622,
+      "price": 14.38,
+      "date": "2026-03-20",
+      "rsi": 57.0,
+      "kdj_j": 67.8,
+      "bb_pos": 0.731,
+      "vol_ratio": 1.64
+    },
+    {
+      "code": "sz_002151",
+      "score": 5.585,
+      "price": 41.18,
+      "date": "2026-03-20",
+      "rsi": 41.5,
+      "kdj_j": 17.9,
+      "bb_pos": 0.141,
+      "vol_ratio": 1.01
+    },
+    {
+      "code": "sh_601669",
+      "score": 5.572,
+      "price": 5.85,
+      "date": "2026-03-20",
+      "rsi": 47.7,
+      "kdj_j": -15.8,
+      "bb_pos": 0.428,
+      "vol_ratio": 0.79
+    },
+    {
+      "code": "sh_603778",
+      "score": 5.561,
+      "price": 24.79,
+      "date": "2026-03-17",
+      "rsi": 72.0,
+      "kdj_j": 103.8,
+      "bb_pos": 1.097,
+      "vol_ratio": 1.51
+    },
+    {
+      "code": "sz_300763",
+      "score": 5.535,
+      "price": 119.5,
+      "date": "2026-03-20",
+      "rsi": 75.5,
+      "kdj_j": 81.2,
+      "bb_pos": 1.103,
+      "vol_ratio": 2.45
+    },
+    {
+      "code": "sz_300672",
+      "score": 5.531,
+      "price": 140.19,
+      "date": "2026-03-06",
+      "rsi": 50.0,
+      "kdj_j": -6.7,
+      "bb_pos": 0.414,
+      "vol_ratio": 1.45
+    },
+    {
+      "code": "sz_301308",
+      "score": 5.531,
+      "price": 330.1,
+      "date": "2026-03-20",
+      "rsi": 53.1,
+      "kdj_j": 43.4,
+      "bb_pos": 0.652,
+      "vol_ratio": 1.31
+    },
+    {
+      "code": "sh_600482",
+      "score": 5.495,
+      "price": 39.26,
+      "date": "2026-03-06",
+      "rsi": 80.9,
+      "kdj_j": 95.8,
+      "bb_pos": 1.062,
+      "vol_ratio": 0.83
+    },
+    {
+      "code": "sz_002594",
+      "score": 5.477,
+      "price": 103.03,
+      "date": "2026-03-20",
+      "rsi": 65.0,
+      "kdj_j": 61.8,
+      "bb_pos": 0.836,
+      "vol_ratio": 1.03
+    },
+    {
+      "code": "sz_002202",
+      "score": 5.425,
+      "price": 29.2,
+      "date": "2026-03-20",
+      "rsi": 53.2,
+      "kdj_j": 20.4,
+      "bb_pos": 0.582,
+      "vol_ratio": 0.83
+    },
+    {
+      "code": "sh_600989",
+      "score": 5.414,
+      "price": 31.87,
+      "date": "2026-03-20",
+      "rsi": 62.6,
+      "kdj_j": 41.0,
+      "bb_pos": 0.688,
+      "vol_ratio": 0.89
+    },
+    {
+      "code": "sz_000858",
+      "score": 5.404,
+      "price": 102.4,
+      "date": "2026-03-20",
+      "rsi": 43.5,
+      "kdj_j": 25.1,
+      "bb_pos": 0.355,
+      "vol_ratio": 0.64
+    },
+    {
+      "code": "sh_603929",
+      "score": 5.374,
+      "price": 184.92,
+      "date": "2026-03-20",
+      "rsi": 70.4,
+      "kdj_j": 110.9,
+      "bb_pos": 1.059,
+      "vol_ratio": 1.49
+    },
+    {
+      "code": "sh_688110",
+      "score": 5.357,
+      "price": 131.1,
+      "date": "2026-03-17",
+      "rsi": 47.3,
+      "kdj_j": 6.4,
+      "bb_pos": 0.329,
+      "vol_ratio": 0.82
+    }
+  ]
+}
