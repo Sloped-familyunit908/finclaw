@@ -3,6 +3,25 @@
 All notable changes to this project will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [5.2.0] - 2026-03-23
+
+### Added
+- Factor Quality Analysis: IC/IR/decay/tier classification for all 217 factors
+- Factor Correlation Matrix: NxN orthogonality detection with auto-pruning
+- 21 new factors: 10 alternative data + 11 Qlib Alpha158 gap-fill
+- Monte Carlo validation for strategy robustness
+- Turnover penalty in fitness function
+- best_ever.json: persistent all-time best strategy DNA
+- Hall of Fame: timestamped copies of every record-breaking DNA
+- 291 new tests (total: 4753+)
+- Factor gap analysis vs Qlib Alpha158 (docs/factor_gap_analysis.md)
+- Code coverage with pytest-cov (.coveragerc + CI integration)
+
+### Fixed
+- Limit-down exit bug in backtest engine
+- 10 stale test references to removed modules
+- Killed stale download_a_shares.py process
+
 ## [5.1.0] - 2026-03-21
 
 ### Added

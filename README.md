@@ -1,18 +1,20 @@
 # FinClaw
 
-**AI trading strategies that evolve themselves. 41 dimensions. 24/7. No human intervention.**
+**AI trading strategies that evolve themselves. 217 dimensions. 24/7. No human intervention.**
 
 <p align="center">
   <a href="https://pypi.org/project/finclaw-ai/"><img src="https://img.shields.io/pypi/v/finclaw-ai?color=blue" alt="PyPI"></a>
   <a href="https://github.com/NeuZhou/finclaw/actions/workflows/ci.yml"><img src="https://github.com/NeuZhou/finclaw/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License"></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.9%2B-blue" alt="Python 3.9+"></a>
+  <img src="https://img.shields.io/badge/factors-217-orange" alt="217 Factors">
+  <img src="https://img.shields.io/badge/tests-4753%2B-brightgreen" alt="4753+ Tests">
   <a href="https://github.com/NeuZhou/finclaw/stargazers"><img src="https://img.shields.io/github/stars/NeuZhou/finclaw?style=social" alt="GitHub Stars"></a>
 </p>
 
 <img src="docs/images/hero.jpg" alt="FinClaw Architecture" />
 
-> FinClaw is an open-source quantitative finance engine that uses genetic algorithms to continuously evolve trading strategies across 41 factor dimensions — technical, fundamental, and quality — without human intervention.
+> FinClaw is an open-source quantitative finance engine that uses genetic algorithms to continuously evolve trading strategies across 217 factor dimensions — technical, fundamental, quality, alternative data, and Qlib Alpha158 — with IC/IR quality analysis, walk-forward validation, and Monte Carlo simulation.
 
 ## Disclaimer
 
@@ -21,7 +23,10 @@ This project is for **educational and research purposes only**. Not financial ad
 ## Table of Contents
 
 - [Why FinClaw?](#why-finclaw)
+- [What Makes FinClaw Different?](#what-makes-finclaw-different)
 - [Current Best Strategy](#current-best-strategy-gen-1500)
+- [Factor Library](#factor-library)
+- [Validation & Quality](#validation--quality)
 - [Quick Start](#quick-start)
 - [Dashboard](#dashboard)
 - [Strategy Evolution Engine](#strategy-evolution-engine)
@@ -31,12 +36,28 @@ This project is for **educational and research purposes only**. Not financial ad
 
 ## Why FinClaw?
 
-- **Self-evolving strategies** — Genetic algorithm optimizes 41 trading factors 24/7
+- **Self-evolving strategies** — Genetic algorithm optimizes 217 trading factors 24/7
 - **Walk-forward validated** — 70/30 train/test split + Monte Carlo simulation prevents overfitting
+- **Factor quality analysis** — IC/IR/decay/tier classification for every factor
+- **Turnover penalty** — Fitness function penalizes excessive trading
+- **Factor orthogonality** — Correlation matrix detects and prunes redundant factors
 - **Global markets** — US stocks, crypto, and Chinese A-shares from free data sources
 - **AI-powered research** — Chat with any LLM about stocks. Configure in `finclaw.config.ts`
 - **Production dashboard** — TradingView charts, screener, watchlist, real-time prices
 - **Zero API keys needed** — `pip install finclaw-ai && finclaw demo` just works
+
+## What Makes FinClaw Different?
+
+Unlike traditional quant platforms where humans design strategies, FinClaw's genetic algorithm **discovers strategies autonomously**:
+
+| Feature | Traditional Platforms | FinClaw |
+|---------|---------------------|---------|
+| Strategy Design | Human writes rules | GA evolves 217-dim DNA |
+| Factor Selection | Human picks indicators | Auto-weighted via evolution |
+| Parameter Tuning | Grid search / manual | Genetic crossover + mutation |
+| Quality Control | Manual review | IC analysis + factor pruning |
+| Overfitting Prevention | Train/test split | Walk-forward + Monte Carlo |
+| Runs 24/7 | No | Yes, autonomous |
 
 ## Current Best Strategy (Gen 1,500+)
 
@@ -46,12 +67,47 @@ This project is for **educational and research purposes only**. Not financial ad
 | Sharpe Ratio | 3.42 | ~2.0-2.5* |
 | Max Drawdown | 13.8% | ~15-18%* |
 | Win Rate | 62.9% | ~55-60%* |
-| Factor Dimensions | 41 | 41 |
+| Factor Dimensions | 217 | 217 |
 | Generations Evolved | 1,500+ | 1,500+ |
+| Validation | Walk-Forward + MC | Walk-Forward + MC |
 
 *Net estimates include 0.03% commission, 0.1% stamp tax (A-shares), and 0.1% slippage per trade.
 
 > **Important**: These results are from historical backtesting on A-share data (2024-2026). Past performance does not guarantee future results. This is a research and education tool — not a production trading system. Always validate strategies with paper trading before risking real capital.
+
+## Factor Library
+
+FinClaw's 217 factors span 8 categories, each scored for predictive quality:
+
+| Category | Count | Examples |
+|----------|-------|---------|
+| Technical | 45+ | RSI, MACD, Bollinger, KDJ, OBV, ATR, ADX, ROC, CCI, MFI, Aroon |
+| Fundamental | 30+ | PE, PB, ROE, revenue growth (YoY/QoQ), profit growth, debt ratio |
+| Quality | 15+ | Gross margin, cashflow quality, PEG, earnings stability |
+| Momentum | 25+ | Multi-period returns, risk-adjusted momentum, momentum reversal |
+| Volatility | 20+ | Realized vol, vol regime, vol-of-vol, skew, kurtosis |
+| Volume | 20+ | VWAP deviation, volume profile, smart money flow |
+| Alternative Data | 10 | Sentiment indicators, cross-asset signals |
+| Qlib Alpha158 | 50+ | Alpha158 coverage with gap-fill factors |
+
+**Quality Analysis:**
+- **IC/IR scoring** — Information Coefficient and Information Ratio for every factor
+- **Decay analysis** — How quickly factor signal degrades over time
+- **Tier classification** — Factors ranked by predictive power (S/A/B/C tiers)
+- **Correlation matrix** — NxN orthogonality detection with auto-pruning of redundant factors
+- **Qlib Alpha158 coverage** — Gap analysis ensuring comprehensive factor coverage ([details](docs/factor_gap_analysis.md))
+
+## Validation & Quality
+
+| Mechanism | Description |
+|-----------|-------------|
+| Walk-Forward Validation | 70/30 train/test split prevents in-sample overfitting |
+| Monte Carlo Simulation | Randomized path testing for strategy robustness (coming soon) |
+| Turnover Penalty | Fitness function penalizes excessive trading to reduce costs |
+| Factor Orthogonality | Correlated factors auto-detected and pruned |
+| best_ever.json | Persistent all-time best strategy DNA |
+| Hall of Fame | Timestamped copies of every record-breaking DNA |
+| Test Suite | 4,753+ tests covering engine, factors, and validation |
 
 ## Quick Start
 
@@ -92,13 +148,7 @@ FinClaw uses a genetic algorithm to continuously discover optimal trading strate
 4. **Select** — Keep the top 5 performers
 5. **Repeat** — 24/7 on your compute node
 
-The engine optimizes 41 factor dimensions:
-
-| Category | Factors |
-|----------|---------|
-| Technical | RSI, MACD, Bollinger, KDJ, OBV, ATR, ADX, ROC, CCI, MFI, Aroon |
-| Fundamental | PE, PB, ROE, revenue growth (YoY/QoQ), profit growth, debt ratio |
-| Quality | Gross margin, cashflow quality, PEG ratio |
+The engine optimizes 217 factor dimensions across 8 categories (see [Factor Library](#factor-library) for full details).
 
 ```bash
 # Start 24/7 evolution
