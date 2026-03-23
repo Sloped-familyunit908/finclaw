@@ -1332,15 +1332,17 @@ def compute_fitness(
     monthly_returns: Optional[List[float]] = None,
     positions_used: int = 1,
     max_positions: int = 1,
+    avg_turnover: float = 0.0,
 ) -> float:
     """Compute composite fitness score.
 
     fitness = annual_return * sqrt(win_rate) / max(max_drawdown, 5.0) * sharpe_bonus * trade_penalty
               * sortino_bonus * consec_loss_penalty * consistency_bonus * diversification_bonus
+              * turnover_penalty
 
     Rewards: high return, high win rate, low drawdown, good Sharpe, enough trades,
              Sortino > Sharpe, consistent monthly returns, diversified holdings.
-    Penalizes: fewer than 30 trades, long consecutive loss streaks.
+    Penalizes: fewer than 30 trades, long consecutive loss streaks, very high turnover.
     """
     dd_denom = max(max_drawdown, 5.0)
     win_factor = math.sqrt(max(win_rate, 0.0))
@@ -1388,8 +1390,15 @@ def compute_fitness(
         elif max_positions >= 3 and positions_used >= 2:
             diversification_bonus = 1.15  # 15% bonus for moderate diversification
 
+    # Turnover penalty: penalize strategies that churn their portfolio
+    turnover_penalty = 1.0
+    if avg_turnover > 0.8:
+        turnover_penalty = 0.85  # very high turnover
+    elif avg_turnover > 0.5:
+        turnover_penalty = 0.95  # moderately high turnover
+
     return (base_fitness * sortino_bonus * consec_loss_penalty
-            * consistency_bonus * diversification_bonus)
+            * consistency_bonus * diversification_bonus * turnover_penalty)
 
 
 def filter_stock_pool(
@@ -1908,11 +1917,11 @@ class AutoEvolver:
         hold_days = max(2, dna.hold_days)  # A-share T+1: buy T+1, earliest sell T+2
 
         def _run_backtest(day_start: int, day_end: int) -> Tuple[
-            float, float, float, float, float, int, float, float, int, List[float], int
+            float, float, float, float, float, int, float, float, int, List[float], int, float
         ]:
             """Run backtest on a date range. Returns (annual_return, max_drawdown,
             win_rate, sharpe, calmar, total_trades, profit_factor, sortino,
-            max_consec_losses, monthly_returns, max_concurrent_positions)."""
+            max_consec_losses, monthly_returns, max_concurrent_positions, avg_turnover)."""
             initial_capital = 1_000_000.0
             bt_capital = initial_capital
             bt_portfolio_values = [bt_capital]
@@ -1929,6 +1938,10 @@ class AutoEvolver:
 
             # Track max concurrent positions for diversification scoring
             bt_max_concurrent = 0
+
+            # Track turnover: how much the portfolio changes each rebalancing
+            bt_turnover_ratios: List[float] = []
+            bt_prev_picks: set = set()
 
             day = day_start
 
@@ -1955,6 +1968,16 @@ class AutoEvolver:
                 # Pick top max_positions
                 scored.sort(key=lambda x: x[1], reverse=True)
                 picks = scored[: dna.max_positions]
+
+                # Track turnover: how many positions changed from previous period
+                current_pick_codes = {code for code, _ in picks}
+                if bt_prev_picks:  # Skip first period (no previous positions)
+                    # Count codes that are new or removed
+                    changes = len(bt_prev_picks.symmetric_difference(current_pick_codes))
+                    max_pos = max(dna.max_positions, 1)
+                    period_turnover = changes / max_pos
+                    bt_turnover_ratios.append(period_turnover)
+                bt_prev_picks = current_pick_codes
 
                 if picks:
                     per_pos = bt_capital / len(picks)
@@ -2127,18 +2150,26 @@ class AutoEvolver:
             bt_calmar = bt_annual_return / max(bt_max_drawdown, 1.0)
             bt_profit_factor = bt_gross_profit / bt_gross_loss if bt_gross_loss > 0 else (10.0 if bt_gross_profit > 0 else 0.0)
 
+            # Compute average turnover
+            bt_avg_turnover = 0.0
+            if bt_turnover_ratios:
+                bt_avg_turnover = sum(bt_turnover_ratios) / len(bt_turnover_ratios)
+
             return (bt_annual_return, bt_max_drawdown, bt_win_rate, bt_sharpe,
                     bt_calmar, bt_total_trades, bt_profit_factor, bt_sortino,
-                    bt_max_consec_losses, bt_monthly_returns, bt_max_concurrent)
+                    bt_max_consec_losses, bt_monthly_returns, bt_max_concurrent,
+                    bt_avg_turnover)
 
         # ── Run backtests on train and validation periods ──
         (train_ret, train_dd, train_wr, train_sharpe, train_calmar,
          train_trades, train_pf, train_sortino,
-         train_consec_losses, train_monthly, train_max_concurrent) = _run_backtest(warmup, train_end)
+         train_consec_losses, train_monthly, train_max_concurrent,
+         train_avg_turnover) = _run_backtest(warmup, train_end)
 
         (val_ret, val_dd, val_wr, val_sharpe, val_calmar,
          val_trades, val_pf, val_sortino,
-         val_consec_losses, val_monthly, val_max_concurrent) = _run_backtest(val_start, val_end)
+         val_consec_losses, val_monthly, val_max_concurrent,
+         val_avg_turnover) = _run_backtest(val_start, val_end)
 
         # Combine metrics (report validation-period numbers as primary)
         total_trades = train_trades + val_trades
@@ -2162,6 +2193,7 @@ class AutoEvolver:
             monthly_returns=train_monthly,
             positions_used=train_max_concurrent,
             max_positions=dna.max_positions,
+            avg_turnover=train_avg_turnover,
         )
         val_fitness = compute_fitness(
             val_ret, val_dd, val_wr, val_sharpe, val_trades,
@@ -2170,6 +2202,7 @@ class AutoEvolver:
             monthly_returns=val_monthly,
             positions_used=val_max_concurrent,
             max_positions=dna.max_positions,
+            avg_turnover=val_avg_turnover,
         )
 
         # Weight validation more: prevents overfitting to training data
