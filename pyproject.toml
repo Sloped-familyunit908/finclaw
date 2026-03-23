@@ -5,12 +5,12 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "finclaw-ai"
 version = "5.1.0"
-description = "AI-native quantitative finance platform with MCP server support"
+description = "Self-evolving crypto trading strategies via genetic algorithm — 217 factors, 100+ exchanges, 24/7 autonomous evolution"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.9"
 authors = [{name = "NeuZhou", email = "neuzhou@users.noreply.github.com"}]
-keywords = ["quantitative-finance", "trading", "backtesting", "mcp", "ai-agent"]
+keywords = ["quantitative-finance", "trading", "backtesting", "mcp", "ai-agent", "crypto", "bitcoin", "genetic-algorithm", "ccxt"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Financial and Insurance Industry",
@@ -43,7 +43,8 @@ Issues = "https://github.com/NeuZhou/finclaw/issues"
 finclaw = "src.cli.main:main"
 
 [project.optional-dependencies]
-full = ["aiohttp", "websockets"]
+crypto = ["ccxt>=4.0"]
+full = ["aiohttp", "websockets", "ccxt>=4.0"]
 ml = ["numpy", "scikit-learn"]
 dev = ["pytest>=7.0", "pytest-asyncio>=0.21", "pytest-aiohttp>=1.0", "pytest-cov>=4.0", "ruff"]
 

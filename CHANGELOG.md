@@ -3,6 +3,30 @@
 All notable changes to this project will be documented in this file.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [5.3.0] - 2026-03-23
+
+### Added
+- **Crypto-first positioning** — README rewritten to lead with crypto trading
+- `finclaw download-crypto` — Download OHLCV data for top 20 crypto pairs
+- `finclaw evolve --market crypto` — GA evolution on crypto market data
+- `finclaw live --market crypto --mode dry-run` — Paper trading with live exchange feeds
+- Telegram notifications for trade signals, executions, and daily summaries
+- Risk management config: max drawdown, position limits, stop-loss, daily loss caps
+- Crypto trading getting started guide (`docs/crypto-trading/getting-started.md`)
+- `[crypto]` optional dependency group in pyproject.toml
+- Comparison table vs Freqtrade / 3Commas in README
+- New badges: 100+ exchanges, crypto+stocks market indicator
+- 47 new tests for crypto download, evolution, and live trading modules (total: 4800+)
+
+### Changed
+- README hero line: "Self-evolving crypto trading strategies"
+- Quick Start now shows crypto workflow first
+- Data Sources table reordered: crypto first
+- Dashboard highlights crypto portfolio tracker
+- pyproject.toml description updated for crypto-first positioning
+- pyproject.toml keywords expanded with crypto, bitcoin, genetic-algorithm, ccxt
+- `[full]` extras now include `ccxt>=4.0`
+
 ## [5.2.0] - 2026-03-23
 
 ### Added
