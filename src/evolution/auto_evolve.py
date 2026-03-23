@@ -1556,65 +1556,33 @@ class AutoEvolver:
         Returns dict: code -> {date, open, high, low, close, volume}
         Only loads stocks with enough data (>= 60 trading days).
 
+        Uses UnifiedDataLoader for CSV loading with built-in data validation
+        and cleaning (NaN removal, negative price removal, date sorting).
+
         When quality_filter=True, applies:
         - Average daily turnover > 20M CNY (or volume*close proxy)
         - Last close > 5 CNY
         - Stocks with recent limit-up (涨停) get priority
         - Max ``max_stocks`` best-quality stocks retained
         """
-        data: Dict[str, Dict[str, list]] = {}
-        data_path = Path(self.data_dir)
+        from src.evolution.data_loader import UnifiedDataLoader, validate_data
 
-        if not data_path.exists():
-            return data
+        loader = UnifiedDataLoader()
+        data = loader.load_csv_dir(self.data_dir, market="cn", min_days=60, clean=True)
 
-        csv_files = list(data_path.glob("*.csv"))
-        for fp in csv_files:
-            try:
-                lines = fp.read_text(encoding="utf-8").strip().split("\n")
-                if len(lines) < 2:
-                    continue
-
-                header = lines[0].strip().split(",")
-                col_map = {h.strip(): i for i, h in enumerate(header)}
-
-                # Required columns
-                required = {"date", "open", "high", "low", "close", "volume"}
-                if not required.issubset(col_map.keys()):
-                    continue
-
-                dates = []
-                opens = []
-                highs = []
-                lows = []
-                closes = []
-                volumes = []
-
-                for line in lines[1:]:
-                    parts = line.strip().split(",")
-                    if len(parts) > max(col_map.values()):
-                        try:
-                            dates.append(parts[col_map["date"]])
-                            opens.append(float(parts[col_map["open"]]))
-                            highs.append(float(parts[col_map["high"]]))
-                            lows.append(float(parts[col_map["low"]]))
-                            closes.append(float(parts[col_map["close"]]))
-                            volumes.append(float(parts[col_map["volume"]]))
-                        except (ValueError, IndexError):
-                            continue
-
-                if len(closes) >= 60:
-                    code = fp.stem
-                    data[code] = {
-                        "date": dates,
-                        "open": opens,
-                        "high": highs,
-                        "low": lows,
-                        "close": closes,
-                        "volume": volumes,
-                    }
-            except Exception:
-                continue
+        # Run data quality validation and print summary
+        if data:
+            report = validate_data(data)
+            print(f"  [data quality] {report.valid_stocks}/{report.total_stocks} stocks valid, "
+                  f"avg {report.avg_trading_days:.0f} trading days")
+            if report.stocks_with_gaps > 0:
+                print(f"  [data quality] {report.stocks_with_gaps} stocks have date gaps")
+            if report.stocks_with_bad_data > 0:
+                print(f"  [data quality] {report.stocks_with_bad_data} stocks have data issues")
+            for w in report.warnings[:5]:
+                print(f"  [data quality] [{w.level}] {w.stock}: {w.message}")
+            if len(report.warnings) > 5:
+                print(f"  [data quality] ... and {len(report.warnings) - 5} more warnings")
 
         if quality_filter and len(data) > max_stocks:
             data = filter_stock_pool(data, max_stocks=max_stocks)
