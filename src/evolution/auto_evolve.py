@@ -1539,14 +1539,22 @@ class AutoEvolver:
         mutation_rate: float = 0.3,
         results_dir: str = "evolution_results",
         seed: Optional[int] = None,
+        market: str = "cn",
     ):
         self.data_dir = data_dir
         self.population_size = population_size
         self.elite_count = elite_count
         self.mutation_rate = mutation_rate
         self.results_dir = results_dir
+        self.market = market
         self.rng = random.Random(seed)
         os.makedirs(results_dir, exist_ok=True)
+
+        # Initialize crypto backtest engine if needed
+        self._crypto_engine = None
+        if market == "crypto":
+            from src.evolution.crypto_backtest import CryptoBacktestEngine
+            self._crypto_engine = CryptoBacktestEngine()
 
     def load_data(
         self, quality_filter: bool = True, max_stocks: int = 500
@@ -1568,7 +1576,8 @@ class AutoEvolver:
         from src.evolution.data_loader import UnifiedDataLoader, validate_data
 
         loader = UnifiedDataLoader()
-        data = loader.load_csv_dir(self.data_dir, market="cn", min_days=60, clean=True)
+        load_market = "crypto" if self.market == "crypto" else "cn"
+        data = loader.load_csv_dir(self.data_dir, market=load_market, min_days=60, clean=True)
 
         # Run data quality validation and print summary
         if data:
@@ -1584,7 +1593,7 @@ class AutoEvolver:
             if len(report.warnings) > 5:
                 print(f"  [data quality] ... and {len(report.warnings) - 5} more warnings")
 
-        if quality_filter and len(data) > max_stocks:
+        if quality_filter and self.market != "crypto" and len(data) > max_stocks:
             data = filter_stock_pool(data, max_stocks=max_stocks)
             # NOTE: Sector-based and fundamental quality filtering (e.g., min ROE,
             # max PE, sector rotation) can be configured via finclaw-pro config.
@@ -1884,6 +1893,16 @@ class AutoEvolver:
 
         hold_days = max(2, dna.hold_days)  # A-share T+1: buy T+1, earliest sell T+2
 
+        # ── Choose backtest engine ──
+        if self.market == "crypto" and self._crypto_engine is not None:
+            # Use crypto backtest engine — no T+1, supports shorts/leverage
+            def _run_backtest_dispatch(day_start: int, day_end: int):
+                return self._crypto_engine.run_backtest(
+                    dna, data, indicators, codes, day_start, day_end
+                )
+        else:
+            _run_backtest_dispatch = None  # use inline A-share backtest below
+
         def _run_backtest(day_start: int, day_end: int) -> Tuple[
             float, float, float, float, float, int, float, float, int, List[float], int, float
         ]:
@@ -2134,15 +2153,28 @@ class AutoEvolver:
                     bt_avg_turnover)
 
         # ── Run backtests on train and validation periods ──
-        (train_ret, train_dd, train_wr, train_sharpe, train_calmar,
-         train_trades, train_pf, train_sortino,
-         train_consec_losses, train_monthly, train_max_concurrent,
-         train_avg_turnover) = _run_backtest(warmup, train_end)
+        if _run_backtest_dispatch is not None:
+            # Crypto mode: use CryptoBacktestEngine
+            (train_ret, train_dd, train_wr, train_sharpe, train_calmar,
+             train_trades, train_pf, train_sortino,
+             train_consec_losses, train_monthly, train_max_concurrent,
+             train_avg_turnover) = _run_backtest_dispatch(warmup, train_end)
 
-        (val_ret, val_dd, val_wr, val_sharpe, val_calmar,
-         val_trades, val_pf, val_sortino,
-         val_consec_losses, val_monthly, val_max_concurrent,
-         val_avg_turnover) = _run_backtest(val_start, val_end)
+            (val_ret, val_dd, val_wr, val_sharpe, val_calmar,
+             val_trades, val_pf, val_sortino,
+             val_consec_losses, val_monthly, val_max_concurrent,
+             val_avg_turnover) = _run_backtest_dispatch(val_start, val_end)
+        else:
+            # A-share mode: use inline _run_backtest
+            (train_ret, train_dd, train_wr, train_sharpe, train_calmar,
+             train_trades, train_pf, train_sortino,
+             train_consec_losses, train_monthly, train_max_concurrent,
+             train_avg_turnover) = _run_backtest(warmup, train_end)
+
+            (val_ret, val_dd, val_wr, val_sharpe, val_calmar,
+             val_trades, val_pf, val_sortino,
+             val_consec_losses, val_monthly, val_max_concurrent,
+             val_avg_turnover) = _run_backtest(val_start, val_end)
 
         # Combine metrics (report validation-period numbers as primary)
         total_trades = train_trades + val_trades

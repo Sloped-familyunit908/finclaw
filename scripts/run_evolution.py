@@ -18,8 +18,14 @@ def main():
     parser = argparse.ArgumentParser(description="FinClaw Strategy Evolution Engine")
     parser.add_argument(
         "--data-dir",
-        default="data/a_shares",
-        help="Path to A-shares CSV directory (default: data/a_shares)",
+        default=None,
+        help="Path to CSV data directory (default: data/a_shares for cn, data/crypto for crypto)",
+    )
+    parser.add_argument(
+        "--market",
+        default="cn",
+        choices=["cn", "crypto"],
+        help="Market type: 'cn' for A-shares, 'crypto' for cryptocurrency (default: cn)",
     )
     parser.add_argument(
         "--population", type=int, default=30, help="Population size per generation (default: 30)"
@@ -49,13 +55,19 @@ def main():
     )
     args = parser.parse_args()
 
+    # Default data directory based on market
+    data_dir = args.data_dir
+    if data_dir is None:
+        data_dir = "data/crypto" if args.market == "crypto" else "data/a_shares"
+
     evolver = AutoEvolver(
-        data_dir=args.data_dir,
+        data_dir=data_dir,
         population_size=args.population,
         elite_count=args.elite,
         mutation_rate=args.mutation_rate,
         results_dir=args.results_dir,
         seed=args.seed,
+        market=args.market,
     )
 
     try:
