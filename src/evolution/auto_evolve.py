@@ -1767,6 +1767,19 @@ class AutoEvolver:
                 print(f"  [factors] skipped: {e}")
                 self._factor_registry = None
 
+        # Pre-compute active factor count for logging (once per evaluate call)
+        _active_factor_count = None
+        _total_factor_count = None
+        if self._factor_registry and self._factor_registry.factors:
+            _total_factor_count = len(self._factor_registry.list_factors())
+            if hasattr(dna, 'custom_weights') and dna.custom_weights:
+                _active_factor_count = sum(
+                    1 for fname, w in dna.custom_weights.items()
+                    if w >= 0.001 and fname in self._factor_registry.factors
+                )
+                if _active_factor_count < _total_factor_count:
+                    print(f"  [factors] speedup: {_active_factor_count}/{_total_factor_count} factors active (skipping {_total_factor_count - _active_factor_count} near-zero)")
+
         # Deterministic sampling: use gen_seed so same generation always
         # picks the same stocks, eliminating sampling noise.
         codes = list(data.keys())
@@ -1847,11 +1860,22 @@ class AutoEvolver:
             }
 
             # Store dynamic factor compute functions for on-the-fly scoring
+            # Optimization: only include factors with non-trivial weights in DNA
+            # If DNA has 196 custom weights but only 30 are >= 0.001, we skip 166
             if self._factor_registry and self._factor_registry.factors:
-                indicators[code]["_factor_fns"] = {
-                    fname: self._factor_registry.factors[fname].compute_fn
-                    for fname in self._factor_registry.list_factors()
-                }
+                if hasattr(dna, 'custom_weights') and dna.custom_weights:
+                    # Pre-filter: only compute factors that the DNA actually uses
+                    active_factors = {}
+                    for fname, w in dna.custom_weights.items():
+                        if w >= 0.001 and fname in self._factor_registry.factors:
+                            active_factors[fname] = self._factor_registry.factors[fname].compute_fn
+                    indicators[code]["_factor_fns"] = active_factors
+                else:
+                    # No custom weights in DNA, store all (fallback)
+                    indicators[code]["_factor_fns"] = {
+                        fname: self._factor_registry.factors[fname].compute_fn
+                        for fname in self._factor_registry.list_factors()
+                    }
 
         # Load fundamental data (once per session, cached)
         if not hasattr(self, '_fund_data_cache'):

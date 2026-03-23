@@ -1,0 +1,187 @@
+{
+  "type": "ensemble",
+  "strategies_used": 2,
+  "top20": [
+    {
+      "code": "sh_600722",
+      "ensemble_score": 6.482,
+      "avg_score": 5.893,
+      "consensus": 1.0,
+      "high_count": 2,
+      "price": 16.14,
+      "rsi": 62.8
+    },
+    {
+      "code": "sz_001267",
+      "ensemble_score": 6.441,
+      "avg_score": 5.855,
+      "consensus": 1.0,
+      "high_count": 2,
+      "price": 42.7,
+      "rsi": 62.7
+    },
+    {
+      "code": "sz_000533",
+      "ensemble_score": 6.418,
+      "avg_score": 5.835,
+      "consensus": 1.0,
+      "high_count": 2,
+      "price": 16.75,
+      "rsi": 57.4
+    },
+    {
+      "code": "sz_301396",
+      "ensemble_score": 6.029,
+      "avg_score": 5.742,
+      "consensus": 0.5,
+      "high_count": 1,
+      "price": 157.11,
+      "rsi": 65.5
+    },
+    {
+      "code": "sz_001309",
+      "ensemble_score": 6.014,
+      "avg_score": 5.728,
+      "consensus": 0.5,
+      "high_count": 1,
+      "price": 331.52,
+      "rsi": 62.1
+    },
+    {
+      "code": "sh_601669",
+      "ensemble_score": 5.965,
+      "avg_score": 5.423,
+      "consensus": 1.0,
+      "high_count": 2,
+      "price": 5.85,
+      "rsi": 47.7
+    },
+    {
+      "code": "sz_002636",
+      "ensemble_score": 5.93,
+      "avg_score": 5.648,
+      "consensus": 0.5,
+      "high_count": 1,
+      "price": 31.3,
+      "rsi": 62.0
+    },
+    {
+      "code": "sz_002594",
+      "ensemble_score": 5.917,
+      "avg_score": 5.379,
+      "consensus": 1.0,
+      "high_count": 2,
+      "price": 103.03,
+      "rsi": 65.0
+    },
+    {
+      "code": "sh_600048",
+      "ensemble_score": 5.911,
+      "avg_score": 5.374,
+      "consensus": 1.0,
+      "high_count": 2,
+      "price": 6.24,
+      "rsi": 35.5
+    },
+    {
+      "code": "sh_600821",
+      "ensemble_score": 5.869,
+      "avg_score": 5.589,
+      "consensus": 0.5,
+      "high_count": 1,
+      "price": 10.71,
+      "rsi": 68.4
+    },
+    {
+      "code": "sz_000858",
+      "ensemble_score": 5.856,
+      "avg_score": 5.324,
+      "consensus": 1.0,
+      "high_count": 2,
+      "price": 102.4,
+      "rsi": 43.5
+    },
+    {
+      "code": "sz_300085",
+      "ensemble_score": 5.843,
+      "avg_score": 5.564,
+      "consensus": 0.5,
+      "high_count": 1,
+      "price": 42.7,
+      "rsi": 60.1
+    },
+    {
+      "code": "sz_000617",
+      "ensemble_score": 5.837,
+      "avg_score": 5.559,
+      "consensus": 0.5,
+      "high_count": 1,
+      "price": 9.92,
+      "rsi": 57.4
+    },
+    {
+      "code": "sh_688411",
+      "ensemble_score": 5.828,
+      "avg_score": 5.55,
+      "consensus": 0.5,
+      "high_count": 1,
+      "price": 271.0,
+      "rsi": 63.1
+    },
+    {
+      "code": "sh_601919",
+      "ensemble_score": 5.812,
+      "avg_score": 5.284,
+      "consensus": 1.0,
+      "high_count": 2,
+      "price": 15.83,
+      "rsi": 55.7
+    },
+    {
+      "code": "sz_002015",
+      "ensemble_score": 5.777,
+      "avg_score": 5.502,
+      "consensus": 0.5,
+      "high_count": 1,
+      "price": 20.8,
+      "rsi": 73.1
+    },
+    {
+      "code": "sz_300274",
+      "ensemble_score": 5.732,
+      "avg_score": 5.459,
+      "consensus": 0.5,
+      "high_count": 1,
+      "price": 173.6,
+      "rsi": 62.6
+    },
+    {
+      "code": "sz_301358",
+      "ensemble_score": 5.666,
+      "avg_score": 5.397,
+      "consensus": 0.5,
+      "high_count": 1,
+      "price": 78.69,
+      "rsi": 64.3
+    },
+    {
+      "code": "sh_601601",
+      "ensemble_score": 5.664,
+      "avg_score": 5.149,
+      "consensus": 1.0,
+      "high_count": 2,
+      "price": 39.16,
+      "rsi": 39.1
+    },
+    {
+      "code": "sz_301306",
+      "ensemble_score": 5.644,
+      "avg_score": 5.375,
+      "consensus": 0.5,
+      "high_count": 1,
+      "price": 131.77,
+      "rsi": 63.8
+    }
+  ],
+  "total_scored": 500
+}
