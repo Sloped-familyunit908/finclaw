@@ -2042,7 +2042,12 @@ class AutoEvolver:
                                     else:
                                         lim = 0.10
                                     limit_down_price = pc * (1 - lim + 0.005)
-                                    if sd["close"][d] <= limit_down_price and d < entry_day + hold_days - 1:
+                                    if sd["close"][d] <= limit_down_price:
+                                        # Can't sell a limit-down stock on any day,
+                                        # including the last hold day. The exit_price
+                                        # stays at the previous day's close (or entry
+                                        # if day 0). The position effectively carries
+                                        # over until the limit is lifted.
                                         continue
 
                             sl_price = entry_price * (1 - dna.stop_loss_pct / 100)
