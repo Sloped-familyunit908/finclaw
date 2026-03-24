@@ -1977,6 +1977,29 @@ class AutoEvolver:
                             adjusted_scored.append((code, adj_s))
                     scored = adjusted_scored
 
+                # ── Hard Filter: Reject Chronic Underperformers ──
+                # This is a permanent safety rule, NOT subject to evolution.
+                # Prevents buying stocks in structural decline (dying industries).
+                if scored:
+                    filtered_scored = []
+                    for code, s in scored:
+                        closes_arr = data[code]["close"]
+                        if day >= 60:
+                            peak_60d = max(closes_arr[day - 59:day + 1])
+                            current = closes_arr[day]
+                            if peak_60d > 0:
+                                drawdown_from_peak = (peak_60d - current) / peak_60d
+                                # Hard reject: >30% below 60-day high
+                                if drawdown_from_peak > 0.30:
+                                    continue
+                                # Soft penalty: 15-30% below 60-day high, reduce score by 30%
+                                if drawdown_from_peak > 0.15:
+                                    s = s * 0.70
+                                    if s < dna.min_score:
+                                        continue
+                        filtered_scored.append((code, s))
+                    scored = filtered_scored
+
                 # Pick top max_positions
                 scored.sort(key=lambda x: x[1], reverse=True)
                 picks = scored[: dna.max_positions]

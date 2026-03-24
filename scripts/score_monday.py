@@ -129,6 +129,21 @@ def main():
             errors += 1
             continue
 
+        # ── Hard Filter: Reject Chronic Underperformers ──
+        # Permanent safety rule — prevents recommending dying stocks
+        if idx >= 60:
+            peak_60d = max(closes[idx - 59:idx + 1])
+            current = closes[idx]
+            if peak_60d > 0:
+                drawdown_from_peak = (peak_60d - current) / peak_60d
+                if drawdown_from_peak > 0.30:
+                    print(f"  [FILTERED] {code}: {drawdown_from_peak:.1%} below 60d high — structural decline, skipped")
+                    continue
+                if drawdown_from_peak > 0.15:
+                    original_s = s
+                    s = s * 0.70
+                    print(f"  [PENALIZED] {code}: {drawdown_from_peak:.1%} below 60d high — score {original_s:.1f} -> {s:.1f} (-30%)")
+
         # Collect info for display
         dates = sd.get("date", [])
         last_date = dates[min_len - 1] if dates and len(dates) >= min_len else "?"
