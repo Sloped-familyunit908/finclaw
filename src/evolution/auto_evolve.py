@@ -858,6 +858,9 @@ from src.evolution.fundamentals import (
     compute_cashflow_score as _compute_cashflow_score,
 )
 
+# Import market state filter (hard rule, not part of evolution)
+from src.evolution.market_filter import MarketStateFilter
+
 
 def score_stock(
     idx: int,
@@ -1930,6 +1933,9 @@ class AutoEvolver:
             bt_turnover_ratios: List[float] = []
             bt_prev_picks: set = set()
 
+            # Market state filter (hard rule, always applied, not evolved)
+            bt_market_filter = MarketStateFilter()
+
             day = day_start
 
             while day < day_end - hold_days - 1:
@@ -1951,6 +1957,25 @@ class AutoEvolver:
                     s = score_stock(day, ind, dna)
                     if s >= dna.min_score:
                         scored.append((code, s))
+
+                # Apply market state filter (hard rule, not evolved)
+                if bt_market_filter is not None and scored:
+                    mkt_state = bt_market_filter.compute_market_state(
+                        data, indicators, codes, day,
+                    )
+                    adjusted_scored = []
+                    for code, s in scored:
+                        ind = indicators[code]
+                        sd = data[code]
+                        has_bottom = MarketStateFilter.check_bottom_signals(
+                            ind,
+                            sd["close"], sd["high"], sd["low"], sd["volume"],
+                            day,
+                        )
+                        adj_s = bt_market_filter.adjust_score(s, mkt_state, has_bottom)
+                        if adj_s >= dna.min_score:
+                            adjusted_scored.append((code, adj_s))
+                    scored = adjusted_scored
 
                 # Pick top max_positions
                 scored.sort(key=lambda x: x[1], reverse=True)
