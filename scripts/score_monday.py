@@ -180,8 +180,8 @@ def main():
     print(f"*** Stocks passing min_score >= {dna.min_score}: {len(passed)} ***")
     print()
 
-    print(f"{'Rank':<5} {'Code':<15} {'Score':<8} {'Price':<10} {'RSI':<8} {'KDJ-J':<8} {'BB%':<8} {'VolR':<8}")
-    print("=" * 80)
+    print(f"{'Rank':<5} {'Code':<15} {'Score':<8} {'Confidence':<28} {'Price':<10} {'RSI':<8} {'KDJ-J':<8} {'BB%':<8} {'VolR':<8}")
+    print("=" * 110)
 
     show = passed[:30] if passed else scored[:20]
     for i, s in enumerate(show):
@@ -189,8 +189,34 @@ def main():
         kdj_s = f"{s['kdj_j']}" if s['kdj_j'] is not None else "-"
         bb_s = f"{s['bb_pos']}" if s['bb_pos'] is not None else "-"
         vr_s = f"{s['vol_ratio']}" if s['vol_ratio'] is not None else "-"
-        marker = " <<<BUY" if s['score'] >= dna.min_score else ""
-        print(f"{i+1:<5} {s['code']:<15} {s['score']:<8} {s['price']:<10} {rsi_s:<8} {kdj_s:<8} {bb_s:<8} {vr_s:<8}{marker}")
+
+        # Confidence level based on score
+        sc = s['score']
+        if sc >= 8.0:
+            confidence = "⭐⭐⭐ HIGH CONFIDENCE"
+        elif sc >= 6.5:
+            confidence = "⭐⭐  MEDIUM CONFIDENCE"
+        elif sc >= 5.0:
+            confidence = "⭐   LOW (smaller size)"
+        else:
+            confidence = "     No signal"
+
+        marker = " <<<BUY" if sc >= dna.min_score else ""
+        print(f"{i+1:<5} {s['code']:<15} {s['score']:<8} {confidence:<28} {s['price']:<10} {rsi_s:<8} {kdj_s:<8} {bb_s:<8} {vr_s:<8}{marker}")
+
+    # Print confidence summary
+    if passed:
+        high_conf = [s for s in passed if s['score'] >= 8.0]
+        med_conf = [s for s in passed if 6.5 <= s['score'] < 8.0]
+        low_conf = [s for s in passed if s['score'] < 6.5]
+        print(f"\n=== Confidence Summary ===")
+        print(f"⭐⭐⭐ HIGH CONFIDENCE (8.0+):   {len(high_conf)} stocks")
+        print(f"⭐⭐  MEDIUM CONFIDENCE (6.5-8): {len(med_conf)} stocks")
+        print(f"⭐   LOW CONFIDENCE (<6.5):      {len(low_conf)} stocks")
+        print(f"\nPosition sizing guidance:")
+        print(f"  HIGH   → Full position size")
+        print(f"  MEDIUM → 70% position size")
+        print(f"  LOW    → 40% position size or skip")
 
     # Save
     output = {

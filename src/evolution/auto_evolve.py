@@ -190,7 +190,7 @@ class StrategyDNA:
 
 # Valid ranges for each parameter — (min, max, is_int)
 _PARAM_RANGES: Dict[str, Tuple[float, float, bool]] = {
-    "min_score": (1, 10, True),
+    "min_score": (4, 8, True),  # min=4 prevents overfitting via loose threshold
     "rsi_buy_threshold": (10.0, 50.0, False),
     "rsi_sell_threshold": (55.0, 95.0, False),
     "r2_min": (0.1, 0.95, False),
