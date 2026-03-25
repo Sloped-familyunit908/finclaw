@@ -129,20 +129,20 @@ def main():
             errors += 1
             continue
 
-        # ── Hard Filter: Reject Chronic Underperformers ──
-        # Permanent safety rule — prevents recommending dying stocks
+        # ?????? Hard Filter: Reject Chronic Underperformers ??????
+        # Permanent safety rule ??? prevents recommending dying stocks
         if idx >= 60:
             peak_60d = max(closes[idx - 59:idx + 1])
             current = closes[idx]
             if peak_60d > 0:
                 drawdown_from_peak = (peak_60d - current) / peak_60d
                 if drawdown_from_peak > 0.30:
-                    print(f"  [FILTERED] {code}: {drawdown_from_peak:.1%} below 60d high — structural decline, skipped")
+                    print(f"  [FILTERED] {code}: {drawdown_from_peak:.1%} below 60d high ??? structural decline, skipped")
                     continue
                 if drawdown_from_peak > 0.15:
                     original_s = s
                     s = s * 0.70
-                    print(f"  [PENALIZED] {code}: {drawdown_from_peak:.1%} below 60d high — score {original_s:.1f} -> {s:.1f} (-30%)")
+                    print(f"  [PENALIZED] {code}: {drawdown_from_peak:.1%} below 60d high ??? score {original_s:.1f} -> {s:.1f} (-30%)")
 
         # Collect info for display
         dates = sd.get("date", [])
@@ -177,7 +177,7 @@ def main():
 
     # Show results
     passed = [s for s in scored if s["score"] >= dna.min_score]
-    print(f"*** Stocks passing min_score >= {dna.min_score}: {len(passed)} ***")
+    print(f"[HIGH] Stocks passing min_score >= {dna.min_score}: {len(passed)} [HIGH]")
     print()
 
     print(f"{'Rank':<5} {'Code':<15} {'Score':<8} {'Confidence':<28} {'Price':<10} {'RSI':<8} {'KDJ-J':<8} {'BB%':<8} {'VolR':<8}")
@@ -193,11 +193,11 @@ def main():
         # Confidence level based on score
         sc = s['score']
         if sc >= 8.0:
-            confidence = "⭐⭐⭐ HIGH CONFIDENCE"
+            confidence = "????????? HIGH CONFIDENCE"
         elif sc >= 6.5:
-            confidence = "⭐⭐  MEDIUM CONFIDENCE"
+            confidence = "??????  MEDIUM CONFIDENCE"
         elif sc >= 5.0:
-            confidence = "⭐   LOW (smaller size)"
+            confidence = "???   LOW (smaller size)"
         else:
             confidence = "     No signal"
 
@@ -210,13 +210,13 @@ def main():
         med_conf = [s for s in passed if 6.5 <= s['score'] < 8.0]
         low_conf = [s for s in passed if s['score'] < 6.5]
         print(f"\n=== Confidence Summary ===")
-        print(f"⭐⭐⭐ HIGH CONFIDENCE (8.0+):   {len(high_conf)} stocks")
-        print(f"⭐⭐  MEDIUM CONFIDENCE (6.5-8): {len(med_conf)} stocks")
-        print(f"⭐   LOW CONFIDENCE (<6.5):      {len(low_conf)} stocks")
+        print(f"????????? HIGH CONFIDENCE (8.0+):   {len(high_conf)} stocks")
+        print(f"??????  MEDIUM CONFIDENCE (6.5-8): {len(med_conf)} stocks")
+        print(f"???   LOW CONFIDENCE (<6.5):      {len(low_conf)} stocks")
         print(f"\nPosition sizing guidance:")
-        print(f"  HIGH   → Full position size")
-        print(f"  MEDIUM → 70% position size")
-        print(f"  LOW    → 40% position size or skip")
+        print(f"  HIGH   ??? Full position size")
+        print(f"  MEDIUM ??? 70% position size")
+        print(f"  LOW    ??? 40% position size or skip")
 
     # Save
     output = {
@@ -241,3 +241,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+

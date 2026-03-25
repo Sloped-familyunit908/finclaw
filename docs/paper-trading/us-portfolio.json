@@ -55,6 +55,30 @@
       "total_value": 100000.0,
       "cash": 100000.0,
       "positions_value": 0.0
+    },
+    {
+      "date": "2026-03-23",
+      "total_value": 100000.0,
+      "cash": 100000.0,
+      "positions_value": 0.0
+    },
+    {
+      "date": "2026-03-23",
+      "total_value": 100000.0,
+      "cash": 100000.0,
+      "positions_value": 0.0
+    },
+    {
+      "date": "2026-03-24",
+      "total_value": 100000.0,
+      "cash": 100000.0,
+      "positions_value": 0.0
+    },
+    {
+      "date": "2026-03-24",
+      "total_value": 100000.0,
+      "cash": 100000.0,
+      "positions_value": 0.0
     }
   ]
 }

@@ -192,10 +192,11 @@ def main():
         project_root=str(project_root),
     )
 
-    # Load DNA into runner
+    # Load DNA into runner and set CLI overrides (these persist across load_dna calls)
     runner.load_dna()
     if crypto_dna:
         runner.dna.update(crypto_dna)
+    runner.set_cli_overrides({"max_positions": args.max_positions})
 
     logger.info("Paper trading started. Press Ctrl+C to stop.")
     logger.info(f"Trade log: {TRADE_LOG_PATH}")

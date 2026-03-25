@@ -136,8 +136,9 @@ class CryptoLiveRunner:
         self.daily_start_value: float = initial_balance
         self._day_date: Optional[str] = None
 
-        # DNA / strategy config
+        # DNS / strategy config
         self.dna: dict[str, Any] = {}
+        self._cli_overrides: dict[str, Any] = {}  # CLI args always win over DNA
 
         # Exchange connection (lazy)
         self._exchange: Any = None
@@ -179,6 +180,7 @@ class CryptoLiveRunner:
         if not self.dna_path.exists():
             logger.warning("DNA file not found: %s — using defaults", self.dna_path)
             self.dna = self._default_dna()
+            self.dna.update(self._cli_overrides)
             return self.dna
 
         try:
@@ -186,11 +188,18 @@ class CryptoLiveRunner:
                 data = json.load(f)
             self.dna = data.get("dna", data)
             logger.info("Loaded DNA from %s", self.dna_path)
-            return self.dna
         except Exception as exc:
             logger.error("Failed to load DNA: %s", exc)
             self.dna = self._default_dna()
-            return self.dna
+
+        # CLI overrides always win
+        self.dna.update(self._cli_overrides)
+        return self.dna
+
+    def set_cli_overrides(self, overrides: dict[str, Any]) -> None:
+        """Set CLI overrides that persist across load_dna() calls."""
+        self._cli_overrides.update(overrides)
+        self.dna.update(overrides)
 
     @staticmethod
     def _default_dna() -> dict[str, Any]:
@@ -368,6 +377,13 @@ class CryptoLiveRunner:
             # Fetch OHLCV for scoring
             ohlcv = self.fetch_ohlcv(symbol) if not prices else []
             score = self.compute_score(symbol, ohlcv) if ohlcv else 5.0
+
+            # Fallback: if we hold a position but have no OHLCV, use price-based scoring
+            if symbol in self.positions and not ohlcv and price is not None:
+                pos = self.positions[symbol]
+                pnl_pct = pos.unrealised_pnl_pct(price)
+                # Map PnL% to a score adjustment: losing → lower score
+                score = max(0.0, min(10.0, 5.0 + pnl_pct * 0.3))
 
             if symbol in self.positions:
                 # Sell signal if score drops below threshold
@@ -603,6 +619,51 @@ class CryptoLiveRunner:
                 self.trade_log = []
         return self.trade_log
 
+    def _reconstruct_positions(self) -> None:
+        """Rebuild positions and cash from trade log after a restart.
+
+        Replays all trades sequentially to reconstruct the current state,
+        so that a restart doesn't open duplicate positions.
+        """
+        self.positions = {}
+        self.cash = self.initial_balance
+
+        for trade in self.trade_log:
+            symbol = trade["symbol"]
+            action = trade["action"]
+
+            if action == "BUY":
+                price = trade["price"]
+                qty = trade["qty"]
+                cost = trade.get("cost", price * qty)
+                entry_time = trade.get("time", "")
+                self.cash -= cost
+                if symbol in self.positions:
+                    # Average into existing position
+                    pos = self.positions[symbol]
+                    total_qty = pos.qty + qty
+                    avg_price = (pos.entry_price * pos.qty + price * qty) / total_qty
+                    pos.entry_price = avg_price
+                    pos.qty = total_qty
+                else:
+                    self.positions[symbol] = Position(
+                        symbol, price, qty, entry_time, "long"
+                    )
+            elif action == "SELL":
+                qty = trade["qty"]
+                revenue = trade.get("revenue", trade["price"] * qty)
+                self.cash += revenue
+                if symbol in self.positions:
+                    del self.positions[symbol]
+
+        if self.positions:
+            logger.info(
+                "Reconstructed %d positions from trade log: %s (cash: $%.2f)",
+                len(self.positions),
+                list(self.positions.keys()),
+                self.cash,
+            )
+
     # ------------------------------------------------------------------
     # Main loop
     # ------------------------------------------------------------------
@@ -649,6 +710,7 @@ class CryptoLiveRunner:
 
         self.load_dna()
         self.load_trade_log()
+        self._reconstruct_positions()
         self._running = True
         self._stop_event.clear()
 

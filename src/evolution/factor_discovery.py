@@ -65,7 +65,8 @@ class FactorRegistry:
             return 0
 
         count = 0
-        for fp in sorted(self.factors_dir.glob("*.py")):
+        # Load factors from root directory and all subdirectories
+        for fp in sorted(self.factors_dir.rglob("*.py")):
             if fp.name.startswith("_"):
                 continue
             try:
