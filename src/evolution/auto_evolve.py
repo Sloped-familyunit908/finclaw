@@ -1543,6 +1543,8 @@ class AutoEvolver:
         results_dir: str = "evolution_results",
         seed: Optional[int] = None,
         market: str = "cn",
+        walk_forward: bool = True,
+        wf_config: Optional[Any] = None,
     ):
         self.data_dir = data_dir
         self.population_size = population_size
@@ -1552,6 +1554,13 @@ class AutoEvolver:
         self.market = market
         self.rng = random.Random(seed)
         os.makedirs(results_dir, exist_ok=True)
+
+        # Walk-forward validation (default ON)
+        self.walk_forward = walk_forward
+        self._wf_validator = None
+        if walk_forward:
+            from src.evolution.walk_forward import WalkForwardValidator
+            self._wf_validator = WalkForwardValidator(wf_config)
 
         # Initialize crypto backtest engine if needed
         self._crypto_engine = None
@@ -2201,69 +2210,87 @@ class AutoEvolver:
                     bt_avg_turnover)
 
         # ── Run backtests on train and validation periods ──
+        # Choose the backtest dispatch callable
         if _run_backtest_dispatch is not None:
-            # Crypto mode: use CryptoBacktestEngine
-            (train_ret, train_dd, train_wr, train_sharpe, train_calmar,
-             train_trades, train_pf, train_sortino,
-             train_consec_losses, train_monthly, train_max_concurrent,
-             train_avg_turnover) = _run_backtest_dispatch(warmup, train_end)
-
-            (val_ret, val_dd, val_wr, val_sharpe, val_calmar,
-             val_trades, val_pf, val_sortino,
-             val_consec_losses, val_monthly, val_max_concurrent,
-             val_avg_turnover) = _run_backtest_dispatch(val_start, val_end)
+            _bt_fn = _run_backtest_dispatch
         else:
-            # A-share mode: use inline _run_backtest
+            _bt_fn = _run_backtest
+
+        if self.walk_forward and self._wf_validator is not None:
+            # ── NEW: Multi-window walk-forward validation ──
+            wf_result = self._wf_validator.validate(
+                _bt_fn, total_bars=total_days, warmup=warmup,
+            )
+            fitness = wf_result.final_fitness
+
+            if wf_result.window_results:
+                last_w = wf_result.window_results[-1]
+                annual_return = last_w.oos_annual_return
+                max_drawdown = last_w.oos_max_drawdown
+                sharpe = last_w.oos_sharpe
+                win_rate = last_w.oos_win_rate
+                total_trades = sum(w.oos_trades for w in wf_result.window_results)
+                # Use last window OOS metrics for remaining fields
+                calmar = annual_return / max(max_drawdown, 1.0)
+                profit_factor = 0.0  # not directly available from WindowResult
+                sortino = 0.0
+            else:
+                annual_return = 0.0
+                max_drawdown = 0.0
+                sharpe = 0.0
+                win_rate = 0.0
+                total_trades = 0
+                calmar = 0.0
+                profit_factor = 0.0
+                sortino = 0.0
+        else:
+            # ── LEGACY: Single 70/30 split (backward compatible) ──
             (train_ret, train_dd, train_wr, train_sharpe, train_calmar,
              train_trades, train_pf, train_sortino,
              train_consec_losses, train_monthly, train_max_concurrent,
-             train_avg_turnover) = _run_backtest(warmup, train_end)
+             train_avg_turnover) = _bt_fn(warmup, train_end)
 
             (val_ret, val_dd, val_wr, val_sharpe, val_calmar,
              val_trades, val_pf, val_sortino,
              val_consec_losses, val_monthly, val_max_concurrent,
-             val_avg_turnover) = _run_backtest(val_start, val_end)
+             val_avg_turnover) = _bt_fn(val_start, val_end)
 
-        # Combine metrics (report validation-period numbers as primary)
-        total_trades = train_trades + val_trades
-        # Use combined stats for reporting
-        annual_return = val_ret  # report validation return
-        max_drawdown = max(train_dd, val_dd)
-        win_rate = val_wr
-        sharpe = val_sharpe
-        calmar = val_calmar
-        profit_factor = val_pf
-        sortino = val_sortino
-        max_consec_losses = max(train_consec_losses, val_consec_losses)
-        monthly_returns = (train_monthly or []) + (val_monthly or [])
-        max_concurrent = max(train_max_concurrent, val_max_concurrent)
+            # Combine metrics (report validation-period numbers as primary)
+            total_trades = train_trades + val_trades
+            annual_return = val_ret
+            max_drawdown = max(train_dd, val_dd)
+            win_rate = val_wr
+            sharpe = val_sharpe
+            calmar = val_calmar
+            profit_factor = val_pf
+            sortino = val_sortino
+            max_consec_losses = max(train_consec_losses, val_consec_losses)
+            monthly_returns = (train_monthly or []) + (val_monthly or [])
+            max_concurrent = max(train_max_concurrent, val_max_concurrent)
 
-        # ── Walk-Forward Fitness ──
-        train_fitness = compute_fitness(
-            train_ret, train_dd, train_wr, train_sharpe, train_trades,
-            sortino=train_sortino,
-            max_consec_losses=train_consec_losses,
-            monthly_returns=train_monthly,
-            positions_used=train_max_concurrent,
-            max_positions=dna.max_positions,
-            avg_turnover=train_avg_turnover,
-        )
-        val_fitness = compute_fitness(
-            val_ret, val_dd, val_wr, val_sharpe, val_trades,
-            sortino=val_sortino,
-            max_consec_losses=val_consec_losses,
-            monthly_returns=val_monthly,
-            positions_used=val_max_concurrent,
-            max_positions=dna.max_positions,
-            avg_turnover=val_avg_turnover,
-        )
+            train_fitness = compute_fitness(
+                train_ret, train_dd, train_wr, train_sharpe, train_trades,
+                sortino=train_sortino,
+                max_consec_losses=train_consec_losses,
+                monthly_returns=train_monthly,
+                positions_used=train_max_concurrent,
+                max_positions=dna.max_positions,
+                avg_turnover=train_avg_turnover,
+            )
+            val_fitness = compute_fitness(
+                val_ret, val_dd, val_wr, val_sharpe, val_trades,
+                sortino=val_sortino,
+                max_consec_losses=val_consec_losses,
+                monthly_returns=val_monthly,
+                positions_used=val_max_concurrent,
+                max_positions=dna.max_positions,
+                avg_turnover=val_avg_turnover,
+            )
 
-        # Weight validation more: prevents overfitting to training data
-        fitness = 0.4 * train_fitness + 0.6 * val_fitness
+            fitness = 0.4 * train_fitness + 0.6 * val_fitness
 
-        # Harsh overfit penalty: if validation fitness is < 30% of train fitness
-        if train_fitness > 0 and val_fitness < 0.3 * train_fitness:
-            fitness *= 0.3
+            if train_fitness > 0 and val_fitness < 0.3 * train_fitness:
+                fitness *= 0.3
 
         return EvolutionResult(
             dna=dna,
