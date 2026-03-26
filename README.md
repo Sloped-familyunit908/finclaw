@@ -1,3 +1,5 @@
+[English](README.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | [中文](README.zh-CN.md)
+
 # FinClaw 🦀
 
 **Self-Evolving Trading Intelligence — genetic algorithms discover strategies you never would.**
