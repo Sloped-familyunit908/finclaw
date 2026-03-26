@@ -15,6 +15,10 @@
 
 > FinClaw doesn't need you to write strategies — its genetic algorithm **discovers and evolves them autonomously** across 484 factor dimensions, then validates them with walk-forward testing and Monte Carlo simulation.
 
+<p align="center">
+  <img src="assets/demo-evolve.svg" alt="FinClaw Evolution Demo" width="800">
+</p>
+
 ## Disclaimer
 
 This project is for **educational and research purposes only**. Not financial advice. Past performance does not guarantee future results. Always paper trade first.
