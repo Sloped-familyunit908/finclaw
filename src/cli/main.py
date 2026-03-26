@@ -1600,6 +1600,24 @@ Examples:
 
     # check-backtest (economic plausibility checker)
     p_chkbt = sub.add_parser("check-backtest", help="Check backtest results for plausibility")
+
+    # download-crypto
+    p_dlc = sub.add_parser("download-crypto", help="Download historical crypto OHLCV data via ccxt")
+    p_dlc.add_argument("--coins", default="BTC,ETH,SOL", help="Comma-separated coin names (default: BTC,ETH,SOL)")
+    p_dlc.add_argument("--days", type=int, default=730, help="Number of days of history to download (default: 730)")
+
+    # evolve
+    p_evo = sub.add_parser("evolve", help="Run strategy evolution engine (genetic algorithm)")
+    p_evo.add_argument("--market", default="crypto", choices=["crypto", "a-share", "cn"],
+                        help="Market type (default: crypto)")
+    p_evo.add_argument("--generations", type=int, default=100, help="Number of generations (default: 100)")
+    p_evo.add_argument("--population", type=int, default=30, help="Population size (default: 30)")
+    p_evo.add_argument("--data-dir", default=None, help="Path to CSV data directory")
+    p_evo.add_argument("--results-dir", default="evolution_results", help="Directory for results (default: evolution_results)")
+    p_evo.add_argument("--mutation-rate", type=float, default=0.3, help="Mutation rate 0.0-1.0 (default: 0.3)")
+    p_evo.add_argument("--elite", type=int, default=5, help="Number of elite strategies to keep (default: 5)")
+    p_evo.add_argument("--seed", type=int, default=None, help="Random seed for reproducibility")
+    p_evo.add_argument("--save-interval", type=int, default=10, help="Save every N generations (default: 10)")
     p_chkbt.add_argument("--input", "-i", default=None, help="JSON file with backtest results")
     p_chkbt.add_argument("--sharpe", type=float, default=None, help="Sharpe ratio")
     p_chkbt.add_argument("--win-rate", type=float, default=None, help="Win rate (0-1)")
@@ -3606,6 +3624,148 @@ def cmd_position_size(args):
     print()
 
 
+def cmd_download_crypto(args):
+    """Download historical crypto OHLCV data via ccxt."""
+    from datetime import timezone, timedelta
+
+    try:
+        import ccxt
+    except ImportError:
+        print("  ERROR: ccxt not installed. Run: pip install ccxt")
+        return
+
+    coins = [c.strip().upper() for c in args.coins.split(",")]
+    symbols = [f"{coin}/USDT" for coin in coins]
+    days = args.days
+
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    output_dir = os.path.join(project_root, "data", "crypto")
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Try exchanges in order
+    exchange = None
+    for name, config in [("okx", {"enableRateLimit": True}),
+                          ("bybit", {"enableRateLimit": True}),
+                          ("binance", {"enableRateLimit": True, "options": {"defaultType": "spot"}})]:
+        try:
+            print(f"  Trying {name}...", end=" ", flush=True)
+            ex_cls = getattr(ccxt, name)
+            ex = ex_cls(config)
+            ex.load_markets()
+            exchange = ex
+            print(f"OK — connected to {name}")
+            break
+        except Exception as e:
+            print(f"FAIL — {e}")
+
+    if exchange is None:
+        print("  ERROR: Could not connect to any exchange.")
+        return
+
+    now = datetime.now(tz=timezone.utc)
+    since = now - timedelta(days=days)
+    since_ms = int(since.timestamp() * 1000)
+    until_ms = int(now.timestamp() * 1000)
+
+    print(f"\n  Downloading 1h data for {len(symbols)} pairs")
+    print(f"  Period: {since.strftime('%Y-%m-%d')} to {now.strftime('%Y-%m-%d')}")
+    print(f"  Output: {output_dir}")
+    print("  " + "=" * 60)
+
+    import csv as csv_mod
+    import time
+
+    success = 0
+    for i, symbol in enumerate(symbols, 1):
+        filename = symbol.replace("/", "") + ".csv"
+        filepath = os.path.join(output_dir, filename)
+        print(f"  [{i}/{len(symbols)}] {symbol} ...", end=" ", flush=True)
+
+        all_candles = []
+        current_since = since_ms
+        retries = 0
+
+        while current_since < until_ms:
+            try:
+                candles = exchange.fetch_ohlcv(symbol, timeframe="1h", since=current_since, limit=100)
+                retries = 0
+            except ccxt.BadSymbol:
+                print(f"not available")
+                break
+            except Exception as e:
+                retries += 1
+                if retries > 3:
+                    print(f"error: {e}")
+                    break
+                time.sleep(3 * retries)
+                continue
+
+            if not candles:
+                break
+            for c in candles:
+                if c[0] <= until_ms:
+                    all_candles.append(c)
+            last_ts = candles[-1][0]
+            if last_ts <= current_since:
+                break
+            current_since = last_ts + 1
+            time.sleep(1.0)
+
+        if all_candles:
+            with open(filepath, "w", newline="", encoding="utf-8") as f:
+                writer = csv_mod.writer(f)
+                writer.writerow(["date", "open", "high", "low", "close", "volume"])
+                for c in all_candles:
+                    dt = datetime.fromtimestamp(c[0] / 1000, tz=timezone.utc)
+                    writer.writerow([dt.strftime("%Y-%m-%d %H:%M:%S"), c[1], c[2], c[3], c[4], c[5]])
+            print(f"OK {len(all_candles)} candles -> {filename}")
+            success += 1
+        else:
+            print("SKIP — no data")
+
+        if i < len(symbols):
+            time.sleep(1.5)
+
+    print("  " + "=" * 60)
+    print(f"  Download complete! {success}/{len(symbols)} pairs downloaded.")
+
+
+def cmd_evolve(args):
+    """Run strategy evolution engine."""
+    from src.evolution.auto_evolve import AutoEvolver
+
+    # Normalize market name
+    market = args.market
+    if market == "a-share":
+        market = "cn"
+
+    # Default data directory based on market
+    data_dir = args.data_dir
+    if data_dir is None:
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        data_dir = os.path.join(project_root, "data", "crypto" if market == "crypto" else "a_shares")
+
+    evolver = AutoEvolver(
+        data_dir=data_dir,
+        population_size=args.population,
+        elite_count=args.elite,
+        mutation_rate=args.mutation_rate,
+        results_dir=args.results_dir,
+        seed=args.seed,
+        market=market,
+    )
+
+    try:
+        evolver.evolve(generations=args.generations, save_interval=args.save_interval)
+    except KeyboardInterrupt:
+        print("\n\n  Evolution interrupted. Results saved — resume anytime.")
+        return
+
+    best = evolver.load_best()
+    if best:
+        print(f"\n  Best strategy found:\n{best}")
+
+
 def main(argv=None):
     """Main CLI entry point."""
     # Fix encoding on Windows (cp936/GBK can't handle Unicode box-drawing chars)
@@ -3743,12 +3903,38 @@ def main(argv=None):
         elif args.command == "quote":
             from src.exchanges.registry import ExchangeRegistry
             from src.cli.colors import bold, bright_green, bright_red, gray, price_color, pct_color
-            adapter = ExchangeRegistry.get(args.exchange)
+            # Auto-route crypto pairs (containing "/") to ccxt
+            exchange = args.exchange
             symbols = args.symbol  # now a list
+            _ccxt_probe_ticker = None  # cache the probe result for reuse
+            if any("/" in s for s in symbols) and exchange == "yahoo":
+                # Try multiple exchanges for accessibility
+                try:
+                    from src.exchanges.ccxt_adapter import CCXTAdapter
+                    adapter = None
+                    for ex_id in ("okx", "bybit", "binance"):
+                        try:
+                            candidate = CCXTAdapter(exchange_id=ex_id)
+                            t = candidate.get_ticker(symbols[0])
+                            if "error" not in t:
+                                adapter = candidate
+                                exchange = ex_id
+                                _ccxt_probe_ticker = t  # reuse later
+                                break
+                        except Exception:
+                            pass
+                    if adapter is None:
+                        print("  ERROR: Could not connect to any crypto exchange for quote.")
+                        return 1
+                except ImportError:
+                    print("  ERROR: ccxt not installed. Run: pip install ccxt")
+                    return 1
+            else:
+                adapter = ExchangeRegistry.get(exchange)
             if len(symbols) == 1:
                 # Single symbol — detailed view
-                ticker = adapter.get_ticker(symbols[0])
-                last = ticker['last']
+                ticker = _ccxt_probe_ticker or adapter.get_ticker(symbols[0])
+                last = ticker.get('last') or ticker.get('price')
                 bid = ticker.get('bid', 'N/A')
                 ask = ticker.get('ask', 'N/A')
                 vol = ticker.get('volume', 'N/A')
@@ -3766,7 +3952,7 @@ def main(argv=None):
                 for sym in symbols:
                     try:
                         ticker = adapter.get_ticker(sym)
-                        last = ticker['last']
+                        last = ticker.get('last') or ticker.get('price')
                         chg = ticker.get('change', 0) or 0
                         chg_pct = ticker.get('change_pct', 0) or 0
                         vol = ticker.get('volume', 'N/A')
@@ -4026,6 +4212,10 @@ def test_signals():
             cmd_cn_fundamentals(args)
         elif args.command == "cn-fund-flow":
             cmd_cn_fund_flow(args)
+        elif args.command == "download-crypto":
+            cmd_download_crypto(args)
+        elif args.command == "evolve":
+            cmd_evolve(args)
         else:
             parser.print_help()
     except KeyboardInterrupt:
