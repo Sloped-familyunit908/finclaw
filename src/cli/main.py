@@ -143,12 +143,13 @@ def cmd_backtest(args):
             StrategyCls = STRATEGY_MAP[resolved_strategy]
             bt = StrategyCls(initial_capital=capital)
             r = asyncio.run(bt.run(ticker, resolved_strategy, h))
-        else:
-            available = sorted(set(list(STRATEGY_MAP.keys()) + list(_BACKTEST_ALIASES.keys())))
-            if strategy_lower and strategy_lower not in ("v7", "default", ""):
-                print(f"  WARNING: Unknown strategy '{strategy}'. Using default (v7). Available: {', '.join(available)}")
+        elif not strategy_lower or strategy_lower in ("v7", "default"):
             bt = BacktesterV7(initial_capital=capital)
             r = asyncio.run(bt.run(ticker, "v7", h))
+        else:
+            available = sorted(set(list(STRATEGY_MAP.keys()) + list(_BACKTEST_ALIASES.keys()) + ["v7", "default"]))
+            print(f"  ERROR: Unknown strategy '{strategy}'. Available: {', '.join(available)}")
+            return []
         ann = (1 + r.total_return) ** (1 / years) - 1 if r.total_return > -1 else -1
 
         print(f"\n  ── {ticker} | {strategy} ──")
@@ -2937,22 +2938,39 @@ def cmd_ccxt_quote(args):
     exchange_id = args.exchange
     symbol = args.symbol
 
-    print(f"\n  ── ccxt Quote: {symbol} ({exchange_id}) ──")
-    try:
-        adapter = CCXTAdapter(exchange_id=exchange_id)
-        ticker = adapter.get_ticker(symbol)
-        if 'error' in ticker:
-            print(f"  ERROR: {ticker['error']}")
+    # Try the requested exchange first, then fallback to alternatives
+    exchanges_to_try = [exchange_id]
+    fallbacks = ["okx", "bybit", "binance"]
+    for fb in fallbacks:
+        if fb != exchange_id:
+            exchanges_to_try.append(fb)
+
+    print(f"\n  ── ccxt Quote: {symbol} ──")
+    for ex_id in exchanges_to_try:
+        try:
+            adapter = CCXTAdapter(exchange_id=ex_id)
+            ticker = adapter.get_ticker(symbol)
+            if 'error' in ticker:
+                if ex_id == exchange_id:
+                    print(f"  {ex_id}: {ticker['error']} — trying fallback...")
+                continue
+            if ex_id != exchange_id:
+                print(f"  (fallback: {ex_id})")
+            print(f"  Price:      {ticker.get('price')}")
+            print(f"  Change:     {ticker.get('change_pct', 'N/A')}%")
+            print(f"  Volume:     {ticker.get('volume', 'N/A')}")
+            print(f"  High:       {ticker.get('high', 'N/A')}")
+            print(f"  Low:        {ticker.get('low', 'N/A')}")
+            print(f"  Bid:        {ticker.get('bid', 'N/A')}")
+            print(f"  Ask:        {ticker.get('ask', 'N/A')}")
+            print()
             return
-        print(f"  Price:      {ticker.get('price')}")
-        print(f"  Change:     {ticker.get('change_pct', 'N/A')}%")
-        print(f"  Volume:     {ticker.get('volume', 'N/A')}")
-        print(f"  High:       {ticker.get('high', 'N/A')}")
-        print(f"  Low:        {ticker.get('low', 'N/A')}")
-        print(f"  Bid:        {ticker.get('bid', 'N/A')}")
-        print(f"  Ask:        {ticker.get('ask', 'N/A')}")
-    except Exception as e:
-        print(f"  ERROR: {e}")
+        except Exception as e:
+            if ex_id == exchange_id:
+                print(f"  {ex_id}: {e} — trying fallback...")
+            continue
+
+    print(f"  ERROR: Could not get quote from any exchange.")
     print()
 
 
@@ -3048,6 +3066,15 @@ def cmd_check_backtest(args):
     max_drawdown = args.max_drawdown or 0.0
     total_return = args.total_return or 0.0
     period_days = args.period_days
+
+    # Check if any meaningful data was provided
+    has_input = args.input is not None
+    has_values = any([args.sharpe, args.win_rate, args.trades, args.max_drawdown, args.total_return])
+    if not has_input and not has_values:
+        print("  ERROR: No backtest data provided.")
+        print("  Usage: finclaw check-backtest --input results.json")
+        print("     or: finclaw check-backtest --sharpe 1.5 --win-rate 0.6 --trades 50 --total-return 0.25")
+        return
 
     # Load from JSON file if provided
     if args.input:
@@ -3447,22 +3474,23 @@ def _show_movers(args, mode: str = "gainers"):
         volume = np.array(df["Volume"].tolist(), dtype=np.float64) if "Volume" in df.columns else None
         universe.append(StockData(ticker=ticker, close=close, volume=volume))
 
+    from src.cli.colors import bright_green, bright_red
+
     if mode == "gainers":
         results = screener.screen_gainers(universe, limit=args.limit)
         label = "Gainers"
-        color_code = "\033[92m"
+        _color_fn = bright_green
     else:
         results = screener.screen_losers(universe, limit=args.limit)
         label = "Losers"
-        color_code = "\033[91m"
+        _color_fn = bright_red
 
-    reset = "\033[0m"
     print(f"\n  Top {label} ({args.universe})\n")
     print(f"  {'#':<4} {'Ticker':<10} {'Price':>10} {'Change%':>10} {'Volume':>14}")
     print("  " + "-" * 52)
     for i, r in enumerate(results, 1):
         pct_str = f"{r['change_pct']:>+9.2f}%"
-        print(f"  {i:<4} {r['ticker']:<10} {r['price']:>10.2f} {color_code}{pct_str}{reset} {r['volume']:>14,}")
+        print(f"  {i:<4} {r['ticker']:<10} {r['price']:>10.2f} {_color_fn(pct_str)} {r['volume']:>14,}")
     print()
 
 
@@ -3883,8 +3911,19 @@ def main(argv=None):
                     print(f"  Ann. Vol:  {vol:.2%}")
                     print()
             else:
-                print(f"  FinClaw v{_get_version()} — AI-Powered Financial Intelligence Engine")
-                print("  Commands: backtest, screen, analyze, portfolio, price, options, paper-trade, report, interactive, exchanges, quote, history")
+                print(f"  FinClaw v{_get_version()} — AI-Powered Financial Intelligence Engine\n")
+                print("  📊 Market Data:    price, quote, history, chart, gainers, losers, ccxt-quote, cn-realtime")
+                print("  📈 Analysis:       analyze, screen, scan, scan-cn, trend-scan, trend-check, market-check")
+                print("  🤖 Backtesting:    backtest, compare, check-backtest, scan-cn-backtest, regime")
+                print("  💼 Portfolio:      portfolio, watch, watchlist, paper, paper-trade, paper-report")
+                print("  📉 Risk:           risk, risk-report, position-size")
+                print("  📰 Sentiment:      sentiment, news, trending, reddit-buzz, fear-greed")
+                print("  🌾 DeFi/Crypto:    defi, defi-tvl, yields, stablecoins, btc-metrics, funding-rates, crypto")
+                print("  🧠 AI/ML:          predict, generate-strategy, optimize-strategy, copilot, evolve")
+                print("  🔧 Strategy:       strategy, plugins, plugin, init-strategy")
+                print("  📤 Output:         report, tearsheet, export")
+                print("  ⚙️  System:         info, doctor, cache, serve, mcp, a2a, download-crypto, demo")
+                print(f"\n  Run 'finclaw <command> --help' for details on any command.")
         elif args.command == "doctor":
             from src.cli.doctor import run_doctor, format_doctor_output
             results = run_doctor(skip_network=getattr(args, "skip_network", False))
