@@ -23,7 +23,7 @@ pip install -e ".[dev]"
 ### Verify Installation
 
 ```bash
-python finclaw.py info
+finclaw info
 ```
 
 ---
@@ -42,7 +42,7 @@ python finclaw.py info
 Get a real-time stock quote:
 
 ```bash
-python finclaw.py scan --market us --style buffett
+finclaw scan --market us --style buffett
 ```
 
 This scans the US market using Warren Buffett's quality + value strategy preset, showing top picks ranked by composite score.
@@ -69,7 +69,7 @@ This scans the US market using Warren Buffett's quality + value strategy preset,
 Backtest NVIDIA over 5 years:
 
 ```bash
-python finclaw.py backtest --strategy momentum --ticker NVDA --start 2020-01-01 --end 2025-01-01
+finclaw backtest --strategy momentum --ticker NVDA --start 2020-01-01 --end 2025-01-01
 ```
 
 **Output includes:**
@@ -82,7 +82,7 @@ python finclaw.py backtest --strategy momentum --ticker NVDA --start 2020-01-01 
 ### Quick Backtest with Multiple Tickers
 
 ```bash
-python finclaw.py backtest --strategy mean_reversion --ticker AAPL,MSFT,GOOGL --start 2022-01-01
+finclaw backtest --strategy mean_reversion --ticker AAPL,MSFT,GOOGL --start 2022-01-01
 ```
 
 ---
@@ -92,7 +92,7 @@ python finclaw.py backtest --strategy mean_reversion --ticker AAPL,MSFT,GOOGL --
 Get real-time trading signals for a stock:
 
 ```bash
-python finclaw.py signal --ticker MSFT --strategy mean_reversion
+finclaw signal --ticker MSFT --strategy mean_reversion
 ```
 
 ---

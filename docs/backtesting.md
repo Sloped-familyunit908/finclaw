@@ -8,13 +8,13 @@ FinClaw's backtesting engine includes walk-forward analysis, Monte Carlo simulat
 
 ```bash
 # Backtest a single ticker
-python finclaw.py backtest --strategy momentum --ticker NVDA --start 2020-01-01 --end 2025-01-01
+finclaw backtest --strategy momentum --ticker NVDA --start 2020-01-01 --end 2025-01-01
 
 # Backtest multiple tickers
-python finclaw.py backtest --strategy mean_reversion --ticker AAPL,MSFT,GOOGL --start 2022-01-01
+finclaw backtest --strategy mean_reversion --ticker AAPL,MSFT,GOOGL --start 2022-01-01
 
 # Compare strategies
-python finclaw.py backtest --strategy momentum,mean_reversion,trend_following --ticker NVDA
+finclaw backtest --strategy momentum,mean_reversion,trend_following --ticker NVDA
 ```
 
 ---

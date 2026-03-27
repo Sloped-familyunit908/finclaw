@@ -11,7 +11,7 @@ Paper trading simulates live trading with fake money. Always start here.
 ### Start Paper Trading
 
 ```bash
-python finclaw.py paper --strategy momentum --ticker BTCUSDT --exchange binance --capital 10000
+finclaw paper --strategy momentum --ticker BTCUSDT --exchange binance --capital 10000
 ```
 
 ### How It Works

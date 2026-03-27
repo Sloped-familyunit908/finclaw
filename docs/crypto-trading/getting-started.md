@@ -73,14 +73,14 @@ Progress is logged to the console. You can safely stop and resume at any time â€
 
 ## Step 3: Validate Results
 
-Before going live, validate your evolved strategy:
+Before going live, validate your evolved strategy with a walk-forward backtest:
 
 ```bash
 # Walk-forward validation
-finclaw validate --results evolution_results/best_ever.json
+finclaw check-backtest --results evolution_results/best_ever.json
 
 # Full validation with Monte Carlo
-finclaw validate \
+finclaw check-backtest \
   --results evolution_results/best_ever.json \
   --monte-carlo 1000 \
   --confidence 0.95
@@ -98,23 +98,21 @@ The validation report includes:
 Test your strategy with real market data but simulated trades:
 
 ```bash
-# Start dry-run on Binance
-finclaw live \
+# Start paper trading on Binance
+finclaw paper \
   --market crypto \
-  --mode dry-run \
   --symbols BTC/USDT ETH/USDT SOL/USDT \
   --strategy evolution_results/best_ever.json
 
 # With specific exchange
-finclaw live \
+finclaw paper \
   --market crypto \
-  --mode dry-run \
   --exchange bybit \
   --symbols BTC/USDT \
   --initial-capital 10000
 ```
 
-Dry-run mode:
+Paper trading mode:
 - Connects to real exchange WebSocket feeds for live prices
 - Simulates order execution (no real orders placed)
 - Tracks portfolio P&L in real time
@@ -131,11 +129,7 @@ Get real-time alerts for trades and signals via Telegram.
 3. Configure FinClaw:
 
 ```bash
-# Set Telegram credentials
-finclaw config set telegram.bot_token "YOUR_BOT_TOKEN"
-finclaw config set telegram.chat_id "YOUR_CHAT_ID"
-
-# Or via environment variables
+# Set Telegram credentials via environment variables
 export FINCLAW_TELEGRAM_BOT_TOKEN="YOUR_BOT_TOKEN"
 export FINCLAW_TELEGRAM_CHAT_ID="YOUR_CHAT_ID"
 ```
@@ -154,8 +148,8 @@ export FINCLAW_TELEGRAM_CHAT_ID="YOUR_CHAT_ID"
 ### Enable Notifications
 
 ```bash
-# Enable for dry-run
-finclaw live --market crypto --mode dry-run \
+# Enable for paper trading
+finclaw paper --market crypto \
   --symbols BTC/USDT --notify telegram
 
 # Enable for evolution progress
@@ -196,7 +190,7 @@ risk:
 ### Command-Line Overrides
 
 ```bash
-finclaw live --market crypto --mode dry-run \
+finclaw paper --market crypto \
   --symbols BTC/USDT ETH/USDT \
   --max-drawdown 0.10 \
   --max-position-pct 0.20 \

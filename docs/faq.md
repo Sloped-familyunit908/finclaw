@@ -76,7 +76,7 @@ Common causes:
 ### How do I use China A-share data?
 
 ```bash
-python finclaw.py scan --market china --style buffett
+finclaw scan --market china --style buffett
 ```
 
 AkShare and BaoStock are free and require no API key. For Tushare, set `TUSHARE_TOKEN`.
@@ -84,7 +84,7 @@ AkShare and BaoStock are free and require no API key. For Tushare, set `TUSHARE_
 ### How do I clear the cache?
 
 ```bash
-python finclaw.py cache --clear
+finclaw cache --clear
 ```
 
 ---
@@ -125,7 +125,7 @@ At minimum 3 years to cover different market regimes (bull, bear, sideways). 5+ 
 
 - Reduce the date range
 - Use fewer tickers
-- Enable caching: `python finclaw.py cache --stats`
+- Enable caching: `finclaw cache --stats`
 
 ---
 
@@ -138,7 +138,7 @@ Paper trading is fully supported. Live broker integration (IBKR, Alpaca) is on t
 ### How do I set up paper trading?
 
 ```bash
-python finclaw.py paper --strategy momentum --ticker BTCUSDT --exchange binance --capital 10000
+finclaw paper --strategy momentum --ticker BTCUSDT --exchange binance --capital 10000
 ```
 
 ---

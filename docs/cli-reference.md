@@ -1,13 +1,13 @@
 # CLI Reference
 
-Complete command reference for the `finclaw.py` CLI.
+Complete command reference for the `finclaw` CLI.
 
 ---
 
 ## Usage
 
 ```bash
-python finclaw.py <command> [options]
+finclaw <command> [options]
 ```
 
 ---
@@ -19,7 +19,7 @@ python finclaw.py <command> [options]
 Scan a market for investment opportunities using a strategy preset.
 
 ```bash
-python finclaw.py scan --market <market> --style <style>
+finclaw scan --market <market> --style <style>
 ```
 
 | Option | Values | Default | Description |
@@ -45,9 +45,9 @@ python finclaw.py scan --market <market> --style <style>
 **Examples:**
 
 ```bash
-python finclaw.py scan --market us --style soros
-python finclaw.py scan --market china --style buffett
-python finclaw.py scan --market hk --style momentum
+finclaw scan --market us --style soros
+finclaw scan --market china --style buffett
+finclaw scan --market hk --style momentum
 ```
 
 ---
@@ -57,7 +57,7 @@ python finclaw.py scan --market hk --style momentum
 Run a historical backtest on one or more tickers.
 
 ```bash
-python finclaw.py backtest --strategy <name> --ticker <symbols> [options]
+finclaw backtest --strategy <name> --ticker <symbols> [options]
 ```
 
 | Option | Description |
@@ -72,8 +72,8 @@ python finclaw.py backtest --strategy <name> --ticker <symbols> [options]
 **Examples:**
 
 ```bash
-python finclaw.py backtest --strategy momentum --ticker NVDA --period 5y
-python finclaw.py backtest --strategy mean_reversion --ticker AAPL,MSFT,GOOGL --start 2022-01-01
+finclaw backtest --strategy momentum --ticker NVDA --period 5y
+finclaw backtest --strategy mean_reversion --ticker AAPL,MSFT,GOOGL --start 2022-01-01
 ```
 
 ---
@@ -83,14 +83,14 @@ python finclaw.py backtest --strategy mean_reversion --ticker AAPL,MSFT,GOOGL --
 Generate real-time trading signals for a ticker.
 
 ```bash
-python finclaw.py signal --ticker <symbol> --strategy <name>
+finclaw signal --ticker <symbol> --strategy <name>
 ```
 
 **Examples:**
 
 ```bash
-python finclaw.py signal --ticker MSFT --strategy mean_reversion
-python finclaw.py signal --ticker BTCUSDT --strategy momentum
+finclaw signal --ticker MSFT --strategy mean_reversion
+finclaw signal --ticker BTCUSDT --strategy momentum
 ```
 
 ---
@@ -100,7 +100,7 @@ python finclaw.py signal --ticker BTCUSDT --strategy momentum
 Optimize strategy parameters over historical data.
 
 ```bash
-python finclaw.py optimize --strategy <name> --param-grid <file> --data <ticker>
+finclaw optimize --strategy <name> --param-grid <file> --data <ticker>
 ```
 
 ---
@@ -110,7 +110,7 @@ python finclaw.py optimize --strategy <name> --param-grid <file> --data <ticker>
 Create HTML or PDF reports from backtest results.
 
 ```bash
-python finclaw.py report --input <results.json> --format <html|pdf>
+finclaw report --input <results.json> --format <html|pdf>
 ```
 
 ---
@@ -120,7 +120,7 @@ python finclaw.py report --input <results.json> --format <html|pdf>
 Optimize portfolio allocation across tickers.
 
 ```bash
-python finclaw.py portfolio --tickers <symbols> --method <method>
+finclaw portfolio --tickers <symbols> --method <method>
 ```
 
 | Option | Values |
@@ -134,7 +134,7 @@ python finclaw.py portfolio --tickers <symbols> --method <method>
 Run risk analysis on a portfolio.
 
 ```bash
-python finclaw.py risk --portfolio <portfolio.json>
+finclaw risk --portfolio <portfolio.json>
 ```
 
 ---
@@ -144,7 +144,7 @@ python finclaw.py risk --portfolio <portfolio.json>
 Screen stocks by technical and fundamental criteria.
 
 ```bash
-python finclaw.py screen --market us --rsi-below 30 --min-volume 1000000
+finclaw screen --market us --rsi-below 30 --min-volume 1000000
 ```
 
 ---
@@ -152,8 +152,8 @@ python finclaw.py screen --market us --rsi-below 30 --min-volume 1000000
 ### `cache` — Cache Management
 
 ```bash
-python finclaw.py cache --stats    # Show cache statistics
-python finclaw.py cache --clear    # Clear all cached data
+finclaw cache --stats    # Show cache statistics
+finclaw cache --clear    # Clear all cached data
 ```
 
 ---
@@ -163,7 +163,7 @@ python finclaw.py cache --clear    # Clear all cached data
 Display FinClaw version, installed features, and system info.
 
 ```bash
-python finclaw.py info
+finclaw info
 ```
 
 ---
@@ -173,7 +173,7 @@ python finclaw.py info
 Start paper trading simulation.
 
 ```bash
-python finclaw.py paper --strategy momentum --ticker BTCUSDT --exchange binance --capital 10000
+finclaw paper --strategy momentum --ticker BTCUSDT --exchange binance --capital 10000
 ```
 
 ---

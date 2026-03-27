@@ -122,10 +122,10 @@ cache.set("AAPL_1d_200", data, ttl_seconds=3600)  # 1 hour TTL
 
 ```bash
 # CLI cache stats
-python finclaw.py cache --stats
+finclaw cache --stats
 
 # Clear cache
-python finclaw.py cache --clear
+finclaw cache --clear
 ```
 
 ---
@@ -163,6 +163,6 @@ Export data to various destinations:
 | Sink | Description |
 |---|---|
 | SQLite | Default local cache |
-| CSV | `python finclaw.py export --ticker AAPL --format csv` |
-| JSON | `python finclaw.py export --ticker AAPL --format json` |
+| CSV | `finclaw export --ticker AAPL --format csv` |
+| JSON | `finclaw export --ticker AAPL --format json` |
 | Webhook | Push data events to Slack/Discord/Teams |
