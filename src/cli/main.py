@@ -1173,7 +1173,7 @@ Examples:
     p = sub.add_parser("compare", help="Compare multiple strategies")
     p.add_argument("--strategies", "-s", nargs="+", required=True,
                    help="Strategy names (comma-sep) or JSON files with returns")
-    p.add_argument("--data", "-d", default=None, help="Ticker symbol for backtest comparison")
+    p.add_argument("--data", "-d", "--tickers", default=None, help="Ticker symbol for backtest comparison")
     p.add_argument("--period", "-p", default="1y", help="Data period (e.g. 1y, 2y)")
     p.add_argument("--output", "-o", help="Output HTML file path")
 
@@ -1549,6 +1549,7 @@ Examples:
 
     # ── cn-realtime (A-share real-time via AKShare) ──────────────
     p_cnrt = sub.add_parser("cn-realtime", help="Get real-time A-share quotes via AKShare")
+    p_cnrt.add_argument("code_positional", nargs="?", default=None, help="Stock code (e.g. 600519)")
     p_cnrt.add_argument("--code", "-c", default=None, help="Stock code (e.g. 600438). Omit for all.")
 
     # ── cn-fundamentals (A-share fundamentals via AKShare) ───────
@@ -2963,7 +2964,7 @@ def cmd_cn_realtime(args):
         print("  ERROR: akshare not installed. Run: pip install akshare")
         return
 
-    code = getattr(args, 'code', None)
+    code = getattr(args, 'code', None) or getattr(args, 'code_positional', None)
     symbols = [code] if code else None
 
     print(f"\n  ── A-Share Real-time Quotes (AKShare) ──")
