@@ -15,6 +15,10 @@
   <a href="https://github.com/NeuZhou/finclaw/stargazers"><img src="https://img.shields.io/github/stars/NeuZhou/finclaw?style=social" alt="GitHub Stars"></a>
 </p>
 
+<p align="center">
+  <img src="assets/hero-evolution-engine.png" alt="FinClaw — Self-Evolving Trading Intelligence" width="800">
+</p>
+
 > FinClaw doesn't need you to write strategies — its genetic algorithm **discovers and evolves them autonomously** across 484 factor dimensions, then validates them with walk-forward testing and Monte Carlo simulation.
 
 <p align="center">
@@ -335,6 +339,10 @@ Expose FinClaw as tools for Claude, Cursor, VS Code, or any MCP-compatible clien
 ---
 
 ## Data Sources
+
+<p align="center">
+  <img src="assets/hero-multi-market.png" alt="One Engine. Every Market." width="700">
+</p>
 
 | Market | Source | API Key Needed? |
 |--------|--------|-----------------|
