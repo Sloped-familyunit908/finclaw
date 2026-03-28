@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <img src="assets/hero-evolution-engine.png" alt="FinClaw — Self-Evolving Trading Intelligence" width="800">
+  <img src="assets/hero-finclaw.png" alt="FinClaw — Self-Evolving Trading Intelligence" width="800">
 </p>
 
 > FinClaw doesn't need you to write strategies — its genetic algorithm **discovers and evolves them autonomously** across 484 factor dimensions, then validates them with walk-forward testing and Monte Carlo simulation.
