@@ -143,10 +143,10 @@ Bid: 68828.0  Ask: 68828.1  Vol: 455,860,493
 
 ### FinClaw 的独特之处
 
-- **自我进化因子** — 遗传算法(GA)在 484 维空间中对策略 DNA 进行突变、交叉与选择。信号权重不由人决定，而由自然选择决定。
-- **Walk-Forward 验证** — 每次回测都采用 70/30 训练/测试拆分和蒙特卡洛模拟（1,000 次迭代，p < 0.05）。这是机构投资者级别的验证方法，而非简单的样本内回测。
-- **多市场覆盖** — 加密货币（通过 ccxt 支持 100+ 交易所）、A 股（AKShare + BaoStock）、美股（Yahoo Finance）。一个引擎，覆盖全市场。
-- **AI 原生** — 内置 MCP 服务器，Claude、Cursor、VS Code 可以原生调用 FinClaw 进行行情查询、回测执行和投资组合分析。
+- **自我进化因子** — GA 在 484 维空间中对策略 DNA 进行突变、交叉与选择，权重由自然选择决定而不是人拍脑袋。
+- **Walk-Forward 验证** — 70/30 训练/测试拆分 + 1,000 次蒙特卡洛迭代（p < 0.05）。不是简单跑个回测就完事。
+- **多市场** — 加密货币（ccxt, 100+ 交易所）、A 股（AKShare + BaoStock）、美股（Yahoo Finance），数据源都免费。
+- **MCP 服务器** — Claude、Cursor、VS Code 可以直接调 FinClaw 查行情、跑回测、分析组合。
 
 ---
 
@@ -421,11 +421,11 @@ pytest
 欢迎贡献！请参阅 [CONTRIBUTING.md](CONTRIBUTING.md) 了解贡献指南。
 
 **贡献方式：**
-- 🐛 [提交 Bug](https://github.com/NeuZhou/finclaw/issues)
-- 💡 [提出功能建议](https://github.com/NeuZhou/finclaw/issues)
-- 🔧 提交 Pull Request
-- 📝 改进文档
-- ⭐ 觉得有用就点个 Star 吧
+- [提交 Bug](https://github.com/NeuZhou/finclaw/issues)
+- [提出功能建议](https://github.com/NeuZhou/finclaw/issues)
+- 提交 Pull Request
+- 改进文档
+- 觉得有用就点个 Star
 
 ---
 
