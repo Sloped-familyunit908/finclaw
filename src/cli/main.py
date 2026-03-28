@@ -27,7 +27,8 @@ def _get_version() -> str:
         pass
     # Fallback: parse pyproject.toml manually
     try:
-        import pathlib, re
+        import pathlib
+        import re
         pyproject = pathlib.Path(__file__).resolve().parents[2] / "pyproject.toml"
         text = pyproject.read_text(encoding="utf-8")
         m = re.search(r'^version\s*=\s*"([^"]+)"', text, re.MULTILINE)
@@ -41,7 +42,8 @@ def _get_version() -> str:
 def _fetch_data(ticker: str, start: str = None, end: str = None, period: str = "5y"):
     """Fetch price data via yfinance with cache."""
     from src.data.cache import DataCache
-    import logging, warnings
+    import logging
+    import warnings
 
     cache = DataCache()
     cache_key = f"{ticker}_{start or ''}_{end or ''}_{period}"
@@ -2592,7 +2594,8 @@ def cmd_chart(args):
 def cmd_portfolio_dashboard(args):
     """Render portfolio dashboard."""
     from src.viz.dashboard import PortfolioDashboard
-    import json, os
+    import json
+    import os
 
     pf_file = getattr(args, "file", "portfolio.json")
     if not os.path.exists(pf_file):

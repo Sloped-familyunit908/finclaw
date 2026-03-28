@@ -103,11 +103,9 @@ def _fetch_via_baostock(
     if not codes:
         return {}
 
-    cache_path = Path(cache_dir)
-    cache_path.mkdir(parents=True, exist_ok=True)
+    cache_file.parent.mkdir(parents=True, exist_ok=True)
 
     today_str = datetime.now().strftime("%Y-%m-%d")
-    cache_file = cache_path / f"{today_str}.json"
 
     # Check cache first
     cached: Dict[str, Dict[str, float]] = {}

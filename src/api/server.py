@@ -332,12 +332,6 @@ class FinClawAPI:
         if self._httpd:
             self._httpd.shutdown()
             self._httpd = None
-        self._cors_origin = cors_origin
-        self._custom_routes: dict = {}
-
-    def route(self, path: str, handler) -> None:
-        """Register a custom route handler."""
-        self._custom_routes[path] = handler
 
     def create_handler_class(self) -> type:
         """Create handler class for testing without starting server."""

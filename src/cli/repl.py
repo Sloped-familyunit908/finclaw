@@ -234,7 +234,8 @@ class FinClawREPL:
 
         try:
             import yfinance as yf
-            import warnings, logging
+            import warnings
+            import logging
             logging.getLogger("yfinance").setLevel(logging.CRITICAL)
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
@@ -285,7 +286,8 @@ class FinClawREPL:
 
         try:
             import yfinance as yf
-            import warnings, logging
+            import warnings
+            import logging
             logging.getLogger("yfinance").setLevel(logging.CRITICAL)
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
@@ -489,7 +491,8 @@ class FinClawREPL:
         for t in tickers:
             try:
                 import yfinance as yf
-                import warnings, logging
+                import warnings
+                import logging
                 logging.getLogger("yfinance").setLevel(logging.CRITICAL)
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")

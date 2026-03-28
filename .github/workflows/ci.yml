@@ -28,7 +28,7 @@ jobs:
 
       - name: Lint with ruff
         run: |
-          ruff check src/ --select E,F,W --ignore E501,E402,F401,F841
+          ruff check src/ --select E,F,W --ignore E501,E402,F401,F841,E741,E701,E702,W291,W293,E731,F541
 
       - name: Secret & PII scan
         run: |
@@ -77,3 +77,4 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
+

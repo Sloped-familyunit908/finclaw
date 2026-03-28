@@ -157,7 +157,8 @@ class WatchlistManager:
         """Fetch a single ticker quote via yfinance."""
         try:
             import yfinance as yf
-            import warnings, logging
+            import warnings
+            import logging
             logging.getLogger("yfinance").setLevel(logging.CRITICAL)
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")

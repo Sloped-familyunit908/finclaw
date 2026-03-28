@@ -97,7 +97,8 @@ class InteractiveSession:
 
         try:
             import yfinance as yf
-            import warnings, logging
+            import warnings
+            import logging
             logging.getLogger("yfinance").setLevel(logging.CRITICAL)
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
@@ -284,7 +285,8 @@ class InteractiveSession:
         for ticker in tickers:
             try:
                 import yfinance as yf
-                import warnings, logging
+                import warnings
+                import logging
                 logging.getLogger("yfinance").setLevel(logging.CRITICAL)
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
