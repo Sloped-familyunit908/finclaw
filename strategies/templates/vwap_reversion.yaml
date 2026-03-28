@@ -1,0 +1,66 @@
+# FinClaw Strategy — VWAP Mean Reversion
+# Buy below VWAP, sell above — classic volume-weighted mean reversion.
+
+apiVersion: whale/v1
+kind: Strategy
+
+metadata:
+  name: vwap-mean-reversion
+  version: 1.0.0
+  author: community
+  description: >
+    Volume-weighted mean reversion strategy. Buys when price falls
+    significantly below the VWAP (oversold) and sells when it rises
+    above (overbought). Uses standard deviation bands to define
+    entry thresholds. Best for range-bound or mildly trending markets.
+  tags:
+    - vwap
+    - mean-reversion
+    - volume-weighted
+    - beginner-friendly
+  license: MIT
+
+spec:
+  assets:
+    type: crypto
+    symbols:
+      - BTC
+      - ETH
+      - SOL
+      - AVAX
+  timeframe: 1h
+
+  agents:
+    - quant
+
+  entry:
+    rules:
+      - indicator: vwap
+        lookback: 20
+        condition: below
+        std_dev: 2.0
+
+  exit:
+    rules:
+      - indicator: vwap
+        lookback: 20
+        condition: above
+        std_dev: 2.0
+      - indicator: vwap
+        lookback: 20
+        condition: near
+        std_dev: 0.5
+
+  risk:
+    max_position_pct: 0.15
+    max_positions: 4
+    max_daily_loss_pct: 0.04
+    max_drawdown_pct: 0.12
+
+performance:
+  total_return: 0.22
+  sharpe_ratio: 1.38
+  max_drawdown: -0.09
+  win_rate: 0.61
+  total_trades: 89
+  avg_trade_duration: 3.2

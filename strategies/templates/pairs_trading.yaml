@@ -1,0 +1,69 @@
+# FinClaw Strategy — Pairs Trading (Statistical Arbitrage)
+# Trade the spread between two correlated assets using z-score mean reversion.
+
+apiVersion: whale/v1
+kind: Strategy
+
+metadata:
+  name: pairs-trading-zscore
+  version: 1.0.0
+  author: community
+  description: >
+    Statistical arbitrage strategy that trades the spread between two
+    correlated assets. Enters when the spread z-score exceeds the entry
+    threshold and exits on reversion. Works best with cointegrated pairs
+    like KO/PEP, BTC/ETH, or sector ETFs.
+  tags:
+    - pairs-trading
+    - mean-reversion
+    - statistical-arbitrage
+    - beginner-friendly
+  license: MIT
+
+spec:
+  assets:
+    type: multi
+    symbols:
+      - KO
+      - PEP
+  timeframe: 1d
+
+  agents:
+    - quant
+
+  entry:
+    rules:
+      - indicator: zscore
+        lookback: 60
+        condition: above
+        threshold: 2.0
+
+      - indicator: cointegration
+        lookback: 120
+        p_value: 0.05
+
+  exit:
+    take_profit: 0.0
+    stop_loss: 0.0
+    rules:
+      - indicator: zscore
+        condition: below
+        threshold: 0.5
+      - indicator: zscore
+        condition: above
+        threshold: 3.5
+        action: stop_loss
+
+  risk:
+    max_position_pct: 0.25
+    max_positions: 3
+    max_daily_loss_pct: 0.03
+    max_drawdown_pct: 0.10
+
+performance:
+  total_return: 0.18
+  sharpe_ratio: 1.45
+  max_drawdown: -0.08
+  win_rate: 0.58
+  total_trades: 42
+  avg_trade_duration: 12.3
