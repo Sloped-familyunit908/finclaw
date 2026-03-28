@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "finclaw-ai"
-version = "5.1.0"
+version = "5.2.1"
 description = "Self-evolving crypto trading strategies via genetic algorithm — 484 factors, 100+ exchanges, 24/7 autonomous evolution"
 readme = "README.md"
 license = {text = "MIT"}
