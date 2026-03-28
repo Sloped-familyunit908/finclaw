@@ -6,7 +6,7 @@ import logging, warnings
 logging.getLogger("yfinance").setLevel(logging.CRITICAL)
 warnings.filterwarnings("ignore")
 
-from mcp_server import handle_scan, handle_backtest, handle_macro, handle_info
+from scripts.mcp_server import handle_scan, handle_backtest, handle_macro, handle_info
 
 class R:
     def __init__(self): self.p=0;self.f=0;self.e=[]

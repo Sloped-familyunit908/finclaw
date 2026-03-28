@@ -24,7 +24,7 @@ import warnings
 logging.getLogger("yfinance").setLevel(logging.CRITICAL)
 warnings.filterwarnings("ignore")
 
-from finclaw import scan_universe, run_strategy, fetch_data, _load_universes, STRATEGIES
+from scripts.finclaw import scan_universe, run_strategy, fetch_data, _load_universes, STRATEGIES
 
 UNIVERSES = _load_universes()
 from agents.backtester_v7 import BacktesterV7

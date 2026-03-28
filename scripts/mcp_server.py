@@ -20,12 +20,23 @@ import warnings
 logging.getLogger("yfinance").setLevel(logging.CRITICAL)
 warnings.filterwarnings("ignore")
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+_scripts_dir = os.path.dirname(os.path.abspath(__file__))
+_project_dir = os.path.dirname(_scripts_dir)
+sys.path.insert(0, _project_dir)
 
-from finclaw import (
-    scan_universe, run_strategy, fetch_data,
-    _load_universes, STRATEGIES
-)
+# Import from legacy CLI module (scripts/finclaw.py)
+# Use importlib to avoid name collision with the finclaw package
+import importlib.util as _ilu
+_spec = _ilu.spec_from_file_location(
+    "finclaw_cli", os.path.join(_scripts_dir, "finclaw.py"))
+_mod = _ilu.module_from_spec(_spec)
+_spec.loader.exec_module(_mod)
+
+scan_universe = _mod.scan_universe
+run_strategy = _mod.run_strategy
+fetch_data = _mod.fetch_data
+_load_universes = _mod._load_universes
+STRATEGIES = _mod.STRATEGIES
 UNIVERSES = _load_universes()
 from agents.backtester_v7 import BacktesterV7
 from agents.deep_macro import DeepMacroAnalyzer

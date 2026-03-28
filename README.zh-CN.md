@@ -10,7 +10,7 @@
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License"></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.9%2B-blue" alt="Python 3.9+"></a>
   <img src="https://img.shields.io/badge/factors-484-orange" alt="484 Factors">
-  <img src="https://img.shields.io/badge/tests-5600%2B-brightgreen" alt="5600+ Tests">
+  <img src="https://img.shields.io/badge/tests-5500%2B-brightgreen" alt="5600+ Tests">
   <img src="https://img.shields.io/badge/markets-crypto%20%7C%20A--shares%20%7C%20US-ff69b4" alt="Crypto + A-shares + US">
   <a href="https://github.com/NeuZhou/finclaw/stargazers"><img src="https://img.shields.io/github/stars/NeuZhou/finclaw?style=social" alt="GitHub Stars"></a>
 </p>
@@ -238,7 +238,7 @@ finclaw evolve --market crypto --population 50 --mutation-rate 0.2 --elite 10
 
 ## Arena 模式（防过拟合）
 
-传统回测独立评估每条策略——过拟合的策略在历史数据上表现优异，实盘却一塌糊涂。FinClaw 的 **Arena 模式**（受 [FinEvo](https://arxiv.org) 启发）解决了这个问题：
+传统回测独立评估每条策略——过拟合的策略在历史数据上表现优异，实盘却一塌糊涂。FinClaw 的 **Arena 模式**解决了这个问题：
 
 ```
 ┌──────────────────────────────────────────┐

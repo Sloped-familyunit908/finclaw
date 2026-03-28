@@ -27,7 +27,7 @@ class FinClaw:
         Returns a dict with keys: symbol, price, change, change_pct, volume,
         high, low, open, previous_close.
         """
-        from src.exchanges.yahoo_finance import YahooFinanceAdapter
+        from finclaw.exchanges.yahoo_finance import YahooFinanceAdapter
 
         adapter = YahooFinanceAdapter()
         ticker = adapter.get_ticker(symbol)
@@ -59,7 +59,7 @@ class FinClaw:
         win_rate, total_trades, annualized_return, final_equity.
         """
         import asyncio
-        from src.cli.main import _fetch_data
+        from finclaw.cli.main import _fetch_data
 
         df = _fetch_data(ticker, start=start, end=end)
         if df is None or len(df) < 2:
@@ -90,7 +90,7 @@ class FinClaw:
                 self.__dict__.update(d)
 
             def export_html(self, path: str) -> None:
-                from src.reports.html_report import generate_html_report
+                from finclaw.reports.html_report import generate_html_report
                 generate_html_report(self.__dict__, output_path=path)
 
         return _Result(
@@ -115,8 +115,8 @@ class FinClaw:
         capital: float = 100_000,
     ) -> None:
         """Start a paper-trading session (blocking)."""
-        from src.paper.engine import PaperTradingEngine
-        from src.paper.runner import StrategyRunner, BUILTIN_STRATEGIES
+        from finclaw.paper.engine import PaperTradingEngine
+        from finclaw.paper.runner import StrategyRunner, BUILTIN_STRATEGIES
 
         symbols = symbols or ["AAPL"]
         engine = PaperTradingEngine(initial_balance=capital)

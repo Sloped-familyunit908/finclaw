@@ -40,7 +40,7 @@ Repository = "https://github.com/NeuZhou/finclaw"
 Issues = "https://github.com/NeuZhou/finclaw/issues"
 
 [project.scripts]
-finclaw = "src.cli.main:main"
+finclaw = "finclaw.cli.main:main"
 
 [project.optional-dependencies]
 crypto = ["ccxt>=4.0"]
@@ -48,8 +48,28 @@ full = ["aiohttp", "websockets", "ccxt>=4.0"]
 ml = ["numpy", "scikit-learn"]
 dev = ["pytest>=7.0", "pytest-asyncio>=0.21", "pytest-aiohttp>=1.0", "pytest-cov>=4.0", "ruff"]
 
-[tool.setuptools.packages.find]
-include = ["src*", "agents*", "strategies*"]
+[tool.setuptools]
+packages = [
+    "finclaw", "finclaw.a2a", "finclaw.agents", "finclaw.ai_strategy",
+    "finclaw.alerts", "finclaw.analytics", "finclaw.api", "finclaw.backtest",
+    "finclaw.backtesting", "finclaw.cli", "finclaw.crypto", "finclaw.dashboard",
+    "finclaw.data", "finclaw.data.sinks", "finclaw.data.sources", "finclaw.defi",
+    "finclaw.deploy", "finclaw.derivatives", "finclaw.drl", "finclaw.events",
+    "finclaw.evolution", "finclaw.exchanges", "finclaw.execution", "finclaw.export",
+    "finclaw.fixed_income", "finclaw.indicators", "finclaw.journal", "finclaw.llm",
+    "finclaw.mcp", "finclaw.ml", "finclaw.notifications", "finclaw.optimization",
+    "finclaw.paper", "finclaw.paper_report", "finclaw.pipeline",
+    "finclaw.plugin_system", "finclaw.plugins", "finclaw.plugins.examples",
+    "finclaw.portfolio", "finclaw.reporting", "finclaw.reports", "finclaw.risk",
+    "finclaw.sandbox", "finclaw.screener", "finclaw.sentiment", "finclaw.simulation",
+    "finclaw.strategies", "finclaw.strategies.library", "finclaw.strategy",
+    "finclaw.ta", "finclaw.telegram_bot", "finclaw.trading", "finclaw.utils",
+    "finclaw.viz", "finclaw.watchlist",
+    "agents", "strategies",
+]
+
+[tool.setuptools.package-dir]
+finclaw = "src"
 
 [tool.setuptools.package-data]
 strategies = ["builtin/*.yaml"]

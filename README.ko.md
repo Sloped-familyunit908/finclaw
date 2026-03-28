@@ -10,7 +10,7 @@
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License"></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.9%2B-blue" alt="Python 3.9+"></a>
   <img src="https://img.shields.io/badge/factors-484-orange" alt="484 Factors">
-  <img src="https://img.shields.io/badge/tests-5600%2B-brightgreen" alt="5600+ Tests">
+  <img src="https://img.shields.io/badge/tests-5500%2B-brightgreen" alt="5600+ Tests">
   <img src="https://img.shields.io/badge/markets-crypto%20%7C%20A--shares%20%7C%20US-ff69b4" alt="Crypto + A-shares + US">
   <a href="https://github.com/NeuZhou/finclaw/stargazers"><img src="https://img.shields.io/github/stars/NeuZhou/finclaw?style=social" alt="GitHub Stars"></a>
 </p>
@@ -238,7 +238,7 @@ finclaw evolve --market crypto --population 50 --mutation-rate 0.2 --elite 10
 
 ## Arena 모드 (과적합 방지)
 
-기존 백테스팅은 각 전략을 개별 평가하기 때문에, 과적합된 전략이 과거 데이터에서는 좋은 성과를 보이지만 실전에서는 실패합니다. FinClaw의 **Arena 모드**([FinEvo](https://arxiv.org)에서 영감)가 이 문제를 해결합니다:
+기존 백테스팅은 각 전략을 개별 평가하기 때문에, 과적합된 전략이 과거 데이터에서는 좋은 성과를 보이지만 실전에서는 실패합니다. FinClaw의 **Arena 모드**가 이 문제를 해결합니다:
 
 ```
 ┌──────────────────────────────────────────┐
