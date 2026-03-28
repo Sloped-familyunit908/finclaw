@@ -21,6 +21,14 @@
   <img src="assets/demo-evolve.svg" alt="FinClaw Evolution Demo" width="800">
 </p>
 
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=Y3wY9rj0PmE">
+    <img src="https://img.youtube.com/vi/Y3wY9rj0PmE/maxresdefault.jpg" alt="FinClaw Demo Video" width="600">
+  </a>
+  <br>
+  <em>▶️ Watch: How FinClaw's Self-Evolving Engine Works (2 min)</em>
+</p>
+
 ## 免责声明
 
 本项目**仅供教育和研究使用**，不构成投资建议。过去的表现不代表未来的收益。请务必先进行模拟交易。
