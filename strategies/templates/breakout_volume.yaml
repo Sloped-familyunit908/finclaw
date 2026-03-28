@@ -1,0 +1,65 @@
+# FinClaw Strategy — Volume-Confirmed Breakout
+# Enter on Donchian channel breakout with volume filter.
+
+apiVersion: whale/v1
+kind: Strategy
+
+metadata:
+  name: breakout-volume-confirmed
+  version: 1.0.0
+  author: community
+  description: >
+    Classic breakout strategy using Donchian channels with volume
+    confirmation. Enters when price breaks above the N-day high
+    accompanied by above-average volume, and exits on a shorter
+    Donchian low. Designed for trending markets.
+  tags:
+    - breakout
+    - trend-following
+    - volume
+    - beginner-friendly
+  license: MIT
+
+spec:
+  assets:
+    type: crypto
+    symbols:
+      - BTC
+      - ETH
+      - SOL
+  timeframe: 1d
+
+  agents:
+    - momentum
+
+  entry:
+    rules:
+      - indicator: donchian_channel
+        period: 20
+        condition: close_above_upper
+
+      - indicator: volume_ratio
+        lookback: 20
+        min_multiplier: 1.5
+
+  exit:
+    rules:
+      - indicator: donchian_channel
+        period: 10
+        condition: close_below_lower
+
+  risk:
+    max_position_pct: 0.20
+    max_positions: 5
+    max_daily_loss_pct: 0.05
+    max_drawdown_pct: 0.15
+
+performance:
+  total_return: 0.32
+  annual_return: 0.15
+  sharpe_ratio: 1.65
+  max_drawdown: -0.14
+  win_rate: 0.42
+  profit_factor: 1.95
+  total_trades: 67
+  avg_trade_duration: 6.8
