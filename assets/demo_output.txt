@@ -1,0 +1,99 @@
+$ finclaw demo
+
+  ███████╗██╗███╗   ██╗ ██████╗██╗      █████╗ ██╗    ██╗
+  ██╔════╝██║████╗  ██║██╔════╝██║     ██╔══██╗██║    ██║
+  █████╗  ██║██╔██╗ ██║██║     ██║     ███████║██║ █╗ ██║
+  ██╔══╝  ██║██║╚██╗██║██║     ██║     ██╔══██║██║███╗██║
+  ██║     ██║██║ ╚████║╚██████╗███████╗██║  ██║╚███╔███╔╝
+  ╚═╝     ╚═╝╚═╝  ╚═══╝ ╚═════╝╚══════╝╚═╝  ╚═╝ ╚══╝╚══╝
+  AI-Powered Financial Intelligence Engine
+
+  🎬 FinClaw Demo — All features, zero config
+
+  Using pre-generated data. No API keys needed.
+
+  ━━━ 📊 Real-Time Quotes ━━━
+
+  Symbol        Price     Change        %                 Trend
+  ────────────────────────────────────────────────────────────
+  AAPL                 189.84    +2.31  +1.23%   ▅▄▄▃▁▁▂▃▃▁ ▁ ▄▄▆▄▃▂
+  NVDA                 875.28   +15.67  +1.82%  █▇▆▆▇▇▅▆▄▄▅▄▃▁▃▄▄▂ ▂
+  TSLA                 175.21    -3.45  -1.93%  ▄▄▃▄▂ ▂▂▄▃▄▅▇█▄▄▅▅▃▃
+  MSFT                 415.50    +1.02  +0.25%  ▁    ▁ ▁▄▄▅▅▄▅▆▆▅▄▆▇
+  GOOGL                153.78    -0.89  -0.58%     ▁  ▂▄▇▄▆▆▆▅▅▇▃▄▄▅
+
+  ━━━ 🔬 Technical Analysis: NVDA ━━━
+
+  Price: $875.28  |  52w High: $950.02  |  52w Low: $410.15
+
+  RSI(14)                    62.4  NEUTRAL               momentum balanced
+  MACD                      +4.82  BULLISH               histogram expanding
+  SMA(50)                 $842.10  ABOVE                 price above trend
+  SMA(200)                $695.30  ABOVE                 strong uptrend
+  Bollinger                  72%B  NEUTRAL               upper half of band
+
+  ━━━ 🚀 Backtest: Momentum Strategy on AAPL ━━━
+
+  Period:    2y (504 trading days)
+  Capital:   $100,000
+
+  Strategy:  +75.7%  (+32.5%/yr)
+  Buy&Hold:  +67.7%
+  Alpha:     +8.0%
+  MaxDD:     -8.3%
+  Sharpe:    1.85
+  Trades:    47  |  Win Rate: 63%
+  P&L:       +$75,680
+
+  Equity:          ▁▁▁▂▂▃▃▃▄▄▅▅▄▆▅▄▅▅▅▆▆▆▆▇▆▆▆▇▅▅▅▄
+
+  ━━━ 📋 Paper Trading Portfolio ━━━
+
+  Symbol     Shares   Avg Cost      Price          P&L
+  ────────────────────────────────────────────────────
+  AAPL                   50     178.50     189.84 $ +5,650.00
+  NVDA                   20     810.00     875.28 $ +1,305.60
+  MSFT                   30     420.00     415.50 $   -135.00
+  ────────────────────────────────────────────────────
+  TOTAL                                           $ +6,820.60
+
+  ━━━ 🛡️ Risk Analysis ━━━
+
+  Sharpe Ratio:      1.85
+  Max Drawdown:      -8.3%
+  VaR (95%):         -2.1%
+  Volatility (ann):  18.4%
+  Beta:              0.92
+  Diversification:   Good (HHI: 0.18)
+
+  ━━━ 🤖 AI Features ━━━
+
+  Strategy Generator  — Natural language → trading code
+    "buy when RSI < 30 and MACD crosses up, 5% stop loss"
+
+  Copilot             — Interactive AI financial assistant
+    "分析一下特斯拉最近走势" → full technical breakdown
+
+  MCP Server          — Expose FinClaw as tools for AI agents
+    Works with Claude, Cursor, VS Code, OpenClaw
+
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Try it yourself:
+    finclaw quote AAPL            — Live stock quote
+    finclaw analyze TSLA          — Technical analysis
+    finclaw backtest -t AAPL      — Run a backtest
+    finclaw copilot               — AI financial chat
+    finclaw generate-strategy     — AI strategy builder
+
+  📖 Docs: https://github.com/NeuZhou/finclaw
+
+$ finclaw quote AAPL
+
+  AAPL  $248.80  +0.81 +0.33%
+  Bid: 248.8  Ask: 248.8  Vol: 46,525,772
+
+$ finclaw quote BTC/USDT
+
+  BTC/USDT  $66782.90   +0.70%
+  Bid: 66782.9  Ask: 66783.0  Vol: 381,508,790

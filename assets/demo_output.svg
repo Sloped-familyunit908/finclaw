@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="1870" viewBox="0 0 820 1870">
+  <style>
+    .bg { fill: #1e1e2e; }
+    .title-bar { fill: #313244; }
+    .btn-close { fill: #f38ba8; }
+    .btn-min { fill: #f9e2af; }
+    .btn-max { fill: #a6e3a1; }
+    .title { fill: #cdd6f4; font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace; font-size: 13px; }
+    .prompt { fill: #89b4fa; font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace; font-size: 13px; }
+    .output { fill: #cdd6f4; font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace; font-size: 13px; white-space: pre; }
+  </style>
+  <!-- Background -->
+  <rect class="bg" width="820" height="1870" rx="8"/>
+  <!-- Title bar -->
+  <rect class="title-bar" width="820" height="36" rx="8"/>
+  <rect class="title-bar" y="28" width="820" height="8"/>
+  <circle class="btn-close" cx="20" cy="18" r="6"/>
+  <circle class="btn-min" cx="40" cy="18" r="6"/>
+  <circle class="btn-max" cx="60" cy="18" r="6"/>
+  <text class="title" x="410" y="22" text-anchor="middle">FinClaw Demo</text>
+  <!-- Content -->
+  <text class="prompt" x="16" y="50">$ finclaw demo</text>
+  <text class="output" x="16" y="68"></text>
+  <text class="output" x="16" y="86">  ███████╗██╗███╗   ██╗ ██████╗██╗      █████╗ ██╗    ██╗</text>
+  <text class="output" x="16" y="104">  ██╔════╝██║████╗  ██║██╔════╝██║     ██╔══██╗██║    ██║</text>
+  <text class="output" x="16" y="122">  █████╗  ██║██╔██╗ ██║██║     ██║     ███████║██║ █╗ ██║</text>
+  <text class="output" x="16" y="140">  ██╔══╝  ██║██║╚██╗██║██║     ██║     ██╔══██║██║███╗██║</text>
+  <text class="output" x="16" y="158">  ██║     ██║██║ ╚████║╚██████╗███████╗██║  ██║╚███╔███╔╝</text>
+  <text class="output" x="16" y="176">  ╚═╝     ╚═╝╚═╝  ╚═══╝ ╚═════╝╚══════╝╚═╝  ╚═╝ ╚══╝╚══╝</text>
+  <text class="output" x="16" y="194">  AI-Powered Financial Intelligence Engine</text>
+  <text class="output" x="16" y="212"></text>
+  <text class="output" x="16" y="230">  🎬 FinClaw Demo — All features, zero config</text>
+  <text class="output" x="16" y="248"></text>
+  <text class="output" x="16" y="266">  Using pre-generated data. No API keys needed.</text>
+  <text class="output" x="16" y="284"></text>
+  <text class="output" x="16" y="302">  ━━━ 📊 Real-Time Quotes ━━━</text>
+  <text class="output" x="16" y="320"></text>
+  <text class="output" x="16" y="338">  Symbol        Price     Change        %                 Trend</text>
+  <text class="output" x="16" y="356">  ────────────────────────────────────────────────────────────</text>
+  <text class="output" x="16" y="374">  AAPL                 189.84    +2.31  +1.23%   ▅▄▄▃▁▁▂▃▃▁ ▁ ▄▄▆▄▃▂</text>
+  <text class="output" x="16" y="392">  NVDA                 875.28   +15.67  +1.82%  █▇▆▆▇▇▅▆▄▄▅▄▃▁▃▄▄▂ ▂</text>
+  <text class="output" x="16" y="410">  TSLA                 175.21    -3.45  -1.93%  ▄▄▃▄▂ ▂▂▄▃▄▅▇█▄▄▅▅▃▃</text>
+  <text class="output" x="16" y="428">  MSFT                 415.50    +1.02  +0.25%  ▁    ▁ ▁▄▄▅▅▄▅▆▆▅▄▆▇</text>
+  <text class="output" x="16" y="446">  GOOGL                153.78    -0.89  -0.58%     ▁  ▂▄▇▄▆▆▆▅▅▇▃▄▄▅</text>
+  <text class="output" x="16" y="464"></text>
+  <text class="output" x="16" y="482">  ━━━ 🔬 Technical Analysis: NVDA ━━━</text>
+  <text class="output" x="16" y="500"></text>
+  <text class="output" x="16" y="518">  Price: $875.28  |  52w High: $950.02  |  52w Low: $410.15</text>
+  <text class="output" x="16" y="536"></text>
+  <text class="output" x="16" y="554">  RSI(14)                    62.4  NEUTRAL               momentum balanced</text>
+  <text class="output" x="16" y="572">  MACD                      +4.82  BULLISH               histogram expanding</text>
+  <text class="output" x="16" y="590">  SMA(50)                 $842.10  ABOVE                 price above trend</text>
+  <text class="output" x="16" y="608">  SMA(200)                $695.30  ABOVE                 strong uptrend</text>
+  <text class="output" x="16" y="626">  Bollinger                  72%B  NEUTRAL               upper half of band</text>
+  <text class="output" x="16" y="644"></text>
+  <text class="output" x="16" y="662">  ━━━ 🚀 Backtest: Momentum Strategy on AAPL ━━━</text>
+  <text class="output" x="16" y="680"></text>
+  <text class="output" x="16" y="698">  Period:    2y (504 trading days)</text>
+  <text class="output" x="16" y="716">  Capital:   $100,000</text>
+  <text class="output" x="16" y="734"></text>
+  <text class="output" x="16" y="752">  Strategy:  +75.7%  (+32.5%/yr)</text>
+  <text class="output" x="16" y="770">  Buy&amp;Hold:  +67.7%</text>
+  <text class="output" x="16" y="788">  Alpha:     +8.0%</text>
+  <text class="output" x="16" y="806">  MaxDD:     -8.3%</text>
+  <text class="output" x="16" y="824">  Sharpe:    1.85</text>
+  <text class="output" x="16" y="842">  Trades:    47  |  Win Rate: 63%</text>
+  <text class="output" x="16" y="860">  P&amp;L:       +$75,680</text>
+  <text class="output" x="16" y="878"></text>
+  <text class="output" x="16" y="896">  Equity:          ▁▁▁▂▂▃▃▃▄▄▅▅▄▆▅▄▅▅▅▆▆▆▆▇▆▆▆▇▅▅▅▄</text>
+  <text class="output" x="16" y="914"></text>
+  <text class="output" x="16" y="932">  ━━━ 📋 Paper Trading Portfolio ━━━</text>
+  <text class="output" x="16" y="950"></text>
+  <text class="output" x="16" y="968">  Symbol     Shares   Avg Cost      Price          P&amp;L</text>
+  <text class="output" x="16" y="986">  ────────────────────────────────────────────────────</text>
+  <text class="output" x="16" y="1004">  AAPL                   50     178.50     189.84 $ +5,650.00</text>
+  <text class="output" x="16" y="1022">  NVDA                   20     810.00     875.28 $ +1,305.60</text>
+  <text class="output" x="16" y="1040">  MSFT                   30     420.00     415.50 $   -135.00</text>
+  <text class="output" x="16" y="1058">  ────────────────────────────────────────────────────</text>
+  <text class="output" x="16" y="1076">  TOTAL                                           $ +6,820.60</text>
+  <text class="output" x="16" y="1094"></text>
+  <text class="output" x="16" y="1112">  ━━━ 🛡️ Risk Analysis ━━━</text>
+  <text class="output" x="16" y="1130"></text>
+  <text class="output" x="16" y="1148">  Sharpe Ratio:      1.85</text>
+  <text class="output" x="16" y="1166">  Max Drawdown:      -8.3%</text>
+  <text class="output" x="16" y="1184">  VaR (95%):         -2.1%</text>
+  <text class="output" x="16" y="1202">  Volatility (ann):  18.4%</text>
+  <text class="output" x="16" y="1220">  Beta:              0.92</text>
+  <text class="output" x="16" y="1238">  Diversification:   Good (HHI: 0.18)</text>
+  <text class="output" x="16" y="1256"></text>
+  <text class="output" x="16" y="1274">  ━━━ 🤖 AI Features ━━━</text>
+  <text class="output" x="16" y="1292"></text>
+  <text class="output" x="16" y="1310">  Strategy Generator  — Natural language → trading code</text>
+  <text class="output" x="16" y="1328">    &quot;buy when RSI &lt; 30 and MACD crosses up, 5% stop loss&quot;</text>
+  <text class="output" x="16" y="1346"></text>
+  <text class="output" x="16" y="1364">  Copilot             — Interactive AI financial assistant</text>
+  <text class="output" x="16" y="1382">    &quot;分析一下特斯拉最近走势&quot; → full technical breakdown</text>
+  <text class="output" x="16" y="1400"></text>
+  <text class="output" x="16" y="1418">  MCP Server          — Expose FinClaw as tools for AI agents</text>
+  <text class="output" x="16" y="1436">    Works with Claude, Cursor, VS Code, OpenClaw</text>
+  <text class="output" x="16" y="1454"></text>
+  <text class="output" x="16" y="1472">  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</text>
+  <text class="output" x="16" y="1490"></text>
+  <text class="output" x="16" y="1508">  Try it yourself:</text>
+  <text class="output" x="16" y="1526">    finclaw quote AAPL            — Live stock quote</text>
+  <text class="output" x="16" y="1544">    finclaw analyze TSLA          — Technical analysis</text>
+  <text class="output" x="16" y="1562">    finclaw backtest -t AAPL      — Run a backtest</text>
+  <text class="output" x="16" y="1580">    finclaw copilot               — AI financial chat</text>
+  <text class="output" x="16" y="1598">    finclaw generate-strategy     — AI strategy builder</text>
+  <text class="output" x="16" y="1616"></text>
+  <text class="output" x="16" y="1634">  📖 Docs: https://github.com/NeuZhou/finclaw</text>
+  <text class="output" x="16" y="1652"></text>
+  <text class="prompt" x="16" y="1670">$ finclaw quote AAPL</text>
+  <text class="output" x="16" y="1688"></text>
+  <text class="output" x="16" y="1706">  AAPL  $248.80  +0.81 +0.33%</text>
+  <text class="output" x="16" y="1724">  Bid: 248.8  Ask: 248.8  Vol: 46,525,772</text>
+  <text class="output" x="16" y="1742"></text>
+  <text class="prompt" x="16" y="1760">$ finclaw quote BTC/USDT</text>
+  <text class="output" x="16" y="1778"></text>
+  <text class="output" x="16" y="1796">  BTC/USDT  $66782.90   +0.70%</text>
+  <text class="output" x="16" y="1814">  Bid: 66782.9  Ask: 66783.0  Vol: 381,508,790</text>
+  <text class="output" x="16" y="1832"></text>
+</svg>
