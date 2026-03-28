@@ -28,23 +28,14 @@ This project is for **educational and research purposes only**. Not financial ad
 
 ---
 
-## Quick Start
+## 🚀 Quick Start
 
 ```bash
-pip install -e .
-
-# See everything in action — zero API keys needed
-finclaw demo
-
-# Real-time quotes
-finclaw quote BTC/USDT
-finclaw quote AAPL
-
-# Evolve a crypto strategy with genetic algorithms
-finclaw evolve --market crypto --generations 50
+pip install finclaw-ai
+finclaw demo          # See it in action
+finclaw quote AAPL    # Real-time quotes
+finclaw quote BTC/USDT # Crypto too
 ```
-
-That's it. No API keys, no exchange accounts, no config files.
 
 ---
 

@@ -40,7 +40,7 @@ Repository = "https://github.com/NeuZhou/finclaw"
 Issues = "https://github.com/NeuZhou/finclaw/issues"
 
 [project.scripts]
-finclaw = "finclaw.cli.main:main"
+finclaw = "src.cli.main:main"
 
 [project.optional-dependencies]
 crypto = ["ccxt>=4.0"]
@@ -50,26 +50,23 @@ dev = ["pytest>=7.0", "pytest-asyncio>=0.21", "pytest-aiohttp>=1.0", "pytest-cov
 
 [tool.setuptools]
 packages = [
-    "finclaw", "finclaw.a2a", "finclaw.agents", "finclaw.ai_strategy",
-    "finclaw.alerts", "finclaw.analytics", "finclaw.api", "finclaw.backtest",
-    "finclaw.backtesting", "finclaw.cli", "finclaw.crypto", "finclaw.dashboard",
-    "finclaw.data", "finclaw.data.sinks", "finclaw.data.sources", "finclaw.defi",
-    "finclaw.deploy", "finclaw.derivatives", "finclaw.drl", "finclaw.events",
-    "finclaw.evolution", "finclaw.exchanges", "finclaw.execution", "finclaw.export",
-    "finclaw.fixed_income", "finclaw.indicators", "finclaw.journal", "finclaw.llm",
-    "finclaw.mcp", "finclaw.ml", "finclaw.notifications", "finclaw.optimization",
-    "finclaw.paper", "finclaw.paper_report", "finclaw.pipeline",
-    "finclaw.plugin_system", "finclaw.plugins", "finclaw.plugins.examples",
-    "finclaw.portfolio", "finclaw.reporting", "finclaw.reports", "finclaw.risk",
-    "finclaw.sandbox", "finclaw.screener", "finclaw.sentiment", "finclaw.simulation",
-    "finclaw.strategies", "finclaw.strategies.library", "finclaw.strategy",
-    "finclaw.ta", "finclaw.telegram_bot", "finclaw.trading", "finclaw.utils",
-    "finclaw.viz", "finclaw.watchlist",
+    "src", "src.a2a", "src.agents", "src.ai_strategy",
+    "src.alerts", "src.analytics", "src.api", "src.backtest",
+    "src.backtesting", "src.cli", "src.crypto", "src.dashboard",
+    "src.data", "src.data.sinks", "src.data.sources", "src.defi",
+    "src.deploy", "src.derivatives", "src.drl", "src.events",
+    "src.evolution", "src.exchanges", "src.execution", "src.export",
+    "src.fixed_income", "src.indicators", "src.journal", "src.llm",
+    "src.mcp", "src.ml", "src.notifications", "src.optimization",
+    "src.paper", "src.paper_report", "src.pipeline",
+    "src.plugin_system", "src.plugins", "src.plugins.examples",
+    "src.portfolio", "src.reporting", "src.reports", "src.risk",
+    "src.sandbox", "src.screener", "src.sentiment", "src.simulation",
+    "src.strategies", "src.strategies.library", "src.strategy",
+    "src.ta", "src.telegram_bot", "src.trading", "src.utils",
+    "src.viz", "src.watchlist",
     "agents", "strategies",
 ]
-
-[tool.setuptools.package-dir]
-finclaw = "src"
 
 [tool.setuptools.package-data]
 strategies = ["builtin/*.yaml"]
