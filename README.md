@@ -7,6 +7,7 @@
 <p align="center">
   <a href="https://pypi.org/project/finclaw-ai/"><img src="https://img.shields.io/pypi/v/finclaw-ai?color=blue" alt="PyPI"></a>
   <a href="https://github.com/NeuZhou/finclaw/actions/workflows/ci.yml"><img src="https://github.com/NeuZhou/finclaw/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://codecov.io/gh/NeuZhou/finclaw"><img src="https://codecov.io/gh/NeuZhou/finclaw/graph/badge.svg" alt="codecov"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License"></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.9%2B-blue" alt="Python 3.9+"></a>
   <img src="https://img.shields.io/badge/factors-484-orange" alt="484 Factors">
@@ -395,6 +396,18 @@ cd dashboard && npm install && npm run dev
 - [ ] DEX execution (Uniswap V3 / Arbitrum)
 - [ ] Multi-timeframe support (1h/4h/1d)
 - [ ] Foundation model for price sequences
+
+---
+
+## 🌐 Ecosystem
+
+FinClaw is part of the NeuZhou AI agent toolkit:
+
+| Project | Description |
+|---------|-------------|
+| **[FinClaw](https://github.com/NeuZhou/finclaw)** | AI-native quantitative finance engine |
+| **[ClawGuard](https://github.com/NeuZhou/clawguard)** | AI Agent Immune System — 285+ threat patterns, zero dependencies |
+| **[AgentProbe](https://github.com/NeuZhou/agentprobe)** | Playwright for AI Agents — test, record, replay agent behaviors |
 
 ---
 

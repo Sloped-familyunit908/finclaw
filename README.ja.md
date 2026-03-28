@@ -390,6 +390,18 @@ cd dashboard && npm install && npm run dev
 
 ---
 
+## 🌐 エコシステム
+
+FinClawはNeuZhou AIエージェントツールキットの一部です：
+
+| プロジェクト | 説明 |
+|---------|-------------|
+| **[FinClaw](https://github.com/NeuZhou/finclaw)** | AI native 量的金融エンジン |
+| **[ClawGuard](https://github.com/NeuZhou/clawguard)** | AIエージェント免疫システム — 285以上の脅威パターン、ゼロ依存 |
+| **[AgentProbe](https://github.com/NeuZhou/agentprobe)** | AIエージェント向けPlaywright — テスト、記録、リプレイ |
+
+---
+
 ## コントリビューション
 
 ```bash

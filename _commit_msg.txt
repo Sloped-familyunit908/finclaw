@@ -1,7 +1,0 @@
-fix: 6 CLI showstoppers for first-time user experience
-
-- Add finclaw download-crypto command (ccxt, OKX/Bybit/Binance fallback)
-- Add finclaw evolve command (wires to AutoEvolver, all params exposed)
-- Fix finclaw quote for crypto pairs (auto-detect "/" and route to ccxt)
-- Fix pyproject.toml factor count: 217 -> 484
-- 5633 tests pass, zero regressions

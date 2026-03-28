@@ -390,6 +390,18 @@ cd dashboard && npm install && npm run dev
 
 ---
 
+## 🌐 生态系统
+
+FinClaw 是 NeuZhou AI 代理工具集的一部分：
+
+| 项目 | 描述 |
+|---------|-------------|
+| **[FinClaw](https://github.com/NeuZhou/finclaw)** | AI 原生量化金融引擎 |
+| **[ClawGuard](https://github.com/NeuZhou/clawguard)** | AI 代理免疫系统 — 285+ 威胁模式，零依赖 |
+| **[AgentProbe](https://github.com/NeuZhou/agentprobe)** | AI 代理的 Playwright — 测试、录制、回放代理行为 |
+
+---
+
 ## 参与贡献
 
 ```bash

@@ -28,7 +28,7 @@ jobs:
 
       - name: Lint with ruff
         run: |
-          ruff check src/ --select E,F,W --ignore E501,E402,F401,F841 --exit-zero
+          ruff check src/ --select E,F,W --ignore E501,E402,F401,F841
 
       - name: Secret & PII scan
         run: |
@@ -70,3 +70,10 @@ jobs:
           PYTHONPATH: scripts:.
         run: |
           pytest tests/ --cov=src --cov-report=xml --cov-report=term-missing -k "not integration and not websocket and not deep_qa" --timeout=300 || true
+
+      - name: Upload coverage
+        if: matrix.python-version == '3.12' && matrix.os == 'ubuntu-latest'
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
