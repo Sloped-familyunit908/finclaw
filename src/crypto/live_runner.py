@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import os
 import time
 import threading
@@ -32,6 +33,19 @@ except ImportError:
     HAS_CCXT = False
 
 from .telegram_notifier import TelegramNotifier
+
+# Import full evolution scoring engine (42+ factors)
+from src.evolution.auto_evolve import (
+    score_stock, StrategyDNA,
+    compute_rsi, compute_linear_regression, compute_volume_ratio,
+    compute_macd, compute_bollinger_bands, compute_kdj,
+    compute_obv_trend, compute_ma_alignment,
+    compute_atr, compute_roc, compute_williams_r, compute_cci,
+    compute_mfi, compute_donchian_position, compute_aroon,
+    compute_price_volume_corr,
+    compute_candle_patterns, compute_support_resistance,
+    compute_volume_profile,
+)
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -227,7 +241,7 @@ class CryptoLiveRunner:
             logger.error("Failed to fetch price for %s: %s", symbol, exc)
             return None
 
-    def fetch_ohlcv(self, symbol: str, timeframe: str = "1h", limit: int = 100) -> list[list]:
+    def fetch_ohlcv(self, symbol: str, timeframe: str = "1h", limit: int = 200) -> list[list]:
         """Fetch OHLCV candles."""
         try:
             if self._exchange is None:
@@ -238,14 +252,119 @@ class CryptoLiveRunner:
             return []
 
     # ------------------------------------------------------------------
-    # Signal scoring (simplified — uses DNA weights on basic indicators)
+    # Signal scoring — full evolution engine (42+ factors)
     # ------------------------------------------------------------------
 
-    def compute_score(self, symbol: str, ohlcv: list[list]) -> float:
-        """Compute a 0-10 signal score for *symbol* using DNA weights.
+    def _build_indicators(self, ohlcv: list[list]) -> dict:
+        """Build the full indicators dict that score_stock() expects.
 
-        This is a simplified scoring engine for live trading. It uses RSI,
-        volume, and price momentum as core signals, weighted by DNA.
+        Args:
+            ohlcv: list of [timestamp, open, high, low, close, volume]
+
+        Returns:
+            Dict with all pre-computed indicator arrays keyed as score_stock expects.
+        """
+        opens = [c[1] for c in ohlcv]
+        highs = [c[2] for c in ohlcv]
+        lows = [c[3] for c in ohlcv]
+        closes = [c[4] for c in ohlcv]
+        volumes = [c[5] for c in ohlcv]
+
+        # Ensure consistent length
+        min_len = min(len(opens), len(highs), len(lows), len(closes), len(volumes))
+        opens = opens[:min_len]
+        highs = highs[:min_len]
+        lows = lows[:min_len]
+        closes = closes[:min_len]
+        volumes = volumes[:min_len]
+
+        # Core indicators
+        rsi_arr = compute_rsi(closes)
+        r2_arr, slope_arr = compute_linear_regression(closes)
+        vol_ratio_arr = compute_volume_ratio(volumes)
+
+        # v2 indicators
+        macd_line, macd_signal, macd_hist = compute_macd(closes)
+        bb_upper, bb_middle, bb_lower, _bb_width = compute_bollinger_bands(closes)
+        kdj_k, kdj_d, kdj_j = compute_kdj(highs, lows, closes)
+        obv = compute_obv_trend(closes, volumes)
+        ma_align = compute_ma_alignment(closes)
+
+        # v3 extended technical indicators
+        atr_pct = compute_atr(highs, lows, closes)
+        roc_arr = compute_roc(closes)
+        williams_r_arr = compute_williams_r(highs, lows, closes)
+        cci_arr = compute_cci(closes, highs, lows)
+        mfi_arr = compute_mfi(highs, lows, closes, volumes)
+        donchian_pos_arr = compute_donchian_position(highs, lows, closes)
+        aroon_arr = compute_aroon(closes)
+        pv_corr_arr = compute_price_volume_corr(closes, volumes)
+
+        return {
+            "rsi": rsi_arr,
+            "r2": r2_arr,
+            "slope": slope_arr,
+            "volume_ratio": vol_ratio_arr,
+            "close": closes,
+            "open": opens,
+            "high": highs,
+            "low": lows,
+            "volume": volumes,
+            # v2 indicators
+            "macd_line": macd_line,
+            "macd_signal": macd_signal,
+            "macd_hist": macd_hist,
+            "bb_upper": bb_upper,
+            "bb_middle": bb_middle,
+            "bb_lower": bb_lower,
+            "kdj_k": kdj_k,
+            "kdj_d": kdj_d,
+            "kdj_j": kdj_j,
+            "obv_trend": obv,
+            "ma_alignment": ma_align,
+            # v3 extended indicators
+            "atr_pct": atr_pct,
+            "roc": roc_arr,
+            "williams_r": williams_r_arr,
+            "cci": cci_arr,
+            "mfi": mfi_arr,
+            "donchian_pos": donchian_pos_arr,
+            "aroon": aroon_arr,
+            "pv_corr": pv_corr_arr,
+            # No fundamentals for crypto
+            "fundamentals": {},
+        }
+
+    def _build_strategy_dna(self) -> StrategyDNA:
+        """Convert the flat self.dna dict into a StrategyDNA dataclass.
+
+        Handles custom_weights from the DNA (factor weights from evolution).
+        """
+        return StrategyDNA.from_dict(self.dna)
+
+    def compute_score(self, symbol: str, ohlcv: list[list]) -> float:
+        """Compute a 0-10 signal score using the full 42+ factor evolution engine.
+
+        Uses the same score_stock() function as the backtest evolution engine,
+        ensuring consistency between backtest and live trading.
+        """
+        if len(ohlcv) < 50:
+            return 5.0  # neutral — need enough bars for reliable indicators
+
+        try:
+            indicators = self._build_indicators(ohlcv)
+            strategy_dna = self._build_strategy_dna()
+            idx = len(indicators["close"]) - 1
+            score = score_stock(idx=idx, indicators=indicators, dna=strategy_dna)
+            return max(0.0, min(10.0, score))
+        except Exception as exc:
+            logger.warning("Full scoring failed for %s, returning neutral: %s", symbol, exc)
+            return 5.0
+
+    def compute_score_simplified(self, symbol: str, ohlcv: list[list]) -> float:
+        """Legacy simplified 4-factor scoring (kept for reference/fallback).
+
+        Uses RSI, volume, and price momentum as core signals, weighted by DNA.
         """
         if len(ohlcv) < 20:
             return 5.0  # neutral
@@ -262,11 +381,11 @@ class CryptoLiveRunner:
 
         if rsi is not None:
             if rsi < rsi_buy:
-                score += 2.0 * (1 - rsi / rsi_buy)  # More oversold → higher score
+                score += 2.0 * (1 - rsi / rsi_buy)
             elif rsi > rsi_sell:
                 score -= 2.0 * ((rsi - rsi_sell) / (100 - rsi_sell))
             else:
-                score += 0.5  # neutral zone, slight positive bias
+                score += 0.5
 
         # Momentum (ROC)
         if len(closes) >= 10:
@@ -294,7 +413,6 @@ class CryptoLiveRunner:
                 w_trend = self.dna.get("w_trend", 0.01)
                 score -= w_trend * 15
 
-        # Clamp to 0-10
         return max(0.0, min(10.0, score))
 
     @staticmethod
