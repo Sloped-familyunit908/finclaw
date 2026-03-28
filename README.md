@@ -11,7 +11,7 @@
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License"></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.9%2B-blue" alt="Python 3.9+"></a>
   <img src="https://img.shields.io/badge/factors-484-orange" alt="484 Factors">
-  <img src="https://img.shields.io/badge/tests-5600%2B-brightgreen" alt="5600+ Tests">
+  <img src="https://img.shields.io/badge/tests-4900%2B-brightgreen" alt="4900+ Tests">
   <img src="https://img.shields.io/badge/markets-crypto%20%7C%20A--shares%20%7C%20US-ff69b4" alt="Crypto + A-shares + US">
   <a href="https://github.com/NeuZhou/finclaw/stargazers"><img src="https://img.shields.io/github/stars/NeuZhou/finclaw?style=social" alt="GitHub Stars"></a>
 </p>
@@ -59,7 +59,7 @@ $ finclaw demo
 
 Symbol        Price     Change        %          Trend
 --------------------------------------------------------
-AAPL         189.84    +2.31  +1.23%  ???????_??¦??
+AAPL         189.84    +2.31  +1.23%  ???????_??â–ˆ??
 NVDA         875.28   +15.67  +1.82%  ?????_?????__
 BTC/USDT  66,458.10    -1.24  -0.53%  ????__???_???
 
@@ -70,15 +70,15 @@ Population: 30  |  484 factor dimensions  |  Walk-forward validated
 
   Gen    Return    Fitness   Sharpe  Progress
   ---    ------    -------   ------  --------
-    1     12.3%       45.2     1.2   ¦¦¦¦¦¦¦¦¦¦
-   10     34.5%      123.7     2.1   ¦¦¦¦¦¦¦¦¦¦
-   25     89.2%      456.3     3.4   ¦¦¦¦¦¦¦¦¦¦
-   50    234.7%     1205.8     4.8   ¦¦¦¦¦¦¦¦¦¦
-   75    567.3%     2890.4     5.6   ¦¦¦¦¦¦¦¦¦¦
-   89   2756.4%     4487.8     6.6   ¦¦¦¦¦¦¦¦¦¦ ??
+    1     12.3%       45.2     1.2   â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆ
+   10     34.5%      123.7     2.1   â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆ
+   25     89.2%      456.3     3.4   â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆ
+   50    234.7%     1205.8     4.8   â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆ
+   75    567.3%     2890.4     5.6   â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆ
+   89   2756.4%     4487.8     6.6   â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆ ??
 
 DNA evolved across 484 factors:
-  Top weights: RSI ×0.34, Momentum ×0.25, MACD ×0.18, Volume ×0.12
+  Top weights: RSI ?0.34, Momentum ?0.25, MACD ?0.18, Volume ?0.12
   Walk-forward validated: ?  Monte Carlo robust: ?
 
 ??? ?? Backtest Results ???
@@ -99,9 +99,9 @@ TOTAL                                   +$6,955.60
 
 ??? ?? AI Features ???
 
-MCP Server  — Expose FinClaw as tools for Claude, Cursor, VS Code
-Copilot     — Interactive AI financial assistant
-Strategy AI — Natural language ? trading code
+MCP Server  ? Expose FinClaw as tools for Claude, Cursor, VS Code
+Copilot     ? Interactive AI financial assistant
+Strategy AI ? Natural language ? trading code
 
 Try it yourself:
   finclaw evolve --market crypto    # Run strategy evolution
@@ -205,13 +205,13 @@ Traditional backtests evaluate each strategy in isolation â€” overfitted strateg
 - Factor IC/IR analysis with decay curves
 - Factor orthogonal matrix (auto-remove redundant factors)
 - Turnover penalty in fitness function
-- 5,600+ automated tests
+- 4,900+ automated tests
 
 ---
 
 ## ðŸ’» CLI Reference
 
-FinClaw ships with 70+ subcommands. Here are the essentials:
+FinClaw ships with 170+ CLI commands. Here are the essentials:
 
 | Command | Description |
 |---------|-------------|

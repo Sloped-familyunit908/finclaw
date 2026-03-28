@@ -1,5 +1,5 @@
 ﻿"""
-FinClaw CLI v5.1.0 - Comprehensive argparse-based CLI
+FinClaw CLI - Comprehensive argparse-based CLI
 =====================================================
 All commands work end-to-end with real data via yfinance.
 """
@@ -294,7 +294,10 @@ def cmd_analyze(args):
     import numpy as np
     from src.ta import rsi as calc_rsi, macd as calc_macd, sma, ema
 
-    ticker = args.ticker
+    ticker = args.ticker or getattr(args, "ticker_flag", None)
+    if not ticker:
+        print("  ERROR: ticker is required. Usage: finclaw analyze TSLA  or  finclaw analyze --ticker TSLA")
+        return
     indicators = [i.strip() for i in args.indicators.split(",")]
 
     df = _fetch_data(ticker, period="1y")
@@ -1014,7 +1017,7 @@ def build_parser() -> argparse.ArgumentParser:
     """Build the full CLI argument parser."""
     parser = argparse.ArgumentParser(
         prog="finclaw",
-        description="FinClaw v5.1.0 — AI-Powered Financial Intelligence Engine",
+        description=f"FinClaw v{_get_version()} — AI-Powered Financial Intelligence Engine",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -1064,7 +1067,8 @@ Examples:
 
     # analyze
     p = sub.add_parser("analyze", help="Technical analysis")
-    p.add_argument("--ticker", "-t", required=True, help="Ticker symbol")
+    p.add_argument("ticker", nargs="?", default=None, help="Ticker symbol (positional)")
+    p.add_argument("--ticker", "-t", dest="ticker_flag", default=None, help="Ticker symbol (flag)")
     p.add_argument("--indicators", "-i", default="rsi,macd,bollinger", help="Comma-separated indicators")
 
     # portfolio
