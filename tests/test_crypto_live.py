@@ -193,8 +193,8 @@ class TestDailyLossLimit:
 class TestMaxPositionSize:
     def test_max_position_value(self, runner: CryptoLiveRunner):
         runner.load_dna()
-        # Default 10% of 10000 = 1000
-        assert runner.max_position_value() == pytest.approx(1000.0)
+        # Default 20% of 10000 = 2000 (changed for crypto-optimized strategy)
+        assert runner.max_position_value() == pytest.approx(2000.0)
 
     def test_buy_respects_max_position_size(self, runner: CryptoLiveRunner):
         runner.load_dna()
@@ -270,7 +270,8 @@ class TestDNALoading:
         dna = runner.load_dna()
         assert dna["min_score"] == 5
         assert dna["rsi_buy_threshold"] == 30.0
-        assert dna["max_positions"] == 3
+        # max_positions auto-adjusted from 3 → >=5 for crypto (auto-adjust rule)
+        assert dna["max_positions"] >= 5
 
     def test_load_dna_missing_file_uses_defaults(self, tmp_path: Path):
         r = CryptoLiveRunner(

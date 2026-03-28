@@ -53,8 +53,8 @@ from src.evolution.auto_evolve import (
 
 DEFAULT_INITIAL_BALANCE = 10_000.0  # USDT
 DEFAULT_INTERVAL_MINUTES = 60
-DEFAULT_MAX_POSITION_SIZE_PCT = 10.0
-DEFAULT_MAX_EXPOSURE_PCT = 50.0
+DEFAULT_MAX_POSITION_SIZE_PCT = 20.0   # was 10.0 — allow bigger positions for crypto
+DEFAULT_MAX_EXPOSURE_PCT = 90.0         # was 50.0 — use most of the capital
 DEFAULT_DAILY_LOSS_LIMIT_PCT = -5.0
 STOP_FILE_NAME = "STOP_TRADING"
 DEFAULT_DNA_PATH = "evolution_results/best_ever.json"
@@ -205,6 +205,11 @@ class CryptoLiveRunner:
         except Exception as exc:
             logger.error("Failed to load DNA: %s", exc)
             self.dna = self._default_dna()
+
+        # Crypto: allow more positions than DNA default (which was optimized for fewer coins)
+        if self.dna.get("max_positions", 2) < 5:
+            self.dna["max_positions"] = max(5, len(self.symbols) // 3)
+            logger.info("Adjusted max_positions to %d for %d symbols", self.dna["max_positions"], len(self.symbols))
 
         # CLI overrides always win
         self.dna.update(self._cli_overrides)
@@ -612,9 +617,14 @@ class CryptoLiveRunner:
             return None
 
         max_val = self.max_position_value(risk_prices)
-        qty = max_val / price if price > 0 else 0
 
-        if qty <= 0 or max_val > self.cash:
+        # Dynamic position sizing: stronger signals get bigger positions
+        score_factor = max(0.5, min(1.5, score / 7.0))  # score 5=0.71x, 7=1.0x, 10=1.43x
+        position_value = max_val * score_factor
+        position_value = min(position_value, self.cash * 0.95)  # never use 100% of remaining cash
+        qty = position_value / price if price > 0 else 0
+
+        if qty <= 0 or position_value > self.cash:
             qty = self.cash * 0.95 / price if price > 0 else 0  # use 95% of remaining cash
             if qty <= 0:
                 logger.info("Insufficient cash for %s", symbol)
@@ -870,3 +880,57 @@ class CryptoLiveRunner:
     @property
     def is_running(self) -> bool:
         return self._running
+
+
+# ---------------------------------------------------------------------------
+# CLI entry point
+# ---------------------------------------------------------------------------
+
+def main() -> None:
+    """CLI entry point for ``python -m src.crypto.live_runner``."""
+    import argparse
+
+    parser = argparse.ArgumentParser(description="FinClaw Crypto Live Runner")
+    parser.add_argument("--mode", default="dry_run", choices=["dry_run", "live"])
+    parser.add_argument("--exchange", default="binance")
+    parser.add_argument("--symbols", default="BTC/USDT",
+                        help="Comma-separated symbol list")
+    parser.add_argument("--interval", type=int, default=DEFAULT_INTERVAL_MINUTES,
+                        help="Minutes between cycles")
+    parser.add_argument("--balance", type=float, default=DEFAULT_INITIAL_BALANCE)
+    parser.add_argument("--dna-path", default=DEFAULT_DNA_PATH)
+    parser.add_argument("--trade-log", default=DEFAULT_TRADE_LOG_PATH)
+    parser.add_argument("--api-key", default=None)
+    parser.add_argument("--api-secret", default=None)
+    parser.add_argument("--telegram-token", default=os.environ.get("TELEGRAM_BOT_TOKEN"))
+    parser.add_argument("--telegram-chat-id", default=os.environ.get("TELEGRAM_CHAT_ID"))
+    args = parser.parse_args()
+
+    # Configure logging to stderr
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+
+    symbols = [s.strip() for s in args.symbols.split(",") if s.strip()]
+
+    runner = CryptoLiveRunner(
+        exchange=args.exchange,
+        mode=args.mode,
+        api_key=args.api_key,
+        api_secret=args.api_secret,
+        symbols=symbols,
+        telegram_token=args.telegram_token,
+        telegram_chat_id=args.telegram_chat_id,
+        initial_balance=args.balance,
+        interval_minutes=args.interval,
+        dna_path=args.dna_path,
+        trade_log_path=args.trade_log,
+    )
+
+    runner.start()
+
+
+if __name__ == "__main__":
+    main()
