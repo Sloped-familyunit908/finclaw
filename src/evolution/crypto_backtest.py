@@ -159,6 +159,15 @@ class CryptoBacktestEngine:
         # Notional value at entry
         notional = entry_price * shares * self.leverage
 
+        # Add slippage: 0.05% adverse price movement
+        slippage_rate = 0.0005
+        if not is_short:
+            entry_price = entry_price * (1 + slippage_rate)  # buy higher
+            exit_price = exit_price * (1 - slippage_rate)    # sell lower
+        else:
+            entry_price = entry_price * (1 - slippage_rate)  # short at lower
+            exit_price = exit_price * (1 + slippage_rate)    # cover at higher
+
         # Fees: entry uses taker (market order), exit uses taker
         entry_fee = entry_price * shares * self.fee_taker
         exit_fee = exit_price * shares * self.fee_taker
@@ -246,14 +255,17 @@ class CryptoBacktestEngine:
                 month_start_capital = capital
                 last_month_period = period
 
-            # Score all assets at this period
+            # Score all assets using PREVIOUS period's data to avoid look-ahead bias
+            if period < 1:
+                period += hold_periods
+                continue
             scored: List[Tuple[str, float, bool]] = []
             for code in codes:
                 sd = data[code]
                 if period >= len(sd["close"]):
                     continue
                 ind = indicators[code]
-                s = score_stock(period, ind, dna)
+                s = score_stock(period - 1, ind, dna)  # Use previous candle's indicators
 
                 # Determine direction: high score = long, low score = short
                 if s >= dna.min_score:
@@ -277,6 +289,9 @@ class CryptoBacktestEngine:
 
             if picks:
                 per_pos = capital / len(picks)
+                # Cap position size to prevent unrealistic compounding
+                max_position = initial_capital * 2.0  # Never risk more than 2x initial per position
+                per_pos = min(per_pos, max_position)
                 positions_this_period = 0
 
                 for code, _score, is_short in picks:

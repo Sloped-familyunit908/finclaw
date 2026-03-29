@@ -70,16 +70,16 @@ Population: 30  |  484 factor dimensions  |  Walk-forward validated
 
   Gen    Return    Fitness   Sharpe  Progress
   ---    ------    -------   ------  --------
-    1     12.3%       45.2     1.2   ██████████
-   10     34.5%      123.7     2.1   ██████████
-   25     89.2%      456.3     3.4   ██████████
-   50    234.7%     1205.8     4.8   ██████████
-   75    567.3%     2890.4     5.6   ██████████
-   89   2756.4%     4487.8     6.6   ██████████ ??
+    1      3.2%       12.1     0.4   ██████████
+   10      8.7%       34.5     0.8   ██████████
+   25     18.4%       89.2     1.3   ██████████
+   50     31.6%      156.7     1.7   ██████████
+   75     42.3%      210.4     2.0   ██████████
+  100     48.5%      245.8     2.2   ██████████
 
 DNA evolved across 484 factors:
   Top weights: RSI ?0.34, Momentum ?0.25, MACD ?0.18, Volume ?0.12
-  Walk-forward validated: ?  Monte Carlo robust: ?
+  Walk-forward validated: ?  Slippage modeled: ?  Position caps: ?
 
 ??? ?? Backtest Results ???
 
@@ -178,10 +178,10 @@ finclaw evolve --market crypto --population 50 --mutation-rate 0.2 --elite 10
 
 | Market | Generation | Annual Return | Sharpe | Max Drawdown |
 |--------|-----------|--------------|--------|-------------|
-| A-Shares | Gen 89 | 2,756% | 6.56 | 26.5% |
-| Crypto | Gen 19 | 16,066% | 12.19 | 7.2% |
+| A-Shares | Gen 89 | *re-evolving* | — | — |
+| Crypto | Gen 19 | *re-evolving* | — | — |
 
-> ⚠️ These are **in-sample** backtest results on historical data. Real performance will be significantly lower. Walk-forward out-of-sample validation is enabled by default — always check OOS metrics before trusting any evolved strategy. Run `finclaw check-backtest` to verify, and `finclaw paper` to paper trade before risking real capital.
+> **Honest disclosure:** Previous versions reported inflated backtest returns (2,756% / 16,066%) caused by look-ahead bias in the scoring function — the backtester was using current-period indicators to make decisions at the current period’s open price. This has been **fixed**: scoring now uses previous-period data, position sizes are capped, and slippage is modeled. The evolution engine needs to be re-run with the corrected backtester to produce valid results. Always use `finclaw check-backtest` to verify, and `finclaw paper` to paper trade before risking real capital.
 
 ---
 

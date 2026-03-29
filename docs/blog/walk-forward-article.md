@@ -6,6 +6,8 @@
 
 ## 25,000% Annual Return? Sure, Bro.
 
+**Update (2026-03-29):** It turns out the problem was even worse than overfitting. The backtester had a **look-ahead bias** — the scoring function used the current period's indicators (including close/high/low) while entering at the current period's open price. This is equivalent to seeing the future. After fixing the bias, adding slippage, and capping position sizes, the old "champion" DNA produces **-99.56% annual return**. The 25,000% was entirely fake. Walk-forward validation alone wasn't enough — the backtester itself was broken. Lesson: verify your test harness before trusting any test results.
+
 My genetic algorithm evolved a strategy with a fitness score of **291,623** and an annualized return of 25,000%.
 
 On paper, I'd outperform Medallion Fund by a factor of 300. In reality, my GA had memorized the training data like a student who stole the answer key.

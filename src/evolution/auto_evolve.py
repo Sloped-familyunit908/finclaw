@@ -2025,6 +2025,9 @@ class AutoEvolver:
 
                 if picks:
                     per_pos = bt_capital / len(picks)
+                    # Cap position size to prevent unrealistic compounding
+                    max_position = initial_capital * 2.0  # Never risk more than 2x initial per position
+                    per_pos = min(per_pos, max_position)
                     positions_this_period = 0
 
                     for code, _score in picks:
