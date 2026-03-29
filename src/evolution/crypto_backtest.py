@@ -420,7 +420,7 @@ class CryptoBacktestEngine:
             dd = (peak - v) / peak * 100 if peak > 0 else 0
             max_drawdown = max(max_drawdown, dd)
 
-        # Sharpe ratio — use periods_per_year for annualization
+        # Sharpe ratio — use periods_per_year for annualization, with risk-free rate
         sharpe = 0.0
         sortino = 0.0
         if len(portfolio_values) > 2:
@@ -436,14 +436,18 @@ class CryptoBacktestEngine:
 
                 # Periods per year: for crypto with hourly data = 365*24 = 8760
                 periods_per_year = 365 * self.periods_per_day / max(hold_periods, 1)
-                sharpe = (mean_r / std_r) * math.sqrt(periods_per_year)
+                # Risk-free rate: 4% annual (configurable via env)
+                import os
+                annual_rf = float(os.environ.get("FINCLAW_RISK_FREE_RATE", "0.04"))
+                rf_per_period = annual_rf / periods_per_year
+                sharpe = ((mean_r - rf_per_period) / std_r) * math.sqrt(periods_per_year)
 
                 # Sortino
                 downside_returns = [r for r in period_returns if r < 0]
                 if downside_returns:
                     downside_var = sum(r ** 2 for r in downside_returns) / len(period_returns)
                     downside_std = math.sqrt(downside_var) if downside_var > 0 else 0.001
-                    sortino = (mean_r / downside_std) * math.sqrt(periods_per_year)
+                    sortino = ((mean_r - rf_per_period) / downside_std) * math.sqrt(periods_per_year)
                 else:
                     sortino = sharpe * 1.5
 

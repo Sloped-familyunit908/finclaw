@@ -1,0 +1,30 @@
+graph LR
+    subgraph IN["📊 484 Factors"]
+        T["Technical 284"]
+        S["Sentiment"]
+        R["Deep RL"]
+        D["Fundamental"]
+        C["Crypto 200+"]
+    end
+
+    subgraph EVO["🧬 Evolution Engine"]
+        GA["Genetic Algorithm"] --> BT["Backtester<br/>Fees·Funding·Slippage"]
+        BT --> FIT["Fitness Selection<br/>Sharpe × Return / DD"]
+        FIT --> MUT["Mutation"]
+        MUT --> GA
+    end
+
+    subgraph QA["🛡️ Validation"]
+        WF["Walk-Forward"]
+        MC["Monte Carlo"]
+        BD["Bias Detection"]
+        AR["Strategy Arena"]
+    end
+
+    subgraph OUT["⚡ Execution"]
+        PT["Paper Trading"]
+        LT["Live Trading<br/>100+ Exchanges"]
+        MP["MCP Server"]
+    end
+
+    IN --> EVO --> QA --> OUT

@@ -1,0 +1,43 @@
+%%{init: {'theme': 'dark', 'themeVariables': {'primaryColor': '#ff6b35', 'primaryTextColor': '#fff', 'primaryBorderColor': '#ff6b35', 'lineColor': '#ffd700', 'secondaryColor': '#1a1a2e', 'tertiaryColor': '#16213e', 'background': '#0d1117', 'mainBkg': '#161b22', 'nodeBorder': '#30363d', 'clusterBkg': '#161b22', 'clusterBorder': '#ff6b35', 'titleColor': '#ff6b35'}}}%%
+
+graph TB
+    subgraph EVOLUTION["🧬 Self-Evolution Engine"]
+        direction TB
+        GA["Genetic Algorithm<br/>Population × Generations"]
+        MUT["Mutation & Crossover<br/>Adaptive Rate"]
+        BT["Multi-Asset Backtester<br/>Fees • Funding • Liquidation"]
+        SEL["Natural Selection<br/>Fitness = Sharpe × Return / DD"]
+        GA --> MUT --> BT --> SEL --> GA
+    end
+
+    subgraph FACTORS["📊 484 Factor Sources"]
+        direction LR
+        TECH["Technical<br/>284 indicators<br/>RSI • MACD • BB<br/>KDJ • OBV • ATR"]
+        SENT["Sentiment<br/>News EN/ZH<br/>Reddit • Crypto<br/>Social Buzz"]
+        DRL["Deep RL<br/>Q-Learning<br/>PPO Agent<br/>Signals"]
+        DAVIS["Davis Double<br/>PE • PB • ROE<br/>Growth • PEG<br/>Cash Flow"]
+        CRYPTO["Crypto-Native<br/>200+ factors<br/>Funding Rate<br/>On-chain"]
+    end
+
+    subgraph QA["🛡️ Quality Assurance"]
+        direction LR
+        ARENA["Strategy Arena<br/>Head-to-head<br/>Competition"]
+        BIAS["Bias Detection<br/>Overfitting Guard<br/>Look-ahead Check"]
+        WF["Walk-Forward<br/>+ Monte Carlo<br/>Out-of-Sample"]
+    end
+
+    subgraph EXEC["⚡ Execution Layer"]
+        direction LR
+        PAPER["Paper Trading<br/>Full-factor Scoring<br/>Dynamic Sizing"]
+        LIVE["Live Trading<br/>OKX • Binance<br/>Bybit • 100+"]
+        MCP["MCP Server<br/>AI Agent<br/>Integration"]
+    end
+
+    FACTORS --> EVOLUTION
+    EVOLUTION --> QA
+    QA --> EXEC
+
+    style EVOLUTION fill:#1a1a2e,stroke:#ff6b35,stroke-width:3px
+    style FACTORS fill:#16213e,stroke:#ffd700,stroke-width:2px
+    style QA fill:#1a1a2e,stroke:#00d4aa,stroke-width:2px
+    style EXEC fill:#16213e,stroke:#4da6ff,stroke-width:2px

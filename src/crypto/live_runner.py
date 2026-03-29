@@ -643,9 +643,14 @@ class CryptoLiveRunner:
                 logger.error("LIVE BUY failed for %s: %s", symbol, exc)
                 return None
 
+        # Deduct taker fee (0.04% = 0.0004, same as crypto_backtest)
+        taker_fee_rate = 0.0004
+        fee = cost * taker_fee_rate
+        total_cost = cost + fee
+
         # Update state
         now_str = datetime.now(timezone.utc).isoformat()
-        self.cash -= cost
+        self.cash -= total_cost
         self.positions[symbol] = Position(symbol, price, qty, now_str, "long")
 
         trade = {
@@ -653,7 +658,8 @@ class CryptoLiveRunner:
             "symbol": symbol,
             "price": price,
             "qty": qty,
-            "cost": cost,
+            "cost": total_cost,
+            "fee": fee,
             "score": score,
             "time": now_str,
             "mode": self.mode,
@@ -679,9 +685,15 @@ class CryptoLiveRunner:
 
         pos = self.positions[symbol]
         qty = pos.qty
-        pnl = pos.unrealised_pnl(price)
-        pnl_pct = pos.unrealised_pnl_pct(price)
-        revenue = qty * price
+        gross_revenue = qty * price
+
+        # Deduct taker fee (0.04% = 0.0004, same as crypto_backtest)
+        taker_fee_rate = 0.0004
+        fee = gross_revenue * taker_fee_rate
+        revenue = gross_revenue - fee
+
+        pnl = revenue - (pos.entry_price * qty)
+        pnl_pct = (pnl / (pos.entry_price * qty)) * 100 if (pos.entry_price * qty) > 0 else 0.0
 
         if self.mode == "live":
             try:
@@ -705,6 +717,7 @@ class CryptoLiveRunner:
             "price": price,
             "qty": qty,
             "revenue": revenue,
+            "fee": fee,
             "pnl": pnl,
             "pnl_pct": pnl_pct,
             "score": score,

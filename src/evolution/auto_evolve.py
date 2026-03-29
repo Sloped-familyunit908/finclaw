@@ -884,34 +884,52 @@ def score_stock(
 
     if idx >= len(rsi) or idx >= len(r2) or idx >= len(slope) or idx >= len(volume_ratio):
         return 0.0
-    if any(
-        math.isnan(x)
-        for x in [rsi[idx], r2[idx], slope[idx], volume_ratio[idx]]
-    ):
-        return 0.0
 
-    # 1. Momentum: higher slope = better
-    momentum_raw = min(slope[idx] / max(dna.slope_min, 0.01), 2.0) / 2.0
+    # Track which core indicators are available (NaN-safe)
+    _core_nan = {
+        "rsi": math.isnan(rsi[idx]),
+        "r2": math.isnan(r2[idx]),
+        "slope": math.isnan(slope[idx]),
+        "volume_ratio": math.isnan(volume_ratio[idx]),
+    }
+    # If ALL core indicators are NaN, return neutral score instead of 0
+    if all(_core_nan.values()):
+        return 5.0
+
+    # 1. Momentum: higher slope = better (skip if slope is NaN)
+    if not _core_nan["slope"]:
+        momentum_raw = min(slope[idx] / max(dna.slope_min, 0.01), 2.0) / 2.0
+    else:
+        momentum_raw = 0.5  # neutral fallback
 
     # 2. Mean reversion: RSI near buy threshold is good
-    rsi_val = rsi[idx]
-    if rsi_val <= dna.rsi_buy_threshold:
-        mr_raw = 1.0
-    elif rsi_val >= dna.rsi_sell_threshold:
-        mr_raw = 0.0
+    if not _core_nan["rsi"]:
+        rsi_val = rsi[idx]
+        if rsi_val <= dna.rsi_buy_threshold:
+            mr_raw = 1.0
+        elif rsi_val >= dna.rsi_sell_threshold:
+            mr_raw = 0.0
+        else:
+            rng = dna.rsi_sell_threshold - dna.rsi_buy_threshold
+            mr_raw = 1.0 - (rsi_val - dna.rsi_buy_threshold) / rng if rng > 0 else 0.5
     else:
-        rng = dna.rsi_sell_threshold - dna.rsi_buy_threshold
-        mr_raw = 1.0 - (rsi_val - dna.rsi_buy_threshold) / rng if rng > 0 else 0.5
+        mr_raw = 0.5  # neutral fallback
 
     # 3. Volume: higher ratio = better
-    vol_raw = min(volume_ratio[idx] / max(dna.volume_ratio_min, 0.01), 2.0) / 2.0
+    if not _core_nan["volume_ratio"]:
+        vol_raw = min(volume_ratio[idx] / max(dna.volume_ratio_min, 0.01), 2.0) / 2.0
+    else:
+        vol_raw = 0.5  # neutral fallback
 
     # 4. Trend: R² + positive slope + MA alignment
     ma_align = indicators.get("ma_alignment", [0.0] * (idx + 1))
     ma_val = ma_align[idx] if idx < len(ma_align) and not math.isnan(ma_align[idx]) else 0.0
-    base_trend = r2[idx] if slope[idx] > 0 else r2[idx] * 0.3
-    trend_raw = base_trend * (1.0 + 0.3 * ma_val)  # MA alignment boosts trend
-    trend_raw = max(0.0, min(1.0, trend_raw))
+    if not _core_nan["r2"] and not _core_nan["slope"]:
+        base_trend = r2[idx] if slope[idx] > 0 else r2[idx] * 0.3
+        trend_raw = base_trend * (1.0 + 0.3 * ma_val)  # MA alignment boosts trend
+        trend_raw = max(0.0, min(1.0, trend_raw))
+    else:
+        trend_raw = 0.5  # neutral fallback
 
     # 5. Pattern: golden dip + candle patterns
     lookback = min(20, idx)
@@ -1016,6 +1034,11 @@ def score_stock(
     vprofile_raw = max(0.0, min(1.0, vprofile_raw))
 
     # ──── Extended Technical Indicators (12-21) ────
+
+    # Stub indicator names — these always return 0.5 (neutral) and should
+    # NOT receive evolved weight.  Their weight is forced to 0.0 to prevent
+    # the evolution engine from wasting dimensions on meaningless parameters.
+    _STUB_INDICATORS = {"w_adx", "w_vwap", "w_ichimoku", "w_elder_ray"}
 
     # Helper to safely read a pre-computed indicator at idx
     def _safe_read(key: str, default: float = 0.5) -> float:
@@ -1247,6 +1270,12 @@ def score_stock(
     cashflow_raw = _compute_cashflow_score(cf_val) if cf_val != 0 else 0.5
 
     # ──── Weighted sum with all dimensions ────
+    # Force stub indicator weights to 0 so they don't affect the score
+    _effective_w_adx = 0.0        # stub — always returns 0.5
+    _effective_w_vwap = 0.0       # stub — always returns 0.5
+    _effective_w_ichimoku = 0.0   # stub — always returns 0.5
+    _effective_w_elder_ray = 0.0  # stub — always returns 0.5
+
     raw = (
         dna.w_momentum * momentum_raw
         + dna.w_mean_reversion * mr_raw
@@ -1261,15 +1290,15 @@ def score_stock(
         + dna.w_volume_profile * vprofile_raw
         # Technical extended
         + dna.w_atr * atr_raw
-        + dna.w_adx * adx_raw
+        + _effective_w_adx * adx_raw
         + dna.w_roc * roc_raw
         + dna.w_williams_r * williams_raw
         + dna.w_cci * cci_raw
         + dna.w_mfi * mfi_raw
-        + dna.w_vwap * vwap_raw
+        + _effective_w_vwap * vwap_raw
         + dna.w_donchian * donchian_raw
-        + dna.w_ichimoku * ichimoku_raw
-        + dna.w_elder_ray * elder_ray_raw
+        + _effective_w_ichimoku * ichimoku_raw
+        + _effective_w_elder_ray * elder_ray_raw
         # Rolling statistics
         + dna.w_beta * beta_raw
         + dna.w_r_squared * r2_raw
@@ -1297,7 +1326,9 @@ def score_stock(
         + dna.w_cashflow * cashflow_raw
     )
 
-    total_weight = sum(getattr(dna, k) for k in _WEIGHT_KEYS)
+    total_weight = sum(
+        getattr(dna, k) for k in _WEIGHT_KEYS if k not in _STUB_INDICATORS
+    )
 
     # ──── Dynamic factors (from custom_weights via factor discovery) ────
     if hasattr(dna, 'custom_weights') and dna.custom_weights:
@@ -1308,7 +1339,13 @@ def score_stock(
         vols_raw = indicators.get("volume", [])
 
         for fname, w in dna.custom_weights.items():
-            if w < 0.0001 or fname not in factor_fns:
+            if w < 0.0001:
+                continue
+            if fname not in factor_fns:
+                # Factor in DNA but not in registry: use neutral score (0.5)
+                # and ADD weight to total_weight to prevent score inflation
+                raw += w * 0.5
+                total_weight += w
                 continue
             try:
                 factor_raw = factor_fns[fname](closes_raw, highs_raw, lows_raw, vols_raw, idx)
@@ -2112,8 +2149,11 @@ class AutoEvolver:
                         # Apply slippage to exit: sell at slightly lower price
                         exit_price = exit_price * (1 - slippage_pct)
 
-                        buy_cost = entry_price * (0.0003 + 0.0005)
-                        sell_cost = exit_price * (0.0003 + 0.0005 + 0.001)
+                        # A-share fees (2023-08-28 regulation):
+                        # Commission: 0.025% (0.00025) both sides
+                        # Stamp tax: 0.05% (0.0005) sell side only
+                        buy_cost = entry_price * 0.00025
+                        sell_cost = exit_price * (0.00025 + 0.0005)
                         trade_return = (exit_price - entry_price - buy_cost - sell_cost) / entry_price * 100
                         bt_trades.append(trade_return)
 
@@ -2174,7 +2214,7 @@ class AutoEvolver:
                 dd = (peak - v) / peak * 100 if peak > 0 else 0
                 bt_max_drawdown = max(bt_max_drawdown, dd)
 
-            # Sharpe ratio
+            # Sharpe ratio (with risk-free rate adjustment)
             bt_sharpe = 0.0
             bt_sortino = 0.0
             if len(bt_portfolio_values) > 2:
@@ -2188,14 +2228,17 @@ class AutoEvolver:
                     var_r = sum((r - mean_r) ** 2 for r in period_returns) / len(period_returns)
                     std_r = math.sqrt(var_r) if var_r > 0 else 0.001
                     periods_per_year = 250 / max(hold_days, 1)
-                    bt_sharpe = (mean_r / std_r) * math.sqrt(periods_per_year)
+                    # Risk-free rate: 4% annual (US T-bill rate), convert to per-period
+                    annual_rf = float(os.environ.get("FINCLAW_RISK_FREE_RATE", "0.04"))
+                    rf_per_period = annual_rf / periods_per_year
+                    bt_sharpe = ((mean_r - rf_per_period) / std_r) * math.sqrt(periods_per_year)
 
                     # Sortino: downside deviation only
                     downside_returns = [r for r in period_returns if r < 0]
                     if downside_returns:
                         downside_var = sum(r ** 2 for r in downside_returns) / len(period_returns)
                         downside_std = math.sqrt(downside_var) if downside_var > 0 else 0.001
-                        bt_sortino = (mean_r / downside_std) * math.sqrt(periods_per_year)
+                        bt_sortino = ((mean_r - rf_per_period) / downside_std) * math.sqrt(periods_per_year)
                     else:
                         bt_sortino = bt_sharpe * 1.5  # no down periods = great
 
